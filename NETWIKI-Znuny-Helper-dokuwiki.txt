@@ -24,7 +24,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 | Browser-Fokus | Chromium, z. B. Chrome oder Edge |
 | Zielsystem | ''%%https://otrs.staff.hsrw/otrs/index.pl*%%'' |
 | Speicherung | Browserspeicher der Erweiterung |
-| Externe Server | Nur für EB Helper: lokale EB-Seite ''%%http://10.2.1.67/new%%'' |
+| Externe Server | Nur für EB Helper: lokale EB-Seite ''%%https://digi-eb.staff.hsrw/new%%'' |
 | Tampermonkey nötig | Nein |
 
 ===== Installation in Chrome oder Edge =====
@@ -177,7 +177,7 @@ Der **EB Helper** unterstützt beim Erstellen von Empfangsbestätigungen aus pas
 In geeigneten Tickets erscheint ein Button **Empfangsbestätigung erstellen**. Das Addon versucht, relevante Hardwareinformationen aus dem Ticket zu erkennen und an die lokale EB-Seite zu übergeben:
 
 <code>
-http://10.2.1.67/new
+https://digi-eb.staff.hsrw/new
 </code>
 
 Erkannt werden z. B.:

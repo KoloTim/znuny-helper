@@ -25,7 +25,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 | Browser-Fokus | Chromium, z. B. Chrome oder Edge |
 | Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` |
 | Speicherung | Browserspeicher der Erweiterung |
-| Externe Server | Nur für EB Helper: lokale EB-Seite `http://10.2.1.67/new` |
+| Externe Server | Nur für EB Helper: lokale EB-Seite `https://digi-eb.staff.hsrw/new` |
 | Tampermonkey nötig | Nein |
 
 ## Installation in Chrome oder Edge
@@ -60,6 +60,7 @@ Die Einstellungen werden im Browser gespeichert. Änderungen im Popup gelten dir
 | Ticketlisten | Ticket-Kategorien | Tickets lokal gruppieren, markieren und notieren |
 | Ticketlisten | Infinite Scroll | Weitere Ticketlistenseiten beim Scrollen automatisch laden |
 | ServiceDesk | EB Helper | Empfangsbestätigungen aus Hardware-Tickets vorbereiten |
+| ServiceDesk | Prioritäts-Vorlagen | Prioritätsseiten mit anpassbaren Schnellbuttons vorbefüllen |
 
 ## Anhang-Vorschau
 
@@ -166,13 +167,25 @@ Das spart Klicks auf weitere Seiten und macht längere Listen flüssiger nutzbar
 
 Hinweis: Da automatisch weitere Znuny-Seiten abgerufen werden, kann die Funktion bei sehr großen Listen etwas mehr Browser- und Netzwerklast erzeugen.
 
+## Prioritäts-Vorlagen
+
+Die Funktion **Prioritäts-Vorlagen** ergänzt Prioritätsseiten um anpassbare Schnellbuttons. Ein Klick füllt Felder wie Priorität, Betreff oder Text automatisch mit einer hinterlegten Vorlage.
+
+Über die Vorlagenverwaltung können Nutzerinnen und Nutzer:
+
+- Vorlagen anlegen, umbenennen und löschen
+- Feldwerte je Vorlage anpassen
+- die Reihenfolge der Schnellbuttons ändern
+
+Zusätzlich zeigt das Addon auf Prioritätsseiten einen Warnhinweis an, wenn ein Ticket einer erkennbar externen Kundenadresse zugeordnet ist oder im Titel als extern markiert wurde. Das soll daran erinnern, die Ticketdaten vor dem Übermitteln zu prüfen.
+
 ## EB Helper
 
 Der **EB Helper** unterstützt beim Erstellen von Empfangsbestätigungen aus passenden Hardware-Tickets.
 
 In geeigneten Tickets erscheint ein Button **Empfangsbestätigung erstellen**. Das Addon versucht, relevante Hardwareinformationen aus dem Ticket zu erkennen und an die lokale EB-Seite zu übergeben:
 
-`http://10.2.1.67/new`
+`https://digi-eb.staff.hsrw/new`
 
 Erkannt werden z. B.:
 

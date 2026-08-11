@@ -21,18 +21,18 @@
 
   function storageGet(defaults) {
     if (usesPromiseStorage) {
-      return api.storage.sync.get(defaults).then((value) => value || defaults);
+      return api.storage.local.get(defaults).then((value) => value || defaults);
     }
 
-    return new Promise((resolve) => api.storage.sync.get(defaults, (value) => resolve(value || defaults)));
+    return new Promise((resolve) => api.storage.local.get(defaults, (value) => resolve(value || defaults)));
   }
 
   function storageSet(value) {
     if (usesPromiseStorage) {
-      return api.storage.sync.set(value);
+      return api.storage.local.set(value);
     }
 
-    return new Promise((resolve) => api.storage.sync.set(value, resolve));
+    return new Promise((resolve) => api.storage.local.set(value, resolve));
   }
 
   function readForm() {

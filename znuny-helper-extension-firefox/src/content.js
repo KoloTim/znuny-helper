@@ -340,7 +340,7 @@
     return /bermitteln/i.test(text);
   }
 
-  function requestCloseSubmittedTab(delayMs = 1300) {
+  function requestCloseSubmittedTab(delayMs = 300) {
     try {
       const response = api.runtime?.sendMessage?.({
         type: "znuny-helper-close-submitted-tab",
@@ -1243,7 +1243,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     }
 
     if (ticketNumberControl) {
-      getOrCreateCleanSearchRow(primaryBlock, "zh-ticketnumber-row", "Ticketnummer:", ticketNumberControl, "z. B. 10*5155 oder 105658*");
+      getOrCreateCleanSearchRow(primaryBlock, "zh-ticketnumber-row", "Ticketnummer:", ticketNumberControl, "z. B. 86121234 oder 86126767");
       attachSearchHistory(ticketNumberControl, "ticketNumber");
       bindTicketNumberFulltextFallback(fulltextControl, ticketNumberControl);
     }
@@ -3631,47 +3631,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return emails.find((email) => !isAllowedHsrwCustomerEmail(email)) || "";
   }
 
-  function appendPriorityExternalCustomerNotice(toolbar) {
-    const externalEmail = getPriorityExternalCustomerEmail();
-    if (!externalEmail) return;
-
-    const notice = document.createElement("div");
-    notice.id = "zh-priority-external-customer-warning";
-    notice.innerHTML =
-      `<strong>EXTERN:</strong> Kunde scheint extern zu sein (${escapeHtml(externalEmail)}). ` +
-      "Bitte vor dem Übermitteln prüfen, ob die Ticketdaten entsprechend angepasst werden müssen.";
-    toolbar.appendChild(notice);
-  }
-
-  function findPriorityCustomerVisibleTarget() {
-    const candidates = [...document.querySelectorAll("label, div, span, p, td, th, strong")]
-      .filter((element) => !element.closest("#zh-priority-template-toolbar, .zh-priority-modal"))
-      .filter((element) => /ist\s+sichtbar\s+f(?:ü|ue)r\s+kunde/i.test(normalizeText(getElementText(element))));
-
-    const label = candidates.find(elementIsVisible) || candidates[0];
-    if (!label) return null;
-
-    return label.closest("tr, li, .Field, .Row, .WidgetSimple, fieldset, div") || label.parentElement;
-  }
-
-  function appendPriorityExternalCustomerBottomNotice() {
-    const externalEmail = getPriorityExternalCustomerEmail();
-    const existing = document.getElementById("zh-priority-external-customer-bottom-warning");
-    if (!externalEmail) {
-      existing?.remove();
-      return;
-    }
-
-    const target = findPriorityCustomerVisibleTarget();
-    if (!target) return;
-
-    const notice = existing || document.createElement("div");
-    notice.id = "zh-priority-external-customer-bottom-warning";
-    notice.textContent = "ACHTUNG: Kunde ist extern";
-
-    if (!existing) target.after(notice);
-  }
-
   function schedulePriorityExternalCustomerBottomNotice() {
     appendPriorityExternalCustomerBottomNotice();
     [200, 700, 1500].forEach((delay) => {
@@ -5007,7 +4966,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   async function init() {
-    const storedSettings = await syncGet("sync", { [SETTINGS_KEY]: DEFAULT_SETTINGS });
+    const storedSettings = await syncGet("local", { [SETTINGS_KEY]: DEFAULT_SETTINGS });
     settings = { ...DEFAULT_SETTINGS, ...(storedSettings[SETTINGS_KEY] || {}) };
 
     const storedTicketState = await syncGet("local", { [TICKET_STATE_KEY]: ticketState });
@@ -5047,7 +5006,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     });
 
     api.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName !== "sync" || !changes[SETTINGS_KEY]) return;
+      if (areaName !== "local" || !changes[SETTINGS_KEY]) return;
 
       settings = { ...DEFAULT_SETTINGS, ...(changes[SETTINGS_KEY].newValue || {}) };
       runEnabledFeatures();

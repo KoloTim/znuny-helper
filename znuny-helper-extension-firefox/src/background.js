@@ -125,10 +125,10 @@
   }
 
   async function migrateNewDisabledDefaults() {
-    const stored = await storageGet("sync", { [SETTINGS_KEY]: {} });
+    const stored = await storageGet("local", { [SETTINGS_KEY]: {} });
     const current = stored[SETTINGS_KEY] || {};
 
-    await storageSet("sync", {
+    await storageSet("local", {
       [SETTINGS_KEY]: {
         ...current,
         ebHelper: false,

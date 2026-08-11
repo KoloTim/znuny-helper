@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "0.1.37",
+      items: [
+        "Funktionseinstellungen nutzen jetzt lokalen statt synchronisierten Speicher, damit sie unter Firefox zuverlässig laden und speichern.",
+        "Doppelt definierte interne Funktionen für den Extern-Hinweis auf Prioritätsseiten entfernt."
+      ]
+    },
+    {
       version: "0.1.36",
       items: [
         "Tabs von Mail-Antworten werden nach \"E-Mail übermitteln\" automatisch geschlossen."
