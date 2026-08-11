@@ -9,6 +9,16 @@
 
   const releases = [
     {
+      version: "0.1.38",
+      items: [
+        "Neu: Anhang-Erinnerung auf der Antwortseite, wenn der Text einen Anhang erwähnt, aber keiner angehängt ist.",
+        "Neu: Schnellknöpfe für Wartedatum (+3/+7/+14 Tage, Standard 3) überall dort, wo ein Warten-Status ein Datum verlangt.",
+        "Neu: Schnellauswahl Zeitraum (letzte Woche/Monat/Quartal/Jahr) in der Ticket-Suche.",
+        "Ticket-Kategorien: Standardkategorien auf Ampelschema umgestellt (Neu/Wartend/Wichtig/Fertig) und Import/Export zum Teilen ergänzt.",
+        "Prioritäts-Vorlagen: auf der Antwortseite nutzbar und ebenfalls per Import/Export teilbar."
+      ]
+    },
+    {
       version: "0.1.37",
       items: [
         "Funktionseinstellungen nutzen jetzt lokalen statt synchronisierten Speicher, damit sie unter Firefox zuverlässig laden und speichern.",

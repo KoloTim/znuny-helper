@@ -11,7 +11,9 @@
     ebHelper: false,
     priorityTemplates: true,
     ticketCategories: true,
-    ticketListInfiniteScroll: true
+    ticketListInfiniteScroll: true,
+    attachmentReminder: true,
+    pendingDateButtons: true
   };
 
   const api = typeof browser !== "undefined" ? browser : chrome;

@@ -58,6 +58,9 @@ Die Einstellungen werden im Browser gespeichert. Änderungen im Popup gelten dir
 | Ticketlisten | Ticket-Kategorien | Tickets lokal gruppieren, markieren und notieren |
 | Ticketlisten | Infinite Scroll | Weitere Ticketlistenseiten beim Scrollen automatisch laden |
 | ServiceDesk | EB Helper | Empfangsbestätigungen aus Hardware-Tickets vorbereiten |
+| ServiceDesk | Prioritäts-Vorlagen | Prioritätsseiten und Antwortseite mit anpassbaren Schnellbuttons vorbefüllen |
+| Antwort | Anhang-Erinnerung | Hinweis, wenn der Text einen Anhang erwähnt, aber keiner angehängt ist |
+| Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status |
 
 ===== Anhang-Vorschau =====
 
@@ -104,6 +107,15 @@ Das verhindert sehr große Suchläufe und sorgt trotzdem dafür, dass aktuelle u
 
 Außerdem merkt sich das Addon lokal die letzten Suchbegriffe und Ticketnummern als kleine Suchhistorie.
 
+Zusätzlich gibt es Schnellknöpfe, um den Zeitraum mit einem Klick umzustellen:
+
+  * Letzte Woche
+  * Letzter Monat
+  * Letztes Quartal
+  * Letztes Jahr (Standard)
+
+Ein Klick setzt nur den Zeitraum neu; die Suche muss danach wie gewohnt gestartet werden.
+
 ===== Ticketinhalt-Suche =====
 
 In geöffneten Tickets ergänzt das Addon oben im Ticket ein Suchfeld. Damit kann innerhalb der Ticketansicht gesucht werden.
@@ -125,16 +137,13 @@ Ticketinhalte, die Znuny noch nicht geladen hat, müssen ggf. erst geöffnet ode
 
 Die Funktion **Ticket-Kategorien** erweitert bestimmte Ticketlisten um eine lokale Kategorisierung.
 
-Standardkategorien sind u. a.:
+Standardkategorien sind ein Ampelschema:
 
   * Ohne Kategorie
-  * Dringend
-  * Warten
-  * Studis / Externe
-  * Hardware / Abholung
-  * Software / Zugang
-  * Langzeit
-  * Erledigt
+  * Wichtig (rot)
+  * Wartend (gelb)
+  * Neu (grün)
+  * Fertig (schwarz)
 
 Tickets können dadurch übersichtlicher gruppiert und schneller wiedergefunden werden. Die Zuordnung erfolgt lokal im Browser und verändert keine offiziellen Znuny-Daten.
 
@@ -149,6 +158,8 @@ Tickets können dadurch übersichtlicher gruppiert und schneller wiedergefunden 
   * Reihenfolge ändern
   * Keywords für automatische Sortierung pflegen
   * Standard wiederherstellen
+  * Kategorien als Datei exportieren, um sie mit Kolleginnen und Kollegen zu teilen
+  * Kategorien aus einer Datei importieren
 
 Die automatische Zuordnung basiert auf Keywords in Titel, Absender oder anderen sichtbaren Ticketinformationen. Manuelle Anpassungen bleiben lokal gespeichert.
 
@@ -169,6 +180,36 @@ Das spart Klicks auf weitere Seiten und macht längere Listen flüssiger nutzbar
 <note>
 Da automatisch weitere Znuny-Seiten abgerufen werden, kann die Funktion bei sehr großen Listen etwas mehr Browser- und Netzwerklast erzeugen.
 </note>
+
+===== Prioritäts-Vorlagen =====
+
+Die Funktion **Prioritäts-Vorlagen** ergänzt Prioritätsseiten und die Antwortseite um anpassbare Schnellbuttons. Ein Klick füllt Felder wie Priorität, Betreff oder Text automatisch mit einer hinterlegten Vorlage. Auf der Antwortseite füllt eine Vorlage nur die dort vorhandenen Felder; ein bereits vorhandener Text (z. B. eine Zitatzeile) wird ergänzt statt überschrieben.
+
+Über die Vorlagenverwaltung können Nutzerinnen und Nutzer:
+
+  * Vorlagen anlegen, umbenennen und löschen
+  * Feldwerte je Vorlage anpassen
+  * die Reihenfolge der Schnellbuttons ändern
+  * Vorlagen als Datei exportieren, um sie mit Kolleginnen und Kollegen zu teilen
+  * Vorlagen aus einer Datei importieren
+
+Zusätzlich zeigt das Addon auf Prioritätsseiten einen Warnhinweis an, wenn ein Ticket einer erkennbar externen Kundenadresse zugeordnet ist oder im Titel als extern markiert wurde. Das soll daran erinnern, die Ticketdaten vor dem Übermitteln zu prüfen.
+
+===== Anhang-Erinnerung =====
+
+Auf der Antwortseite zeigt das Addon einen Hinweis **Anhang vergessen?** an, wenn der Text Wörter wie "anbei" oder "Anhang" enthält, aber keine Datei angehängt wurde.
+
+Der Hinweis ist rein informativ und blockiert das Senden nicht.
+
+===== Warten-Schnellauswahl =====
+
+Wo immer beim Setzen eines "Warten"-Status ein Datum verlangt wird, ergänzt das Addon Schnellknöpfe für das Wartedatum:
+
+  * +3 Tage (Standard, wird beim Erscheinen des Datumsfelds automatisch vorbelegt)
+  * +7 Tage
+  * +14 Tage
+
+Ein Klick auf einen anderen Knopf überschreibt die Vorbelegung jederzeit.
 
 ===== EB Helper =====
 

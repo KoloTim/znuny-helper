@@ -20,7 +20,9 @@
     ebHelper: false,
     priorityTemplates: true,
     ticketCategories: true,
-    ticketListInfiniteScroll: true
+    ticketListInfiniteScroll: true,
+    attachmentReminder: true,
+    pendingDateButtons: true
   };
 
   const DEFAULT_PRIORITY_TEMPLATES = [
@@ -42,50 +44,26 @@
 
   const DEFAULT_GROUPS = [
     { id: "", title: "Ohne Kategorie", short: "Keine", color: "", order: 1 },
-    { id: "dringend", title: "Dringend", short: "Dringend", color: "#ffd6d6", order: 2 },
-    { id: "warten", title: "Warten", short: "Warten", color: "#fff3b0", order: 3 },
-    { id: "studis", title: "Studis / Externe", short: "Studis", color: "#d8ffd8", order: 4 },
-    { id: "hardware", title: "Hardware / Abholung", short: "Hardware", color: "#d9ecff", order: 5 },
-    { id: "software", title: "Software / Zugang", short: "Software", color: "#e5f0ff", order: 6 },
-    { id: "langzeit", title: "Langzeit", short: "Langzeit", color: "#ead8ff", order: 7 },
-    { id: "erledigt", title: "Erledigt", short: "Erledigt", color: "#d9d9d9", order: 8 }
+    { id: "wichtig", title: "Wichtig", short: "Wichtig", color: "#e53935", order: 2 },
+    { id: "wartend", title: "Wartend", short: "Wartend", color: "#fdd835", order: 3 },
+    { id: "neu", title: "Neu", short: "Neu", color: "#43a047", order: 4 },
+    { id: "fertig", title: "Fertig", short: "Fertig", color: "#212121", order: 5 }
   ];
 
   const DEFAULT_KEYWORDS = {
-    warten: [
-      "warten auf kunden", "warten auf kunde", "warten auf user", "warte auf",
-      "rueckmeldung", "r\u00fcckmeldung", "antwort", "feedback", "nachfrage", "termin",
-      "terminvereinbarung", "abstimmung", "pending", "on hold"
-    ],
-    dringend: [
+    wichtig: [
       "dringend", "urgent", "sofort", "kritisch", "critical", "notfall",
       "ausfall", "stoerung", "st\u00f6rung", "funktioniert nicht", "geht nicht",
       "kein zugriff", "deadline", "pruefung", "pr\u00fcfung", "heute", "asap", "blockiert",
       "defekt"
     ],
-    studis: [
-      "student", "studi", "studierende", "studium", "studien", "bewerbung",
-      "einschreibung", "matrikel", "semester", "praktikum", "thesis",
-      "abschlussarbeit", "campus", "eduroam", "moodle", "pruefungs", "pr\u00fcfungs",
-      "studentische"
+    wartend: [
+      "warten auf kunden", "warten auf kunde", "warten auf user", "warte auf",
+      "rueckmeldung", "r\u00fcckmeldung", "antwort", "feedback", "nachfrage", "termin",
+      "terminvereinbarung", "abstimmung", "pending", "on hold"
     ],
-    hardware: [
-      "notebook", "laptop", "pc", "rechner", "computer", "drucker", "printer",
-      "monitor", "bildschirm", "dock", "docking", "tastatur", "maus", "yubikey",
-      "ubikey", "abholung", "abholen", "rueckgabe", "r\u00fcckgabe", "uebergabe", "\u00fcbergabe", "geraet", "ger\u00e4t",
-      "hardware", "thinclient", "thin client", "headset", "kamera", "webcam",
-      "scanner", "beschaffung", "bestellung", "lieferung"
-    ],
-    software: [
-      "vpn", "cisco", "sophos", "windows", "office", "outlook", "teams",
-      "webex", "lizenz", "license", "software", "passwort", "kennwort",
-      "account", "zugang", "login", "installation", "installieren", "update",
-      "endpoint", "client", "programm", "app", "mail", "e-mail", "email",
-      "browser", "zertifikat", "sharepoint", "onedrive", "sap", "his", "qis",
-      "ldap", "mfa", "2fa", "authenticator"
-    ],
-    langzeit: ["langzeit", "projekt", "sub case", "subcase", "dienstleister", "lieferant", "warten auf lieferung"],
-    erledigt: ["erledigt", "geloest", "gel\u00f6st", "closed", "close", "schliessen", "schlie\u00dfen", "abgeschlossen", "fertig"]
+    neu: [],
+    fertig: ["erledigt", "geloest", "gel\u00f6st", "closed", "close", "schliessen", "schlie\u00dfen", "abgeschlossen", "fertig"]
   };
 
   const api = typeof browser !== "undefined" ? browser : chrome;
@@ -176,6 +154,56 @@
   function saveCategoryConfig() {
     categoryConfig = normalizeCategoryConfig(categoryConfig);
     syncSet("local", { [CATEGORY_CONFIG_KEY]: categoryConfig });
+  }
+
+  function getReadableTextColor(hexColor) {
+    const hex = String(hexColor || "").trim();
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) return "#111";
+
+    const r = Number.parseInt(hex.slice(1, 3), 16);
+    const g = Number.parseInt(hex.slice(3, 5), 16);
+    const b = Number.parseInt(hex.slice(5, 7), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    return luminance < 0.55 ? "#fff" : "#111";
+  }
+
+  function downloadJsonFile(filename, data) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function importJsonFile(onLoad) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json,.json";
+    input.style.display = "none";
+
+    input.addEventListener("change", () => {
+      const file = input.files?.[0];
+      input.remove();
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          onLoad(JSON.parse(String(reader.result || "")));
+        } catch (error) {
+          window.alert("Datei konnte nicht gelesen werden: ungültiges JSON.");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    document.body.appendChild(input);
+    input.click();
   }
 
   function normalizePriorityTemplateConfig(config) {
@@ -314,7 +342,7 @@
   }
 
   function isPriorityTemplatePage() {
-    return isPriorityTicketPage() || isOwnerTicketPage();
+    return isPriorityTicketPage() || isOwnerTicketPage() || isComposeTicketPage();
   }
 
   function getFormControlValue(form, name) {
@@ -402,6 +430,288 @@
 
       window.setTimeout(() => requestCloseSubmittedTab(3000), 0);
     }, true);
+  }
+
+  const ATTACHMENT_MENTION_PATTERN = /\b(anbei|im\s+anhang|als\s+anhang|anhang\s+beigef(?:ue|ü)gt|angeh(?:ae|ä)ngt|beigef(?:ue|ü)gt|attached|attachment)\b/i;
+  const ATTACHMENT_NO_ROWS_PATTERN = /^(keine\s+anh(?:ae|ä)nge|no\s+attachments?|anhang|anh(?:ae|ä)nge)$/i;
+  let attachmentReminderState = { bound: false, timer: null };
+
+  function isOutgoingMessagePage() {
+    return isComposeTicketPage();
+  }
+
+  function getComposeBodyText() {
+    const iframe = document.querySelector(".cke_wysiwyg_frame, iframe[title*='Rich' i], iframe");
+    try {
+      const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
+      if (iframeDoc?.body) return iframeDoc.body.innerText || "";
+    } catch (error) {
+      // Cross-document access can fail; fall through to other strategies.
+    }
+
+    const editable = document.querySelector(".cke_editable[contenteditable='true'], [contenteditable='true']");
+    if (editable) return editable.innerText || "";
+
+    const textarea = [...document.querySelectorAll("textarea")]
+      .find((control) => /richtext|body|article|text/i.test(`${control.name || ""} ${control.id || ""}`));
+
+    return textarea?.value || "";
+  }
+
+  function findAttachmentListContainers() {
+    return [...document.querySelectorAll('[id*="attachment" i], [class*="attachment" i]')]
+      .filter((element) => ["TABLE", "TBODY", "UL", "OL"].includes(element.tagName));
+  }
+
+  function countComposeAttachmentRows() {
+    const containers = findAttachmentListContainers();
+
+    for (const container of containers) {
+      const rows = [...container.querySelectorAll("tr, li")].filter((row) => {
+        const text = normalizeText(getElementText(row)).toLowerCase();
+        return text && !ATTACHMENT_NO_ROWS_PATTERN.test(text);
+      });
+
+      if (rows.length) return rows.length;
+    }
+
+    return 0;
+  }
+
+  function countPendingFileUploads() {
+    return [...document.querySelectorAll('input[type="file"]')]
+      .reduce((total, input) => total + (input.files?.length || 0), 0);
+  }
+
+  function hasAttachmentWidget() {
+    return Boolean(document.querySelector('[id*="attachment" i], [class*="attachment" i], input[type="file"]'));
+  }
+
+  function hasComposeAttachment() {
+    return countComposeAttachmentRows() > 0 || countPendingFileUploads() > 0;
+  }
+
+  function getAttachmentReminderTarget() {
+    const widget = [...document.querySelectorAll(".WidgetSimple, fieldset")]
+      .find((element) => /artikel hinzuf|nachricht/i.test(normalizeText(getElementText(element.querySelector(".Header") || element))));
+
+    if (widget) return { mode: "before", element: widget };
+
+    return { mode: "prepend", element: document.querySelector("form") || document.body };
+  }
+
+  function ensureAttachmentReminderBanner() {
+    let banner = document.getElementById("zh-attachment-reminder");
+    if (banner) return banner;
+
+    const target = getAttachmentReminderTarget();
+    if (!target?.element) return null;
+
+    banner = document.createElement("div");
+    banner.id = "zh-attachment-reminder";
+    banner.hidden = true;
+    banner.innerHTML = "<strong>Anhang vergessen?</strong> Der Text erwähnt einen Anhang, aber es wurde noch keine Datei angehängt.";
+
+    if (target.mode === "before") target.element.before(banner);
+    else target.element.prepend(banner);
+
+    return banner;
+  }
+
+  function addAttachmentReminderStyles() {
+    addStyle("zh-attachment-reminder-style", `
+      #zh-attachment-reminder { margin: 8px 0; padding: 8px 12px; border: 1px solid #e0a800; border-radius: 4px; background: #fff8e1; color: #6b4e00; font-size: 12.5px; }
+      #zh-attachment-reminder strong { margin-right: 4px; }
+    `);
+  }
+
+  function updateAttachmentReminder() {
+    if (!settings.attachmentReminder || !isOutgoingMessagePage()) {
+      disableAttachmentReminder();
+      return;
+    }
+
+    const banner = ensureAttachmentReminderBanner();
+    if (!banner) return;
+
+    const shouldWarn = hasAttachmentWidget() &&
+      !hasComposeAttachment() &&
+      ATTACHMENT_MENTION_PATTERN.test(getComposeBodyText());
+
+    banner.hidden = !shouldWarn;
+  }
+
+  function enableAttachmentReminder() {
+    if (!settings.attachmentReminder || !isOutgoingMessagePage()) {
+      disableAttachmentReminder();
+      return;
+    }
+
+    addAttachmentReminderStyles();
+    updateAttachmentReminder();
+
+    if (!attachmentReminderState.bound) {
+      attachmentReminderState.bound = true;
+      attachmentReminderState.timer = window.setInterval(updateAttachmentReminder, 1000);
+    }
+  }
+
+  function disableAttachmentReminder() {
+    document.getElementById("zh-attachment-reminder")?.remove();
+    removeStyle("zh-attachment-reminder-style");
+
+    if (attachmentReminderState.timer) {
+      window.clearInterval(attachmentReminderState.timer);
+    }
+
+    attachmentReminderState = { bound: false, timer: null };
+  }
+
+  const PENDING_DATE_PRESETS = [3, 7, 14];
+
+  function selectNearestDateNumber(select, target) {
+    if (!select?.options?.length) return false;
+
+    let best = null;
+    let bestDiff = Infinity;
+
+    [...select.options].forEach((option) => {
+      const num = optionNumber(option);
+      if (!Number.isFinite(num)) return;
+      const diff = Math.abs(num - target);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = option;
+      }
+    });
+
+    if (!best) return false;
+
+    if (select.value !== best.value || !best.selected) {
+      select.value = best.value;
+      best.selected = true;
+      select.dispatchEvent(new Event("input", { bubbles: true }));
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    return true;
+  }
+
+  function findPendingDateGroups() {
+    const selects = [...document.querySelectorAll("select")]
+      .filter((select) => !select.closest("#zh-search-primary-fields, .zh-priority-modal, #zh-priority-template-toolbar, #zh-attachment-reminder"));
+
+    const byPrefix = new Map();
+
+    selects.forEach((select) => {
+      const name = select.name || select.id || "";
+      const match = name.match(/^(.*?)(Year|Month|Day|Hour|Minute)$/);
+      if (!match) return;
+
+      const prefix = match[1];
+      const part = match[2];
+      if (!byPrefix.has(prefix)) byPrefix.set(prefix, {});
+      byPrefix.get(prefix)[part] = select;
+    });
+
+    const groups = [];
+    byPrefix.forEach((parts, prefix) => {
+      if (parts.Year && parts.Month && parts.Day && parts.Hour && parts.Minute && isVisibleFormControl(parts.Year)) {
+        groups.push({ prefix, ...parts });
+      }
+    });
+
+    return groups;
+  }
+
+  function pageHasPendingStateSelected() {
+    return [...document.querySelectorAll("select")].some((select) => {
+      const signature = `${select.name || ""} ${select.id || ""}`.toLowerCase();
+      if (!signature.includes("state")) return false;
+
+      const text = normalizeText(select.selectedOptions?.[0]?.textContent || "").toLowerCase();
+      return /warten|pending/.test(text);
+    });
+  }
+
+  function setPendingDateOffset(group, days) {
+    const now = new Date();
+    const target = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+    selectDateNumber(group.Day, target.getDate());
+    selectDateNumber(group.Month, target.getMonth() + 1);
+    selectDateNumber(group.Year, target.getFullYear());
+    selectNearestDateNumber(group.Hour, now.getHours());
+    selectNearestDateNumber(group.Minute, now.getMinutes());
+  }
+
+  function findPendingDateContainer(group) {
+    const anchor = group.Minute;
+    const fieldContainer = anchor.closest(".Field, .Row, fieldset, li");
+    if (fieldContainer) return fieldContainer;
+
+    const row = anchor.closest("tr");
+    if (row) return row.querySelector("td:last-child") || row;
+
+    return anchor.parentElement;
+  }
+
+  function ensurePendingDateButtons(group) {
+    if (group.Year.dataset.zhPendingButtonsBound === "1") return;
+
+    const container = findPendingDateContainer(group);
+    if (!container) return;
+
+    group.Year.dataset.zhPendingButtonsBound = "1";
+
+    const row = document.createElement("div");
+    row.className = "zh-pending-date-row";
+
+    const label = document.createElement("span");
+    label.className = "zh-pending-date-label";
+    label.textContent = "Warten bis:";
+    row.appendChild(label);
+
+    PENDING_DATE_PRESETS.forEach((days) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = days === 3 ? "+3 Tage (Standard)" : `+${days} Tage`;
+      button.addEventListener("click", (event) => {
+        stopEvent(event);
+        setPendingDateOffset(group, days);
+      });
+      row.appendChild(button);
+    });
+
+    container.appendChild(row);
+    setPendingDateOffset(group, 3);
+  }
+
+  function addPendingDateStyles() {
+    addStyle("zh-pending-date-style", `
+      .zh-pending-date-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 0; }
+      .zh-pending-date-label { color: #777; font-size: 12px; }
+      .zh-pending-date-row button { font-size: 11px; padding: 3px 8px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; }
+      .zh-pending-date-row button:hover { background: #fff; border-color: #888; }
+    `);
+  }
+
+  function enablePendingDateQuickButtons() {
+    if (window.top !== window.self || !pageHasPendingStateSelected()) return;
+
+    const groups = findPendingDateGroups();
+    if (!groups.length) return;
+
+    addPendingDateStyles();
+    groups.forEach(ensurePendingDateButtons);
+  }
+
+  function disablePendingDateQuickButtons() {
+    document.querySelectorAll(".zh-pending-date-row").forEach((row) => row.remove());
+    document.querySelectorAll("select[data-zh-pending-buttons-bound]").forEach((select) => {
+      delete select.dataset.zhPendingButtonsBound;
+    });
+    removeStyle("zh-pending-date-style");
   }
 
   function queueScan() {
@@ -1248,6 +1558,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       bindTicketNumberFulltextFallback(fulltextControl, ticketNumberControl);
     }
 
+    ensureSearchDateRangeQuickButtons(form, primaryBlock);
+
     moveKnownSearchSectionsAfterPrimary(form, primaryBlock);
     hideOldUsedFilterScaffold(form);
     prepareSearchFormNewTab(form);
@@ -1506,12 +1818,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return true;
   }
 
-  function fillDefaultTicketTimeRange(form) {
+  function fillTicketTimeRangeWithDates(form, start, end) {
     const containers = findDefaultTicketTimeFilterContainers(form);
     if (!containers.length) return false;
 
-    const end = new Date();
-    const start = getSameDateLastYear(end);
     const values = [
       start.getDate(), start.getMonth() + 1, start.getFullYear(),
       end.getDate(), end.getMonth() + 1, end.getFullYear()
@@ -1534,6 +1844,67 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     });
 
     return filled || containers.length > 0;
+  }
+
+  function fillDefaultTicketTimeRange(form) {
+    const end = new Date();
+    const start = getSameDateLastYear(end);
+    return fillTicketTimeRangeWithDates(form, start, end);
+  }
+
+  function getDateDaysAgo(date, days) {
+    const result = new Date(date);
+    result.setDate(result.getDate() - days);
+    return result;
+  }
+
+  function getDateMonthsAgo(date, months) {
+    const result = new Date(date);
+    result.setMonth(result.getMonth() - months);
+    return result;
+  }
+
+  const SEARCH_DATE_RANGE_PRESETS = [
+    { id: "week", label: "Letzte Woche", getStart: (now) => getDateDaysAgo(now, 7) },
+    { id: "month", label: "Letzter Monat", getStart: (now) => getDateMonthsAgo(now, 1) },
+    { id: "quarter", label: "Letztes Quartal", getStart: (now) => getDateMonthsAgo(now, 3) },
+    { id: "year", label: "Letztes Jahr", getStart: (now) => getSameDateLastYear(now) }
+  ];
+
+  function applySearchDateRangePreset(form, preset) {
+    const end = new Date();
+    const start = preset.getStart(end);
+    fillTicketTimeRangeWithDates(form, start, end);
+    cleanupEmptyGeneratedSearchFilterRows(form);
+  }
+
+  function ensureSearchDateRangeQuickButtons(form, primaryBlock) {
+    let row = document.getElementById("zh-search-daterange-row");
+    if (!row) {
+      row = document.createElement("div");
+      row.id = "zh-search-daterange-row";
+      row.className = "zh-search-daterange-row";
+
+      const label = document.createElement("span");
+      label.className = "zh-search-daterange-label";
+      label.textContent = "Zeitraum:";
+      row.appendChild(label);
+
+      SEARCH_DATE_RANGE_PRESETS.forEach((preset) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = preset.label;
+        button.dataset.presetId = preset.id;
+        button.addEventListener("click", (event) => {
+          stopEvent(event);
+          const activeForm = findVisibleSearchForm() || form;
+          applySearchDateRangePreset(activeForm, preset);
+        });
+        row.appendChild(button);
+      });
+    }
+
+    primaryBlock.appendChild(row);
   }
 
   function removeLegacyCreatedTimeFilters(form) {
@@ -2058,6 +2429,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-search-primary-fields .zh-search-history[hidden] { display: none !important; }
       #zh-search-primary-fields .zh-search-history button { max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; line-height: 1.3; padding: 2px 6px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; }
       #zh-search-primary-fields .zh-search-history button:hover { background: #fff; border-color: #888; }
+      .zh-search-daterange-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin: 4px auto 0; max-width: 420px; }
+      .zh-search-daterange-label { color: #777; font-size: 12px; margin-right: 2px; }
+      .zh-search-daterange-row button { font-size: 11px; padding: 3px 8px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; }
+      .zh-search-daterange-row button:hover { background: #fff; border-color: #888; }
       .zh-search-hidden-scaffold { display: none !important; }
     `);
   }
@@ -3530,9 +3905,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       .replace(/"/g, "&quot;");
   }
 
-  function setPriorityRichText(value) {
+  function setPriorityRichText(value, options = {}) {
     if (!value) return false;
 
+    const prepend = Boolean(options.prepend);
     const row = findPriorityFieldSection(["Text"]);
     const textarea = [...(row?.querySelectorAll("textarea") || [])]
       .find((control) => {
@@ -3540,7 +3916,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         return /richtext|body|article|text/.test(signature);
       });
     if (textarea) {
-      setControlValue(textarea, value);
+      setControlValue(textarea, prepend ? `${value}\n${textarea.value || ""}` : value);
     }
 
     const html = escapeHtml(value).replace(/\n/g, "<br>");
@@ -3549,7 +3925,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       document.querySelector(".cke_editable[contenteditable='true'], [contenteditable='true']");
 
     if (editable) {
-      editable.innerHTML = html;
+      editable.innerHTML = prepend ? `${html}<br>${editable.innerHTML || ""}` : html;
       editable.dispatchEvent(new Event("input", { bubbles: true }));
       editable.dispatchEvent(new Event("change", { bubbles: true }));
       return true;
@@ -3559,7 +3935,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     try {
       const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
       if (iframeDoc?.body) {
-        iframeDoc.body.innerHTML = html;
+        iframeDoc.body.innerHTML = prepend ? `${html}<br>${iframeDoc.body.innerHTML || ""}` : html;
         iframeDoc.body.dispatchEvent(new Event("input", { bubbles: true }));
         iframeDoc.body.dispatchEvent(new Event("change", { bubbles: true }));
         return true;
@@ -3588,7 +3964,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     window.setTimeout(applyDependentFields, 600);
 
     setPriorityPlainField(["Betreff"], ["Subject"], fields.subject);
-    window.setTimeout(() => setPriorityRichText(fields.body), 50);
+    window.setTimeout(() => setPriorityRichText(fields.body, { prepend: isComposeTicketPage() }), 50);
     window.setTimeout(closePriorityAutocompleteDropdowns, 80);
   }
 
@@ -3890,6 +4266,31 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       renderPriorityTemplateEditorRows(list);
     });
 
+    const exportButton = document.createElement("button");
+    exportButton.type = "button";
+    exportButton.textContent = "Exportieren";
+    exportButton.title = "Vorlagen als Datei speichern, um sie zu teilen";
+    exportButton.addEventListener("click", () => {
+      priorityTemplateConfig = normalizePriorityTemplateConfig({ templates: readPriorityTemplateEditorRows(list) });
+      downloadJsonFile("znuny-helper-vorlagen.json", priorityTemplateConfig);
+    });
+
+    const importButton = document.createElement("button");
+    importButton.type = "button";
+    importButton.textContent = "Importieren";
+    importButton.title = "Vorlagen aus einer Datei laden";
+    importButton.addEventListener("click", () => {
+      importJsonFile((data) => {
+        if (!data || !Array.isArray(data.templates)) {
+          window.alert("Diese Datei enthält keine gültigen Vorlagen.");
+          return;
+        }
+
+        priorityTemplateConfig = normalizePriorityTemplateConfig(data);
+        renderPriorityTemplateEditorRows(list);
+      });
+    });
+
     const saveButton = document.createElement("button");
     saveButton.type = "button";
     saveButton.textContent = "Speichern";
@@ -3900,7 +4301,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       enablePriorityTemplates();
     });
 
-    footer.append(addButton, resetButton, saveButton);
+    footer.append(addButton, resetButton, exportButton, importButton, saveButton);
     modal.appendChild(footer);
 
     backdrop.addEventListener("click", (event) => {
@@ -4349,9 +4750,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function autoDetectCategory(row, indexes) {
     const text = getSearchText(row, indexes);
-    const age = getAgeMinutes(row, indexes);
-
-    if (age >= 100 * 1440) return "langzeit";
 
     const priority = getCategoryGroups()
       .filter((group) => group.id)
@@ -4779,6 +5177,31 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       renderCategoryManagerRows(list);
     });
 
+    const exportButton = document.createElement("button");
+    exportButton.type = "button";
+    exportButton.textContent = "Exportieren";
+    exportButton.title = "Kategorien als Datei speichern, um sie zu teilen";
+    exportButton.addEventListener("click", () => {
+      categoryConfig = readCategoryManagerRows(list);
+      downloadJsonFile("znuny-helper-kategorien.json", categoryConfig);
+    });
+
+    const importButton = document.createElement("button");
+    importButton.type = "button";
+    importButton.textContent = "Importieren";
+    importButton.title = "Kategorien aus einer Datei laden";
+    importButton.addEventListener("click", () => {
+      importJsonFile((data) => {
+        if (!data || (!Array.isArray(data.groups) && !data.keywords)) {
+          window.alert("Diese Datei enthält keine gültigen Ticket-Kategorien.");
+          return;
+        }
+
+        categoryConfig = normalizeCategoryConfig(data);
+        renderCategoryManagerRows(list);
+      });
+    });
+
     const saveButton = document.createElement("button");
     saveButton.type = "button";
     saveButton.textContent = "Speichern";
@@ -4790,7 +5213,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       applyTicketCategories();
     });
 
-    leftActions.append(addButton, resetButton);
+    leftActions.append(addButton, resetButton, exportButton, importButton);
     rightActions.append(saveButton);
     footer.append(leftActions, rightActions);
 
@@ -4867,8 +5290,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       const manualCategory = getManualCategory(ticketId);
       const group = groups.find((item) => item.id === effectiveCategory) || groups[0];
 
+      const textColor = group.color ? getReadableTextColor(group.color) : "";
       caseCell.style.background = group.color || "";
       caseCell.style.fontWeight = "";
+      caseCell.style.color = textColor;
 
       const badge = caseCell.querySelector(".zh-badge");
       const select = caseCell.querySelector(".zh-category-select");
@@ -4878,6 +5303,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         const marker = manualCategory === null ? " A" : "";
         badge.textContent = group.id ? `${group.short}${marker}` : `Keine${marker}`;
         badge.style.background = group.color || "#eee";
+        badge.style.color = group.color ? getReadableTextColor(group.color) : "#111";
         badge.title = manualCategory === null ? "Automatisch erkannt" : "Manuell gesetzt";
       }
 
@@ -4928,6 +5354,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         row.querySelectorAll("[data-zh-original-background]").forEach((cell) => {
           cell.style.background = cell.dataset.zhOriginalBackground || "";
           cell.style.fontWeight = cell.dataset.zhOriginalFontWeight || "";
+          cell.style.color = "";
         });
 
         tbody.appendChild(row);
@@ -4963,6 +5390,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     enableCloseActionTabAfterSubmit();
     enableCloseComposeTabAfterMailSubmit();
+
+    if (settings.attachmentReminder) enableAttachmentReminder();
+    else disableAttachmentReminder();
+
+    if (settings.pendingDateButtons) enablePendingDateQuickButtons();
+    else disablePendingDateQuickButtons();
   }
 
   async function init() {
