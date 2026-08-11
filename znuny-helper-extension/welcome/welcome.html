@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Znuny Helper - Willkommen</title>
+    <link rel="stylesheet" href="welcome.css">
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <p id="eyebrow" class="eyebrow">Znuny Helper</p>
+        <h1>Willkommen beim Znuny Helper</h1>
+        <p class="lead">
+          Diese Erweiterung ergänzt das Znuny-Ticketsystem um kleine Hilfen für Navigation,
+          Suche, Ticketlisten und ServiceDesk-Abläufe.
+        </p>
+      </header>
+
+      <section class="panel">
+        <h2>Für wen ist das gedacht?</h2>
+        <p>
+          Der Znuny Helper ist für Kolleginnen und Kollegen gedacht, die regelmäßig im
+          Znuny-Agentenbereich arbeiten. Er verändert nicht den Znuny-Server, sondern
+          ergänzt die Darstellung und Bedienung lokal im Browser.
+        </p>
+      </section>
+
+      <section class="grid">
+        <article>
+          <h2>Wichtige Funktionen</h2>
+          <ul>
+            <li>Anhang-Vorschau für PDF, Bilder, Text, EML, DOCX und XLSX.</li>
+            <li>Ticketinhalt-Suche innerhalb geöffneter Tickets.</li>
+            <li>Ticketnummer-Suche und Suchverlauf im Suchdialog.</li>
+            <li>Ticketlisten mit Kategorien, Notizen und optionalem Infinite Scroll.</li>
+            <li>Prioritäts-Vorlagen mit Hinweis bei externen Kundenadressen.</li>
+            <li>Optionaler EB Helper für Empfangsbestätigungen im ServiceDesk.</li>
+          </ul>
+        </article>
+
+        <article>
+          <h2>Ein- und Ausschalten</h2>
+          <p>
+            Fast alle Funktionen können über das Add-on-Popup einzeln aktiviert oder
+            deaktiviert werden. Klicke dazu auf das Znuny-Helper-Symbol im Browser.
+          </p>
+          <p>
+            Standardmäßig deaktiviert sind der EB Helper und das Öffnen von Suchergebnissen
+            in neuen Tabs. Diese Funktionen bitte nur bewusst aktivieren.
+          </p>
+        </article>
+
+        <article>
+          <h2>Grenzen des Tools</h2>
+          <ul>
+            <li>Das Add-on ersetzt keine fachliche Prüfung vor dem Übermitteln.</li>
+            <li>Automatische Erkennung kann bei ungewöhnlichen Ticketinhalten danebenliegen.</li>
+            <li>Anhang-Vorschauen sind nur eine Hilfe; bei Zweifeln bitte die Datei öffnen.</li>
+            <li>Lokale Kategorien und Notizen sind browserbezogen und keine Znuny-Daten.</li>
+            <li>Bei Fehlern bitte Browser, Ticketkontext und Screenshot mitschicken.</li>
+          </ul>
+        </article>
+
+        <article>
+          <h2>Datenschutz</h2>
+          <p>
+            Die Erweiterung arbeitet lokal auf der Znuny-Seite und nutzt Browser-Speicher
+            für Einstellungen, Suchverlauf, lokale Kategorien und lokale Notizen. Es wird
+            kein externer Analysedienst verwendet.
+          </p>
+        </article>
+      </section>
+
+      <section class="panel">
+        <h2>Changelog</h2>
+        <div id="changelog" class="changelog"></div>
+      </section>
+
+      <footer class="footer">
+        <a class="button" href="mailto:it-support@hochschule-rhein-waal.de?subject=Bug%20%2F%20Vorschlag%20Znuny%20Addon&body=Guten%20Tag%20zusammen%2C%0A%0ABeschreibung%3A%20%0A%0A%0ASchritte%20zum%20Reproduzieren%20%28bei%20Bug%29%3A%20%20%0A%0AScreenshots%3A%0A%0A%0A%0ABrowser%3A%20%0A%0A">
+          Bug/Vorschlag melden
+        </a>
+        <span id="version"></span>
+      </footer>
+    </main>
+
+    <script src="welcome.js"></script>
+  </body>
+</html>

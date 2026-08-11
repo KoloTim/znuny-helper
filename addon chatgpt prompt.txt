@@ -1,0 +1,783 @@
+Hier ist eine kompakte Zusammenfassung für einen neuen Chat / für die weitere Planung als echtes Browser-Addon:
+
+---
+
+## Projektziel
+
+Ich möchte aus mehreren Tampermonkey-Userscripts eine richtige Browser-Erweiterung für **Znuny/OTRS LTS** bauen, perspektivisch veröffentlichen, z. B. als internes oder öffentliches Add-on im Microsoft Edge Add-ons Store / Chrome Web Store.
+
+Arbeitsname zum Beispiel:
+
+**HSRW Znuny Helper**
+oder allgemeiner: **Znuny Ticket Helper**
+
+Ziel ist, die Znuny/OTRS-Agentenoberfläche produktiver, übersichtlicher und moderner zu machen, ohne serverseitig Znuny verändern zu müssen.
+
+Die Erweiterung soll als **Content Script** auf dieser URL laufen:
+
+```text
+https://otrs.staff.hsrw/otrs/index.pl*
+```
+
+Aktuell existieren die Features als einzelne Tampermonkey-Scripts.
+
+---
+
+## Bisher entwickelte Feature-Suite
+
+### 1. Ticket-Kategorisierung in `AgentTicketLockedView`
+
+Zielseite:
+
+```text
+https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketLockedView
+```
+
+Die Ticket-Tabelle enthält Spalten wie:
+
+```text
+CASE | ALTER | SENDER | TITEL | STATUS | SPERREN | QUEUE | BESITZER | KUNDENNUMMER
+```
+
+Das Script erkennt die Ticket-Tabelle über Header wie `CASE`, `ALTER`, `SENDER`, `TITEL`.
+
+### Kategorien
+
+Aktuelle Kategorien:
+
+```js
+[
+  { id: "", title: "Ohne Kategorie", short: "Keine", color: "", order: 1 },
+  { id: "dringend", title: "Dringend", short: "Dringend", color: "#ffd6d6", order: 2 },
+  { id: "warten", title: "Warten", short: "Warten", color: "#fff3b0", order: 3 },
+  { id: "studis", title: "Studis / Externe", short: "Studis", color: "#d8ffd8", order: 4 },
+  { id: "hardware", title: "Hardware / Abholung", short: "Hardware", color: "#d9ecff", order: 5 },
+  { id: "software", title: "Software / Zugang", short: "Software", color: "#e5f0ff", order: 6 },
+  { id: "langzeit", title: "Langzeit", short: "Langzeit", color: "#ead8ff", order: 7 },
+  { id: "erledigt", title: "Erledigt", short: "Erledigt", color: "#d9d9d9", order: 8 }
+]
+```
+
+Wichtig: Früher sollte `STATUS = warten auf erfolgreich schließen` automatisch immer `Warten` erzwingen. Das soll **wieder raus**, weil Tickets sonst nicht manuell in andere Kategorien verschoben werden können.
+
+Gewünschte Logik jetzt:
+
+```text
+Manuell gesetzte Kategorie gewinnt immer.
+Auto-Kategorie nur, wenn keine manuelle Kategorie gesetzt ist.
+Langzeit automatisch ab 100 Tagen.
+STATUS "warten auf erfolgreich schließen" NICHT mehr hart erzwingen.
+```
+
+### UI in der Ticket-Tabelle
+
+In der `CASE`-Zelle wird neben der Ticketnummer ein kleines Badge angezeigt.
+
+Beispiel:
+
+```text
+86127433 [Dringend]
+86127396 [Studis]
+86122006 [Langzeit]
+```
+
+Beim Hover über das Badge wird ein Dropdown sichtbar.
+
+Dropdown-Optionen:
+
+```text
+Auto
+Ohne Kategorie
+Dringend
+Warten
+Studis / Externe
+Hardware / Abholung
+Software / Zugang
+Langzeit
+Erledigt
+```
+
+Wichtig:
+
+* Die originale Ticketnummer / der originale Link darf **nicht ersetzt oder zerstört** werden.
+* Frühere Fehler: Klick auf Ticket führte zu `/otrs/undefined`, weil die CASE-Zelle zu aggressiv ersetzt wurde.
+* Fix: Originalen Link behalten, nur UI daneben anhängen.
+* Events auf Dropdown/Notiz-Button müssen `stopPropagation()` nutzen, damit Znuny nicht navigiert.
+
+### Gruppierung
+
+Die Tabelle wird automatisch nach Kategorien gruppiert.
+
+Reihenfolge:
+
+```text
+Ohne Kategorie
+Dringend
+Warten
+Studis / Externe
+Hardware / Abholung
+Software / Zugang
+Langzeit
+Erledigt
+```
+
+Zwischen Gruppen werden Header-Zeilen eingefügt:
+
+```text
+━━ Dringend (3) ━━
+━━ Warten (5) ━━
+━━ Hardware / Abholung (4) ━━
+```
+
+Innerhalb einer Gruppe soll chronologisch sortiert bleiben:
+
+```text
+jüngste oben
+älteste unten
+```
+
+Das Alter wird aus Texten wie diesen geparst:
+
+```text
+2 h 0 m
+1 d 5 h
+120 d 4 h
+279 d 1 h
+```
+
+### Toolbar oben
+
+Oben über der Tabelle gibt es eine sticky Toolbar mit Kategorie-Filtern und Zählern:
+
+```text
+Kategorien: Alle (21) | Keine (3) | Dringend (1) | Warten (5) | Studis (2) | Hardware (4) | Software (3) | Langzeit (2) | Erledigt (0)
+```
+
+Beim Klick auf einen Filter werden nur Tickets dieser Kategorie angezeigt.
+
+### Auto-Erkennung per Keyword-Listen
+
+Auto-Erkennung durchsucht `CASE`, `SENDER`, `TITEL`, `STATUS`, `KUNDENNUMMER`.
+
+Manuelle Kategorie muss Auto-Erkennung überschreiben.
+
+Aktuelle Keyword-Gruppen:
+
+#### Warten
+
+```js
+[
+  "warten auf kunden",
+  "warten auf kunde",
+  "warten auf user",
+  "warte auf",
+  "rückmeldung",
+  "rueckmeldung",
+  "antwort",
+  "feedback",
+  "nachfrage",
+  "termin",
+  "terminvereinbarung",
+  "abstimmung",
+  "pending",
+  "on hold"
+]
+```
+
+Aber `warten auf erfolgreich schließen` soll nicht mehr automatisch erzwingen.
+
+#### Dringend
+
+```js
+[
+  "dringend",
+  "urgent",
+  "sofort",
+  "kritisch",
+  "critical",
+  "notfall",
+  "ausfall",
+  "störung",
+  "stoerung",
+  "funktioniert nicht",
+  "geht nicht",
+  "kein zugriff",
+  "deadline",
+  "prüfung",
+  "pruefung",
+  "heute",
+  "asap",
+  "blockiert",
+  "defekt"
+]
+```
+
+#### Studis / Externe
+
+```js
+[
+  "student",
+  "studi",
+  "studierende",
+  "studium",
+  "studien",
+  "bewerbung",
+  "einschreibung",
+  "matrikel",
+  "semester",
+  "praktikum",
+  "thesis",
+  "abschlussarbeit",
+  "campus",
+  "eduroam",
+  "moodle",
+  "prüfungs",
+  "pruefungs",
+  "studentische"
+]
+```
+
+#### Hardware / Abholung
+
+```js
+[
+  "notebook",
+  "laptop",
+  "pc",
+  "rechner",
+  "computer",
+  "drucker",
+  "printer",
+  "monitor",
+  "bildschirm",
+  "dock",
+  "docking",
+  "tastatur",
+  "maus",
+  "yubikey",
+  "ubikey",
+  "abholung",
+  "abholen",
+  "rückgabe",
+  "rueckgabe",
+  "übergabe",
+  "uebergabe",
+  "gerät",
+  "geraet",
+  "hardware",
+  "thinclient",
+  "thin client",
+  "headset",
+  "kamera",
+  "webcam",
+  "scanner",
+  "beschaffung",
+  "bestellung",
+  "lieferung"
+]
+```
+
+#### Software / Zugang
+
+```js
+[
+  "vpn",
+  "cisco",
+  "sophos",
+  "windows",
+  "office",
+  "outlook",
+  "teams",
+  "webex",
+  "lizenz",
+  "license",
+  "software",
+  "passwort",
+  "kennwort",
+  "account",
+  "zugang",
+  "login",
+  "installation",
+  "installieren",
+  "update",
+  "endpoint",
+  "client",
+  "programm",
+  "app",
+  "mail",
+  "e-mail",
+  "email",
+  "browser",
+  "zertifikat",
+  "sharepoint",
+  "onedrive",
+  "sap",
+  "his",
+  "qis",
+  "ldap",
+  "mfa",
+  "2fa",
+  "authenticator"
+]
+```
+
+#### Langzeit
+
+```js
+[
+  "langzeit",
+  "projekt",
+  "sub case",
+  "subcase",
+  "dienstleister",
+  "lieferant",
+  "warten auf lieferung"
+]
+```
+
+Zusätzlich:
+
+```text
+Alter >= 100 Tage → automatisch Langzeit
+```
+
+#### Erledigt
+
+```js
+[
+  "erledigt",
+  "gelöst",
+  "geloest",
+  "closed",
+  "close",
+  "schließen",
+  "schliessen",
+  "abgeschlossen",
+  "fertig"
+]
+```
+
+### Alter optisch markieren
+
+Kein extra Badge mehr. Stattdessen wird die Schrift der `ALTER`-Zelle gefärbt:
+
+```text
+>= 7 Tage: orange/braun, fett
+>= 30 Tage: rot, fett
+>= 100 Tage: lila, fett
+```
+
+### Neue/Stern-Tickets hervorheben
+
+Tickets mit Stern links sollen stärker auffallen.
+
+Aktuelle Idee:
+
+* Zeile leicht orange hinterlegen
+* linker Rand orange
+
+Erkennung aktuell über Zellen vor der CASE-Spalte:
+
+* sichtbarer Stern `★`
+* HTML enthält `star`, `important`, `flag`, `priority`
+
+### Lokale Notizen pro Ticket
+
+In der CASE-Zelle gibt es ein dezentes 📝.
+
+Klick öffnet ein kleines Popup direkt am Button:
+
+```text
+Notiz für Ticket 86127476
+
+[Textarea]
+
+[Löschen] [Abbrechen] [Speichern]
+```
+
+Notizen werden lokal gespeichert.
+
+Wichtig:
+
+* Popup darf nicht in Znuny-Navigation reintriggern.
+* Popup wird als `position: fixed` an `document.body` gehängt.
+* Klick außerhalb schließt Popup.
+* Button bekommt `has-note`, wenn eine Notiz existiert.
+* Tooltip zeigt Notizinhalt.
+
+Storage-Struktur aktuell ungefähr:
+
+```js
+{
+  categories: {
+    "86127476": "hardware",
+    "86127433": "dringend"
+  },
+  notes: {
+    "86127476": "User angerufen, wartet auf Rückmeldung"
+  }
+}
+```
+
+Aktueller Storage-Key im letzten Script:
+
+```js
+const STORAGE_KEY = "otrs_ticket_categories_ultra_fixed_v2";
+```
+
+Für Add-on besser später:
+
+* Migration von `localStorage` zu `chrome.storage.local`
+* Export/Import-Funktion für Kategorien und Notizen
+
+---
+
+## 2. Antwort-Popup als Tab öffnen
+
+Problem:
+In einem Ticket, z. B.:
+
+```text
+https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketZoom;TicketID=127561#
+```
+
+öffnet „Antworten“ ein kleines Popup-Fenster.
+
+Gewünscht:
+Antwortformular soll in einem normalen neuen Browser-Tab geöffnet werden.
+
+Lösung:
+Ein Content Script patcht `window.open`, sodass Znuny-interne Popup-URLs ohne Popup-Features geöffnet werden:
+
+```js
+window.open(url, "_blank")
+```
+
+Außerdem wurde versucht, Znuny-spezifische Popup-Funktionen zu patchen:
+
+```js
+window.Core?.UI?.Popup?.OpenPopup
+```
+
+Das Script soll separat oder als Modul laufen:
+
+```text
+popup-to-tab.js
+```
+
+Wichtig:
+
+* Muss früh laufen, idealerweise `run_at: document_start`.
+* Nur Znuny/OTRS-interne URLs anfassen.
+* Keine externen Links verändern.
+
+---
+
+## 3. Attachment Preview / Anhang-Vorschau
+
+Problem:
+Anhänge in Ticketartikeln wie PDFs oder Bilder müssen normalerweise heruntergeladen werden. Das nervt.
+
+Ziel:
+Bei echten Anhängen einen Button anzeigen:
+
+```text
+👁️ Vorschau
+```
+
+Beim Klick öffnet sich ein großes Overlay mit PDF/Bild-Vorschau.
+
+### Technische Lösung
+
+Normales `<iframe src="attachmentUrl">` führt oft trotzdem zu Download, weil Znuny/OTRS vermutlich `Content-Disposition: attachment` sendet.
+
+Stabile Lösung:
+Anhang intern per `fetch()` laden:
+
+```js
+const response = await fetch(a.href, {
+  credentials: "include",
+  cache: "no-store"
+});
+
+const blob = await response.blob();
+const blobUrl = URL.createObjectURL(blob);
+```
+
+Dann:
+
+* PDF → `<iframe src="blobUrl">`
+* Bild → `<img src="blobUrl">`
+
+Overlay:
+
+* `position: fixed`
+* 88vw × 88vh
+* dunkler Backdrop
+* Header mit Dateiname
+* Button `↗ Tab`
+* Button `Schließen`
+* ESC schließt
+* Klick auf Backdrop schließt
+
+### Wichtiges Problem, das gelöst wurde
+
+Das Script hat zuerst zu viele Links erkannt, z. B. Artikel-/Ticket-Titel mit `.pdf` im Text. Dadurch erschien der Vorschau-Button oben in der Artikelübersicht an falscher Stelle.
+
+Fix:
+Nicht mehr über sichtbaren Text `.pdf` erkennen, sondern nur echte Download-/Attachment-Links.
+
+Aktuelle Erkennung:
+
+```js
+function looksLikeAttachmentLink(a) {
+  const href = (a.getAttribute("href") || "").toLowerCase();
+
+  return (
+    href.includes("action=agentticketattachment") ||
+    href.includes("subaction=download") ||
+    href.includes("subaction=attachment") ||
+    href.includes("downloadattachment") ||
+    href.includes("attachmentid=")
+  );
+}
+```
+
+### Button-Platzierung
+
+Der Button soll **nur beim echten Anhang-Kasten** erscheinen, nicht in der Artikelübersicht.
+
+Container-Erkennung:
+Vom Link aus nach oben suchen, bis ein kleiner Container mit Dateigröße gefunden wird:
+
+```js
+const hasSize = /\b\d+[,.]?\d*\s*(KB|MB|GB)\b/i.test(text);
+const hasOnlySmallAttachmentArea = text.length < 500;
+```
+
+Dann dort Button einfügen.
+
+Aktuell Button als Overlay rechts im Anhang-Kasten:
+
+```css
+.tm-attachment-container {
+  position: relative !important;
+  padding-right: 150px !important;
+  min-height: 52px !important;
+}
+
+.tm-attachment-btn {
+  position: absolute;
+  right: 38px;
+  top: 9px;
+  z-index: 50;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: #ff9900;
+}
+```
+
+---
+
+## Technische Probleme und Lessons Learned
+
+### CASE-Zelle nicht zerstören
+
+Fehler:
+CASE-Zelle komplett mit `innerHTML = ""` ersetzt.
+
+Folge:
+Ticketlink kaputt, Klick führte zu:
+
+```text
+https://otrs.staff.hsrw/otrs/undefined
+```
+
+Richtige Strategie:
+Originale Inhalte behalten und UI nur daneben anhängen:
+
+```js
+cell.appendChild(ui);
+```
+
+Ticket-ID aus Text extrahieren:
+
+```js
+const id = cell.innerText.trim().match(/\b\d{7,}\b/)?.[0] || "";
+```
+
+### Dropdown darf Znuny-Clickhandler nicht auslösen
+
+Dropdown in CASE-Zelle muss Events stoppen:
+
+```js
+["click", "mousedown", "mouseup", "pointerdown", "pointerup", "dblclick"].forEach(ev => {
+  element.addEventListener(ev, e => {
+    e.stopPropagation();
+  });
+});
+```
+
+Aber `change` darf nicht zu hart mit `stopImmediatePropagation()` blockiert werden, sonst wird manuelle Auswahl nicht gespeichert.
+
+### Hover-Dropdown darf nicht springen
+
+Problem:
+Badge wird durch Select ersetzt, Layout springt.
+
+Fix:
+Badge und Select bekommen denselben reservierten Platz:
+
+```css
+.tm-cat-ui {
+  display: inline-block;
+  width: 125px;
+  height: 20px;
+  position: relative;
+}
+
+.tm-badge,
+.tm-category-select {
+  width: 115px;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+```
+
+Select wird über `visibility/opacity` statt `display:none` eingeblendet.
+
+---
+
+## Add-on-Plan
+
+Ziel: Statt Tampermonkey-Scripts eine richtige WebExtension.
+
+### Mögliche Struktur
+
+```text
+hsrw-znuny-helper/
+├── manifest.json
+├── content/
+│   ├── ticket-categories.js
+│   ├── attachment-preview.js
+│   └── popup-to-tab.js
+├── styles/
+│   ├── ticket-categories.css
+│   └── attachment-preview.css
+├── options/
+│   ├── options.html
+│   ├── options.js
+│   └── options.css
+└── icons/
+    ├── icon16.png
+    ├── icon48.png
+    └── icon128.png
+```
+
+### Manifest V3 grob
+
+```json
+{
+  "manifest_version": 3,
+  "name": "HSRW Znuny Helper",
+  "version": "1.0.0",
+  "description": "Verbessert die Znuny/OTRS Ticketansicht, Anhänge und Popup-Verhalten.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://otrs.staff.hsrw/otrs/index.pl*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://otrs.staff.hsrw/otrs/index.pl*"],
+      "js": [
+        "content/ticket-categories.js",
+        "content/attachment-preview.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://otrs.staff.hsrw/otrs/index.pl*"],
+      "js": [
+        "content/popup-to-tab.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "options_page": "options/options.html"
+}
+```
+
+### Für Store-Publishing wichtig
+
+Datenschutz sauber formulieren:
+
+```text
+Die Erweiterung läuft ausschließlich lokal im Browser auf der konfigurierten Znuny/OTRS-Domain.
+Ticketdaten, Kategorien, Notizen und Anhangsvorschauen werden nicht an externe Server übertragen.
+Kategorien und Notizen werden lokal im Browser gespeichert.
+Anhänge werden nur mit der bestehenden Znuny/OTRS-Session des Nutzers geladen und lokal als Blob-Vorschau angezeigt.
+```
+
+### Permissions möglichst klein halten
+
+Für Store besser:
+
+* `storage`
+* Host-Permission nur für die konkrete OTRS/Znuny-Domain oder konfigurierbare Domain
+* Keine externen Requests
+* Kein Remote-Code
+* Keine unnötigen Berechtigungen wie `tabs`, außer wirklich nötig
+
+### Allgemein vs. HSRW-spezifisch
+
+Für öffentlichen Store sollte die Extension besser generisch heißen:
+
+```text
+Znuny Ticket Helper
+```
+
+Und nicht HSRW-spezifisch sein.
+
+Dann in Options-Seite konfigurierbar:
+
+```text
+Znuny Base URL:
+[https://otrs.staff.hsrw/otrs/index.pl*]
+
+Kategorien:
+[Dringend] [Warten] [Studis / Externe] ...
+```
+
+Für internen Einsatz kann es HSRW-spezifisch vorkonfiguriert sein.
+
+---
+
+## Nächste sinnvolle Schritte
+
+1. Aktuelle Tampermonkey-Scripts konsolidieren.
+2. Ticket-Kategorien-Script final bereinigen:
+
+   * `warten auf erfolgreich schließen` Sonderlogik komplett entfernen.
+   * Manuelle Kategorie muss immer gewinnen.
+3. Attachment-Preview-Script finalisieren:
+
+   * Button nur bei echten Attachment-Download-Links.
+   * Button nur im kleinen Anhang-Kasten.
+4. Aus Scripts eine Extension-Ordnerstruktur bauen.
+5. `localStorage` optional auf `chrome.storage.local` migrieren.
+6. Options-Seite bauen:
+
+   * Features aktivieren/deaktivieren
+   * Kategorien konfigurieren
+   * Keywords bearbeiten
+   * Export/Import von Kategorien/Notizen
+7. Erst als entpackte Extension in Edge testen.
+8. Danach Store-/Enterprise-Verteilung prüfen.

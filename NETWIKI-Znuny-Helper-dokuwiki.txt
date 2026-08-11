@@ -1,0 +1,261 @@
+====== Znuny Helper ======
+
+===== Kurzbeschreibung =====
+
+Der **Znuny Helper** ist eine Browser-Erweiterung für unser Znuny-/OTRS-Ticketsystem. Das Addon fasst mehrere bisher einzeln genutzte Tampermonkey-Hilfsfunktionen in einer zentral verwaltbaren Erweiterung zusammen.
+
+Ziel ist es, die tägliche Arbeit im Ticketsystem schneller und übersichtlicher zu machen. Anhänge können direkt als Vorschau geöffnet werden, Suchfunktionen werden erweitert, Ticketlisten können lokal kategorisiert werden und ServiceDesk-Prozesse wie Empfangsbestätigungen werden unterstützt.
+
+Die Erweiterung ist aktuell primär für Chromium-basierte Browser vorgesehen, also z. B. Google Chrome oder Microsoft Edge. Firefox-Unterstützung ist grundsätzlich vorgesehen, aber noch nicht der Hauptfokus.
+
+===== Zielgruppe =====
+
+Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem arbeiten, insbesondere:
+
+  * ServiceDesk
+  * 1st- und 2nd-Level-Support
+  * Mitarbeitende mit vielen Ticketlisten und Ticketrecherchen
+  * Personen, die Empfangsbestätigungen für Hardwareübergaben vorbereiten
+
+===== Technische Grundlage =====
+
+^ Punkt ^ Beschreibung ^
+| Typ | Browser-Erweiterung / WebExtension |
+| Browser-Fokus | Chromium, z. B. Chrome oder Edge |
+| Zielsystem | ''%%https://otrs.staff.hsrw/otrs/index.pl*%%'' |
+| Speicherung | Browserspeicher der Erweiterung |
+| Externe Server | Nur für EB Helper: lokale EB-Seite ''%%http://10.2.1.67/new%%'' |
+| Tampermonkey nötig | Nein |
+
+===== Installation in Chrome oder Edge =====
+
+  - Addon-Ordner lokal bereitstellen.
+  - Browser öffnen.
+  - Erweiterungsseite öffnen:
+    * Chrome: ''chrome://extensions''
+    * Edge: ''edge://extensions''
+  - Entwicklermodus aktivieren.
+  - **Entpackte Erweiterung laden** auswählen.
+  - Den Ordner ''znuny-helper-extension'' auswählen.
+  - Znuny-Seite neu laden.
+
+Nach Änderungen am Addon muss die Erweiterung auf der Erweiterungsseite neu geladen werden. Danach sollte auch der Znuny-Tab aktualisiert werden.
+
+===== Bedienung =====
+
+Nach der Installation erscheint in der Browserleiste das Addon-Symbol **Znuny Helper**. Über das Popup können einzelne Funktionen aktiviert oder deaktiviert werden.
+
+Die Einstellungen werden im Browser gespeichert. Änderungen im Popup gelten direkt nach dem Speichern bzw. nach erneutem Laden der betroffenen Znuny-Seite.
+
+===== Funktionen im Überblick =====
+
+^ Bereich ^ Funktion ^ Zweck ^
+| Navigation | Anhang-Vorschau | PDFs und Bilder direkt im Ticket anzeigen |
+| Navigation | Popups als Tabs | Znuny-Aktionen übersichtlicher in Tabs öffnen |
+| Navigation | Suchergebnisse im neuen Tab | Suchergebnis-Seiten optional in neuem Tab öffnen |
+| Suchen | Ticketnummer-Suche | Globale Suche um ein direktes Ticketnummer-Feld erweitern |
+| Suchen | Ticketinhalt-Suche | Innerhalb eines geöffneten Tickets suchen |
+| Ticketlisten | Ticket-Kategorien | Tickets lokal gruppieren, markieren und notieren |
+| Ticketlisten | Infinite Scroll | Weitere Ticketlistenseiten beim Scrollen automatisch laden |
+| ServiceDesk | EB Helper | Empfangsbestätigungen aus Hardware-Tickets vorbereiten |
+
+===== Anhang-Vorschau =====
+
+Die Anhang-Vorschau ergänzt erkannte Anhänge im Ticket um einen Button **Vorschau**. Damit können PDF- und Bilddateien direkt als Overlay im Browser angezeigt werden.
+
+Das ist besonders hilfreich, wenn ein Anhang nur kurz geprüft werden muss, ohne ihn herunterzuladen oder die aktuelle Ticketansicht zu verlassen.
+
+Unterstützt werden vor allem:
+
+  * PDF-Dateien
+  * Bilddateien
+  * Anhänge, die Znuny über typische Attachment-Links bereitstellt
+
+Wenn eine Vorschau nicht möglich ist, bleibt der normale Download-Link weiterhin nutzbar.
+
+===== Popups als Tabs =====
+
+Einige Znuny-Aktionen öffnen standardmäßig kleine Popup-Fenster. Die Funktion **Popups als Tabs** sorgt dafür, dass solche Aktionen stattdessen in normalen Browser-Tabs geöffnet werden.
+
+Vorteile:
+
+  * bessere Übersicht
+  * einfacheres Wechseln zwischen Ticket und Aktion
+  * weniger Probleme mit blockierten oder verdeckten Popup-Fenstern
+
+===== Suchergebnisse im neuen Tab =====
+
+Wenn diese Option aktiv ist, werden Suchergebnisse in einem neuen Tab geöffnet. Dadurch bleibt die aktuelle Znuny-Seite erhalten.
+
+Wenn die Option deaktiviert ist, sollte die Suche wieder im aktuellen Tab laufen.
+
+===== Ticketnummer-Suche =====
+
+Die globale Znuny-Suche wird um ein gut sichtbares Feld **Ticketnummer** ergänzt. Damit kann direkt nach Ticketnummern gesucht werden, ohne dass der passende Znuny-Zusatzfilter manuell gesetzt werden muss.
+
+Zusätzlich setzt das Addon automatisch einen Zeitraumfilter:
+
+  * Attribut: **Letzte Ticket-Änderungszeit (zwischen)**
+  * Zeitraum: **letztes Jahr bis heute**
+
+Beispiel: Am ''02.07.2026'' wird automatisch von ''02.07.2025'' bis ''02.07.2026'' gesucht.
+
+Das verhindert sehr große Suchläufe und sorgt trotzdem dafür, dass aktuelle und ältere Tickets innerhalb eines sinnvollen Zeitraums gefunden werden.
+
+Außerdem merkt sich das Addon lokal die letzten Suchbegriffe und Ticketnummern als kleine Suchhistorie.
+
+===== Ticketinhalt-Suche =====
+
+In geöffneten Tickets ergänzt das Addon oben im Ticket ein Suchfeld. Damit kann innerhalb der Ticketansicht gesucht werden.
+
+Durchsucht werden:
+
+  * Artikelübersicht
+  * Betreffzeilen
+  * sichtbare Artikeltexte
+  * bereits geladene Ticketartikel
+
+Die Suche ist nicht auf Groß-/Kleinschreibung festgelegt. Treffer werden markiert, und bei mehreren Treffern kann durch die Treffer navigiert werden.
+
+<note important>
+Ticketinhalte, die Znuny noch nicht geladen hat, müssen ggf. erst geöffnet oder nachgeladen werden.
+</note>
+
+===== Ticket-Kategorien =====
+
+Die Funktion **Ticket-Kategorien** erweitert bestimmte Ticketlisten um eine lokale Kategorisierung.
+
+Standardkategorien sind u. a.:
+
+  * Ohne Kategorie
+  * Dringend
+  * Warten
+  * Studis / Externe
+  * Hardware / Abholung
+  * Software / Zugang
+  * Langzeit
+  * Erledigt
+
+Tickets können dadurch übersichtlicher gruppiert und schneller wiedergefunden werden. Die Zuordnung erfolgt lokal im Browser und verändert keine offiziellen Znuny-Daten.
+
+==== Bearbeitung der Kategorien ====
+
+Über **Kategorien bearbeiten** können Nutzerinnen und Nutzer das Kategoriesystem anpassen:
+
+  * Kategorien anlegen
+  * Kategorien umbenennen
+  * Kurzbezeichnungen ändern
+  * Farben anpassen
+  * Reihenfolge ändern
+  * Keywords für automatische Sortierung pflegen
+  * Standard wiederherstellen
+
+Die automatische Zuordnung basiert auf Keywords in Titel, Absender oder anderen sichtbaren Ticketinformationen. Manuelle Anpassungen bleiben lokal gespeichert.
+
+==== Lokale Notizen ====
+
+Zu Tickets können lokale Notizen ergänzt werden. Diese Notizen werden im Browser gespeichert und sind nicht Teil des offiziellen Tickets.
+
+<note warning>
+Lokale Notizen sind nicht für andere Personen sichtbar und ersetzen keine interne Notiz im Znuny-Ticket.
+</note>
+
+===== Infinite Scroll =====
+
+Wenn **Infinite Scroll** aktiv ist, lädt das Addon in Ticketlisten automatisch weitere Ergebnisse nach, sobald man nach unten scrollt.
+
+Das spart Klicks auf weitere Seiten und macht längere Listen flüssiger nutzbar.
+
+<note>
+Da automatisch weitere Znuny-Seiten abgerufen werden, kann die Funktion bei sehr großen Listen etwas mehr Browser- und Netzwerklast erzeugen.
+</note>
+
+===== EB Helper =====
+
+Der **EB Helper** unterstützt beim Erstellen von Empfangsbestätigungen aus passenden Hardware-Tickets.
+
+In geeigneten Tickets erscheint ein Button **Empfangsbestätigung erstellen**. Das Addon versucht, relevante Hardwareinformationen aus dem Ticket zu erkennen und an die lokale EB-Seite zu übergeben:
+
+<code>
+http://10.2.1.67/new
+</code>
+
+Erkannt werden z. B.:
+
+  * Gerätebezeichnungen
+  * Inventarnummern
+  * Seriennummern
+  * einfache Hardwarelisten
+
+Falls der Text nicht automatisch erkannt wird, kann ein Hardwaretext manuell eingefügt werden.
+
+Die endgültige Prüfung und Korrektur der Gerätezeilen erfolgt auf der EB-Seite.
+
+===== Bug- und Vorschlagsmeldung =====
+
+Im Addon-Popup gibt es unten den Link **Bug/Vorschlag melden**.
+
+Dieser öffnet eine E-Mail an:
+
+<code>
+it-support@hochschule-rhein-waal.de
+</code>
+
+Der Betreff lautet:
+
+<code>
+Bug / Vorschlag Znuny Addon
+</code>
+
+Die Mailvorlage enthält Felder für:
+
+  * Beschreibung
+  * Schritte zum Reproduzieren
+  * Screenshots
+  * Browser
+
+Bitte bei Fehlern möglichst immer angeben:
+
+  * verwendeter Browser
+  * betroffene Znuny-Seite
+  * Ticketnummer, falls sinnvoll
+  * was erwartet wurde
+  * was tatsächlich passiert ist
+
+===== Datenschutz und Speicherung =====
+
+Das Addon speichert bestimmte Informationen lokal im Browser:
+
+  * aktivierte/deaktivierte Funktionen
+  * lokale Ticketkategorien
+  * lokale Ticketnotizen
+  * Suchhistorie
+
+Diese Informationen werden nicht automatisch in Znuny geschrieben und nicht automatisch an andere Personen übertragen.
+
+Ausnahme: Beim EB Helper werden erkannte Hardwaredaten an die lokale EB-Seite übergeben, wenn die Empfangsbestätigung erstellt wird.
+
+===== Grenzen und bekannte Hinweise =====
+
+  * Das Addon verändert die Znuny-Oberfläche im Browser, nicht das Znuny-System selbst.
+  * Lokale Kategorien und Notizen sind nur im jeweiligen Browserprofil verfügbar.
+  * Nach Addon-Updates sollte die Erweiterung neu geladen und die Znuny-Seite aktualisiert werden.
+  * Wenn Znuny seine HTML-Struktur ändert, können einzelne Funktionen Anpassungen benötigen.
+  * Die Firefox-Unterstützung ist geplant, aber aktuell nicht Hauptziel.
+
+===== Deaktivieren einzelner Funktionen =====
+
+Alle Hauptfunktionen können im Addon-Popup einzeln ein- oder ausgeschaltet werden.
+
+Empfehlung bei Problemen:
+
+  - Betroffene Funktion im Popup deaktivieren.
+  - Znuny-Seite neu laden.
+  - Prüfen, ob das Problem weiterhin besteht.
+  - Bug/Vorschlag über das Popup melden.
+
+===== Zuständigkeit und Pflege =====
+
+Das Addon ist als Arbeitserleichterung für das Znuny-Ticketsystem gedacht. Fehler, Verbesserungsvorschläge und neue Funktionsideen können über den Bug-/Vorschlagslink im Addon-Popup gemeldet werden.
+
+Vor größeren Änderungen sollte geprüft werden, ob die Änderung für mehrere Nutzerinnen und Nutzer sinnvoll ist und ob sie die normale Znuny-Bedienung nicht beeinträchtigt.

@@ -1,0 +1,233 @@
+// ==UserScript==
+// @name         Znuny EB Helper
+// @namespace    hsrw-eb
+// @version      0.8
+// @description  Öffnet die EB-App mit vorausgefülltem Case und Hardwaretext
+// @match        https://otrs.staff.hsrw/otrs/index.pl*
+// @grant        none
+// ==/UserScript==
+
+(function () {
+  "use strict";
+
+  const EB_BASE_URL = "http://10.2.1.67/new";
+
+  if (window.top !== window.self) {
+    return;
+  }
+
+  if (!window.location.href.includes("Action=AgentTicketZoom")) {
+    return;
+  }
+
+  function normalizeText(text) {
+    return (text || "")
+      .replace(/\u00a0/g, " ")
+      .replace(/\r/g, "")
+      .split("\n")
+      .map((line) => line.replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  function getMainText() {
+    return normalizeText(document.body ? document.body.innerText || "" : "");
+  }
+
+  function extractCase() {
+    const text = getMainText();
+    const match = text.match(/Case\s*([0-9]+)/i);
+    return match ? match[1] : "";
+  }
+
+  function isRelevantCase() {
+    return /installation|übergabe/i.test(getMainText());
+  }
+
+  function splitHardwareEntries(text) {
+    const rawLines = normalizeText(text).split("\n").filter(Boolean);
+    const result = [];
+    let i = 0;
+
+    while (i < rawLines.length) {
+      const line = rawLines[i];
+
+      if (/^\d+\s*x\s+/i.test(line)) {
+        result.push(line);
+        i += 1;
+        continue;
+      }
+
+      if (/^37[01]\d{4}\s*[-–—>]/.test(line)) {
+        result.push(line);
+        i += 1;
+        continue;
+      }
+
+      if (/-->\s*37[01]\d{4}\s*$/.test(line)) {
+        if (i > 0 && !/^\d+\s*x\s+/i.test(rawLines[i - 1]) && !/37[01]\d{4}/.test(rawLines[i - 1])) {
+          result.push(`${rawLines[i - 1]}\n${line}`);
+        } else {
+          result.push(line);
+        }
+        i += 1;
+        continue;
+      }
+
+      i += 1;
+    }
+
+    return result;
+  }
+
+  function extractFromMainDocument() {
+    const text = getMainText();
+    const markerMatch = text.match(/Es wurden folgende Inventarmarken vergeben:[\s\S]*/i);
+    if (markerMatch) {
+      return splitHardwareEntries(markerMatch[0]);
+    }
+    return splitHardwareEntries(text);
+  }
+
+  function extractFromIframes() {
+    const frames = Array.from(document.querySelectorAll("iframe, frame"));
+    const results = [];
+
+    for (const frame of frames) {
+      try {
+        const doc = frame.contentDocument || frame.contentWindow?.document;
+        if (!doc || !doc.body) {
+          continue;
+        }
+
+        const text = normalizeText(doc.body.innerText || "");
+        if (!text) {
+          continue;
+        }
+
+        const markerMatch = text.match(/Es wurden folgende Inventarmarken vergeben:[\s\S]*/i);
+        const extracted = markerMatch
+          ? splitHardwareEntries(markerMatch[0])
+          : splitHardwareEntries(text);
+
+        if (extracted.length > 0) {
+          results.push(...extracted);
+        }
+      } catch (error) {
+        // frame not accessible
+      }
+    }
+
+    return results;
+  }
+
+  function extractSelectedHardwareLines() {
+    const selected = window.getSelection ? String(window.getSelection()).trim() : "";
+    if (!selected) {
+      return [];
+    }
+    return splitHardwareEntries(selected);
+  }
+
+  function askForHardwareText() {
+    const text = window.prompt(
+      "Hardwaretext einfügen, falls er nicht automatisch erkannt wurde:",
+      ""
+    );
+    if (!text) {
+      return [];
+    }
+    return splitHardwareEntries(text);
+  }
+
+  function uniqueEntries(entries) {
+    return [...new Set(entries.map((entry) => normalizeText(entry)).filter(Boolean))];
+  }
+
+  function extractHardwareLines() {
+    let entries = extractFromMainDocument();
+
+    if (entries.length === 0) {
+      entries = extractFromIframes();
+    }
+
+    if (entries.length === 0) {
+      entries = extractSelectedHardwareLines();
+    }
+
+    return uniqueEntries(entries);
+  }
+
+  function buildEbUrl(caseValue, hardwareLines) {
+    const params = new URLSearchParams();
+    if (caseValue) {
+      params.set("case", caseValue);
+    }
+    if (hardwareLines.length > 0) {
+      params.set("hardware_text", hardwareLines.join("\n"));
+    }
+    return `${EB_BASE_URL}?${params.toString()}`;
+  }
+
+  function buildButton() {
+    if (!isRelevantCase()) {
+      return;
+    }
+
+    if (document.getElementById("eb-open-button")) {
+      return;
+    }
+
+    const target =
+      document.querySelector(".ActionRow") ||
+      document.querySelector(".LayoutActionRow") ||
+      document.querySelector(".TicketHeader") ||
+      document.querySelector(".Headline") ||
+      document.body;
+
+    if (!target) {
+      return;
+    }
+
+    const button = document.createElement("button");
+    button.id = "eb-open-button";
+    button.type = "button";
+    button.textContent = "Empfangsbestätigung erstellen";
+    button.style.marginLeft = "12px";
+    button.style.padding = "8px 14px";
+    button.style.background = "#3976bb";
+    button.style.color = "#fff";
+    button.style.border = "0";
+    button.style.borderRadius = "6px";
+    button.style.cursor = "pointer";
+    button.style.fontWeight = "600";
+
+    button.addEventListener("click", () => {
+      const caseValue = extractCase();
+      let hardwareLines = extractHardwareLines();
+
+      console.log("EB Helper case:", caseValue);
+      console.log("EB Helper hardware lines:", hardwareLines);
+
+      if (!caseValue) {
+        alert("Keine Case-Nummer gefunden.");
+        return;
+      }
+
+      if (hardwareLines.length === 0) {
+        hardwareLines = askForHardwareText();
+      }
+
+      if (hardwareLines.length === 0) {
+        alert("Keine Hardwarezeilen gefunden.");
+        return;
+      }
+
+      window.open(buildEbUrl(caseValue, hardwareLines), "_blank");
+    });
+
+    target.prepend(button);
+  }
+
+  window.setTimeout(buildButton, 1000);
+})();

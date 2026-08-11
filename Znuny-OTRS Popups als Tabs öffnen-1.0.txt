@@ -1,0 +1,74 @@
+// ==UserScript==
+// @name         Znuny/OTRS Popups als Tabs öffnen
+// @namespace    local-otrs-popup-to-tab
+// @version      1.0
+// @description  Öffnet Znuny/OTRS Popup-Aktionen wie Antworten in einem neuen Tab statt Popup-Fenster
+// @match        https://otrs.staff.hsrw/otrs/index.pl*
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
+
+(function () {
+    "use strict";
+
+    const originalOpen = window.open;
+
+    window.open = function (url, target, features) {
+        if (!url) {
+            return originalOpen.apply(window, arguments);
+        }
+
+        const urlString = String(url);
+
+        // Nur OTRS/Znuny-interne Links anfassen
+        const isOtrsLink =
+            urlString.includes("index.pl") ||
+            urlString.startsWith("?") ||
+            urlString.startsWith("/otrs/");
+
+        if (isOtrsLink) {
+            let finalUrl = urlString;
+
+            if (finalUrl.startsWith("?")) {
+                finalUrl = location.origin + location.pathname + finalUrl;
+            } else if (finalUrl.startsWith("/otrs/")) {
+                finalUrl = location.origin + finalUrl;
+            }
+
+            // Wichtig: keine popup features übergeben.
+            // Dadurch öffnet Edge/Chrome es normalerweise als neuen Tab.
+            return originalOpen.call(window, finalUrl, "_blank");
+        }
+
+        return originalOpen.apply(window, arguments);
+    };
+
+    function patchZnunyPopupFunctions() {
+        try {
+            if (window.Core?.UI?.Popup?.OpenPopup && !window.Core.UI.Popup.OpenPopup.__tm_patched) {
+                const originalPopup = window.Core.UI.Popup.OpenPopup;
+
+                window.Core.UI.Popup.OpenPopup = function (url) {
+                    if (url) {
+                        window.open(url, "_blank");
+                        return false;
+                    }
+
+                    return originalPopup.apply(this, arguments);
+                };
+
+                window.Core.UI.Popup.OpenPopup.__tm_patched = true;
+            }
+        } catch (e) {
+            console.warn("OTRS popup patch failed:", e);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", patchZnunyPopupFunctions);
+
+    const interval = setInterval(patchZnunyPopupFunctions, 500);
+
+    setTimeout(() => {
+        clearInterval(interval);
+    }, 10000);
+})();

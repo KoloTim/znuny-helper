@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <title>Znuny Helper</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <h1>Znuny Helper</h1>
+        <p>Hilfreiche Funktionen für das Znuny-Ticketsystem.</p>
+      </header>
+
+      <form id="settingsForm" class="settings">
+        <fieldset class="settings-group">
+          <legend>Navigation</legend>
+
+          <label class="toggle">
+            <input type="checkbox" name="attachmentPreview">
+            <span>
+              <strong>Anhang-Vorschau</strong>
+              <small>PDFs und Bilder direkt im Ticket als Vorschau öffnen.</small>
+            </span>
+          </label>
+
+          <label class="toggle">
+            <input type="checkbox" name="popupTabs">
+            <span>
+              <strong>Popups als Tabs</strong>
+              <small>Antworten und Aktionen übersichtlich in neuen Tabs öffnen.</small>
+            </span>
+          </label>
+
+          <label class="toggle">
+            <input type="checkbox" name="searchResultsPopup">
+            <span>
+              <strong>Suchergebnisse im neuen Tab</strong>
+              <small>Suchläufe in einem neuen Tab öffnen, damit die aktuelle Seite erhalten bleibt.</small>
+            </span>
+          </label>
+        </fieldset>
+
+        <fieldset class="settings-group">
+          <legend>Suchen</legend>
+
+          <label class="toggle">
+            <input type="checkbox" name="ticketNumberSearch">
+            <span>
+              <strong>Ticketnummer-Suche</strong>
+              <small>Die globale Suche um ein direktes Ticketnummer-Feld erweitern.</small>
+            </span>
+          </label>
+
+          <label class="toggle">
+            <input type="checkbox" name="ticketArticleSearch">
+            <span>
+              <strong>Ticketinhalt-Suche</strong>
+              <small>Im geöffneten Ticket Betreffzeilen und Artikeltexte durchsuchen.</small>
+            </span>
+          </label>
+        </fieldset>
+
+        <fieldset class="settings-group">
+          <legend>Ticketlisten</legend>
+
+          <label class="toggle">
+            <input type="checkbox" name="ticketCategories">
+            <span>
+              <strong>Ticket-Kategorien</strong>
+              <small>Ticketlisten lokal gruppieren, markieren und mit Notizen ergänzen.</small>
+            </span>
+          </label>
+
+          <label class="toggle">
+            <input type="checkbox" name="ticketListInfiniteScroll">
+            <span>
+              <strong>Infinite Scroll</strong>
+              <small>Weitere Tickets beim Scrollen automatisch an die Liste anhängen.</small>
+            </span>
+          </label>
+        </fieldset>
+
+        <fieldset class="settings-group">
+          <legend>ServiceDesk</legend>
+
+          <label class="toggle">
+            <input type="checkbox" name="ebHelper">
+            <span>
+              <strong>EB Helper</strong>
+              <small>Empfangsbestätigungen aus passenden Hardware-Tickets vorbereiten.</small>
+            </span>
+          </label>
+
+          <label class="toggle">
+            <input type="checkbox" name="priorityTemplates">
+            <span>
+              <strong>Prioritäts-Vorlagen</strong>
+              <small>Prioritätsseiten mit anpassbaren Schnellbuttons vorbefüllen.</small>
+            </span>
+          </label>
+        </fieldset>
+      </form>
+
+      <footer>
+        <span id="status" aria-live="polite">Bereit</span>
+        <a class="support-link" href="../welcome/welcome.html" target="_blank" rel="noopener">
+          Übersicht/Changelog
+        </a>
+        <a class="support-link" href="mailto:it-support@hochschule-rhein-waal.de?subject=Bug%20%2F%20Vorschlag%20Znuny%20Addon&body=Guten%20Tag%20zusammen%2C%0A%0ABeschreibung%3A%20%0A%0A%0ASchritte%20zum%20Reproduzieren%20%28bei%20Bug%29%3A%20%20%0A%0AScreenshots%3A%0A%0A%0A%0ABrowser%3A%20%0A%0A">
+          Bug/Vorschlag melden
+        </a>
+      </footer>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

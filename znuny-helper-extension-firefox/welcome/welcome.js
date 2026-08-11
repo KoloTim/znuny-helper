@@ -1,0 +1,119 @@
+(function () {
+  "use strict";
+
+  const api = typeof browser !== "undefined" ? browser : chrome;
+  const params = new URLSearchParams(window.location.search);
+  const reason = params.get("reason") || "install";
+  const previousVersion = params.get("previousVersion") || "";
+  const manifest = api.runtime.getManifest();
+
+  const releases = [
+    {
+      version: "0.1.36",
+      items: [
+        "Tabs von Mail-Antworten werden nach \"E-Mail übermitteln\" automatisch geschlossen."
+      ]
+    },
+    {
+      version: "0.1.35",
+      items: [
+        "Vorlagen werden jetzt auch auf der Seite \"Besitzer wechseln\" angezeigt.",
+        "Tabs von Mail-Antworten werden nach \"Übermitteln\" zuverlässiger geschlossen."
+      ]
+    },
+    {
+      version: "0.1.34",
+      items: [
+        "Sichtbare Texte wurden auf echte deutsche Umlaute umgestellt."
+      ]
+    },
+    {
+      version: "0.1.33",
+      items: [
+        "Der Extern-Hinweis auf Prioritätsseiten wird nun direkt neben \"Ist sichtbar für Kunde\" angezeigt.",
+        "Der zusätzliche Hinweis im Vorlagenkasten wurde entfernt."
+      ]
+    },
+    {
+      version: "0.1.32",
+      items: [
+        "Externe Kunden werden auf Prioritätsseiten auch über EXTERN-Markierungen im Titel erkannt.",
+        "Der Warnhinweis unter \"Ist sichtbar für Kunde\" wurde robuster platziert."
+      ]
+    },
+    {
+      version: "0.1.31",
+      items: [
+        "Externe Kunden werden auf Prioritätsseiten zusätzlich unten beim Bereich \"Ist sichtbar für Kunde\" markiert."
+      ]
+    },
+    {
+      version: "0.1.30",
+      items: [
+        "Willkommens- und Changelog-Seite bei Installation und Updates ergänzt.",
+        "EB Helper ist standardmäßig deaktiviert.",
+        "Suchergebnisse im neuen Tab sind standardmäßig deaktiviert."
+      ]
+    },
+    {
+      version: "0.1.29",
+      items: [
+        "Hinweis auf Prioritätsseiten ergänzt, wenn eine externe Kundenadresse erkannt wird."
+      ]
+    },
+    {
+      version: "0.1.28",
+      items: [
+        "XLSX-Vorschau robuster gemacht.",
+        "Infinite Scroll lädt toleranter weiter.",
+        "Suchdialog räumt leere Filterzeilen besser auf."
+      ]
+    },
+    {
+      version: "0.1.27",
+      items: [
+        "XLSX-Vorschau als statische Tabelle ergänzt.",
+        "DOCX-, EML-, LOG- und TXT-Vorschau verbessert."
+      ]
+    }
+  ];
+
+  function renderChangelog() {
+    const root = document.getElementById("changelog");
+    root.textContent = "";
+
+    releases.forEach((release) => {
+      const section = document.createElement("section");
+      section.className = "release";
+
+      const title = document.createElement("h3");
+      title.textContent = `Version ${release.version}`;
+      section.appendChild(title);
+
+      const list = document.createElement("ul");
+      release.items.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        list.appendChild(li);
+      });
+      section.appendChild(list);
+      root.appendChild(section);
+    });
+  }
+
+  function renderHeader() {
+    const eyebrow = document.getElementById("eyebrow");
+    if (reason === "update") {
+      eyebrow.textContent = previousVersion
+        ? `Znuny Helper wurde von ${previousVersion} auf ${manifest.version} aktualisiert`
+        : `Znuny Helper wurde auf ${manifest.version} aktualisiert`;
+    } else {
+      eyebrow.textContent = `Znuny Helper ${manifest.version} installiert`;
+    }
+
+    document.getElementById("version").textContent = `Version ${manifest.version}`;
+  }
+
+  renderHeader();
+  renderChangelog();
+})();
