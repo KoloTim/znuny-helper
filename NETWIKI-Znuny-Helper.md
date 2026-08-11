@@ -60,7 +60,7 @@ Die Einstellungen werden im Browser gespeichert. Änderungen im Popup gelten dir
 | Ticketlisten | Ticket-Kategorien | Tickets lokal gruppieren, markieren und notieren |
 | Ticketlisten | Infinite Scroll | Weitere Ticketlistenseiten beim Scrollen automatisch laden |
 | ServiceDesk | EB Helper | Empfangsbestätigungen aus Hardware-Tickets vorbereiten |
-| ServiceDesk | Prioritäts-Vorlagen | Prioritätsseiten und Antwortseite mit anpassbaren Schnellbuttons vorbefüllen |
+| ServiceDesk | Prioritäts-Vorlagen | Prioritätsseiten mit anpassbaren Schnellbuttons vorbefüllen |
 | Antwort | Anhang-Erinnerung | Hinweis, wenn der Text einen Anhang erwähnt, aber keiner angehängt ist |
 | Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status |
 
@@ -137,15 +137,15 @@ Hinweis: Ticketinhalte, die Znuny noch nicht geladen hat, müssen ggf. erst geö
 
 Die Funktion **Ticket-Kategorien** erweitert bestimmte Ticketlisten um eine lokale Kategorisierung.
 
-Standardkategorien sind ein Ampelschema:
+Standardkategorien sind ein pastellfarbenes Ampelschema:
 
 - Ohne Kategorie
-- Wichtig (rot)
-- Wartend (gelb)
-- Neu (grün)
-- Fertig (schwarz)
+- Wichtig (pastellrot)
+- Wartend (pastellgelb)
+- Neu (pastellgrün)
+- Fertig (grau)
 
-Tickets können dadurch übersichtlicher gruppiert und schneller wiedergefunden werden. Die Zuordnung erfolgt lokal im Browser und verändert keine offiziellen Znuny-Daten.
+Tickets können dadurch übersichtlicher gruppiert und schneller wiedergefunden werden. Die Zuordnung erfolgt lokal im Browser, ausschließlich manuell über das Kategorie-Feld in der Ticketliste, und verändert keine offiziellen Znuny-Daten.
 
 ### Bearbeitung der Kategorien
 
@@ -156,12 +156,11 @@ Tickets können dadurch übersichtlicher gruppiert und schneller wiedergefunden 
 - Kurzbezeichnungen ändern
 - Farben anpassen
 - Reihenfolge ändern
-- Keywords für automatische Sortierung pflegen
 - Standard wiederherstellen
 - Kategorien als Datei exportieren, um sie mit Kolleginnen und Kollegen zu teilen
 - Kategorien aus einer Datei importieren
 
-Die automatische Zuordnung basiert auf Keywords in Titel, Absender oder anderen sichtbaren Ticketinformationen. Manuelle Anpassungen bleiben lokal gespeichert.
+Manuelle Anpassungen bleiben lokal gespeichert.
 
 ### Lokale Notizen
 
@@ -179,7 +178,7 @@ Hinweis: Da automatisch weitere Znuny-Seiten abgerufen werden, kann die Funktion
 
 ## Prioritäts-Vorlagen
 
-Die Funktion **Prioritäts-Vorlagen** ergänzt Prioritätsseiten und die Antwortseite um anpassbare Schnellbuttons. Ein Klick füllt Felder wie Priorität, Betreff oder Text automatisch mit einer hinterlegten Vorlage. Auf der Antwortseite füllt eine Vorlage nur die dort vorhandenen Felder; ein bereits vorhandener Text (z. B. eine Zitatzeile) wird ergänzt statt überschrieben.
+Die Funktion **Prioritäts-Vorlagen** ergänzt Prioritätsseiten um anpassbare Schnellbuttons. Ein Klick füllt Felder wie Priorität, Betreff oder Text automatisch mit einer hinterlegten Vorlage.
 
 Über die Vorlagenverwaltung können Nutzerinnen und Nutzer:
 

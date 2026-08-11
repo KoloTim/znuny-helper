@@ -9,6 +9,15 @@
 
   const releases = [
     {
+      version: "0.1.39",
+      items: [
+        "Prioritäts-Vorlagen: Anzeige auf der Antwortseite wieder entfernt (Platzierung passte dort nicht).",
+        "Ticket-Kategorien: Farben auf dezente Pastelltöne umgestellt (Fertig ist jetzt grau statt schwarz).",
+        "Ticket-Kategorien: automatische Erkennung per Keywords entfernt, Kategorien werden nur noch manuell gesetzt.",
+        "Zeitraum-Schnellauswahl in der Suche: Ausrichtung korrigiert, damit sie sauber mit den anderen Suchfeldern fluchtet."
+      ]
+    },
+    {
       version: "0.1.38",
       items: [
         "Neu: Anhang-Erinnerung auf der Antwortseite, wenn der Text einen Anhang erwähnt, aber keiner angehängt ist.",

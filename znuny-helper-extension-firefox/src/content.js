@@ -44,27 +44,11 @@
 
   const DEFAULT_GROUPS = [
     { id: "", title: "Ohne Kategorie", short: "Keine", color: "", order: 1 },
-    { id: "wichtig", title: "Wichtig", short: "Wichtig", color: "#e53935", order: 2 },
-    { id: "wartend", title: "Wartend", short: "Wartend", color: "#fdd835", order: 3 },
-    { id: "neu", title: "Neu", short: "Neu", color: "#43a047", order: 4 },
-    { id: "fertig", title: "Fertig", short: "Fertig", color: "#212121", order: 5 }
+    { id: "wichtig", title: "Wichtig", short: "Wichtig", color: "#ffd6d6", order: 2 },
+    { id: "wartend", title: "Wartend", short: "Wartend", color: "#fff3b0", order: 3 },
+    { id: "neu", title: "Neu", short: "Neu", color: "#d8ffd8", order: 4 },
+    { id: "fertig", title: "Fertig", short: "Fertig", color: "#e0e0e0", order: 5 }
   ];
-
-  const DEFAULT_KEYWORDS = {
-    wichtig: [
-      "dringend", "urgent", "sofort", "kritisch", "critical", "notfall",
-      "ausfall", "stoerung", "st\u00f6rung", "funktioniert nicht", "geht nicht",
-      "kein zugriff", "deadline", "pruefung", "pr\u00fcfung", "heute", "asap", "blockiert",
-      "defekt"
-    ],
-    wartend: [
-      "warten auf kunden", "warten auf kunde", "warten auf user", "warte auf",
-      "rueckmeldung", "r\u00fcckmeldung", "antwort", "feedback", "nachfrage", "termin",
-      "terminvereinbarung", "abstimmung", "pending", "on hold"
-    ],
-    neu: [],
-    fertig: ["erledigt", "geloest", "gel\u00f6st", "closed", "close", "schliessen", "schlie\u00dfen", "abgeschlossen", "fertig"]
-  };
 
   const api = typeof browser !== "undefined" ? browser : chrome;
   const usesPromiseStorage = typeof browser !== "undefined";
@@ -104,7 +88,6 @@
 
   function normalizeCategoryConfig(config) {
     const sourceGroups = Array.isArray(config?.groups) ? config.groups : DEFAULT_GROUPS;
-    const sourceKeywords = config?.keywords && typeof config.keywords === "object" ? config.keywords : DEFAULT_KEYWORDS;
 
     const groups = sourceGroups.map((group, index) => ({
       id: index === 0 ? "" : normalizeCategoryId(group.id || group.short || group.title || `cat-${index}`),
@@ -125,30 +108,15 @@
       return true;
     }).sort((a, b) => a.order - b.order);
 
-    const keywords = {};
-    uniqueGroups.forEach((group) => {
-      keywords[group.id] = Array.isArray(sourceKeywords[group.id])
-        ? sourceKeywords[group.id].map((word) => String(word).trim()).filter(Boolean)
-        : [];
-    });
-
-    return { groups: uniqueGroups, keywords };
+    return { groups: uniqueGroups };
   }
 
   function getCategoryGroups() {
     if (!categoryConfig) {
-      categoryConfig = normalizeCategoryConfig({
-        groups: DEFAULT_GROUPS,
-        keywords: DEFAULT_KEYWORDS
-      });
+      categoryConfig = normalizeCategoryConfig({ groups: DEFAULT_GROUPS });
     }
 
     return categoryConfig.groups;
-  }
-
-  function getCategoryKeywords() {
-    if (!categoryConfig) getCategoryGroups();
-    return categoryConfig.keywords;
   }
 
   function saveCategoryConfig() {
@@ -342,7 +310,7 @@
   }
 
   function isPriorityTemplatePage() {
-    return isPriorityTicketPage() || isOwnerTicketPage() || isComposeTicketPage();
+    return isPriorityTicketPage() || isOwnerTicketPage();
   }
 
   function getFormControlValue(form, name) {
@@ -1883,12 +1851,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (!row) {
       row = document.createElement("div");
       row.id = "zh-search-daterange-row";
-      row.className = "zh-search-daterange-row";
+      row.className = "zh-search-field-row zh-search-daterange-row";
 
       const label = document.createElement("span");
       label.className = "zh-search-daterange-label";
       label.textContent = "Zeitraum:";
       row.appendChild(label);
+
+      const buttons = document.createElement("div");
+      buttons.className = "zh-search-daterange-buttons";
 
       SEARCH_DATE_RANGE_PRESETS.forEach((preset) => {
         const button = document.createElement("button");
@@ -1900,8 +1871,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           const activeForm = findVisibleSearchForm() || form;
           applySearchDateRangePreset(activeForm, preset);
         });
-        row.appendChild(button);
+        buttons.appendChild(button);
       });
+
+      row.appendChild(buttons);
     }
 
     primaryBlock.appendChild(row);
@@ -2429,10 +2402,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-search-primary-fields .zh-search-history[hidden] { display: none !important; }
       #zh-search-primary-fields .zh-search-history button { max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; line-height: 1.3; padding: 2px 6px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; }
       #zh-search-primary-fields .zh-search-history button:hover { background: #fff; border-color: #888; }
-      .zh-search-daterange-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin: 4px auto 0; max-width: 420px; }
-      .zh-search-daterange-label { color: #777; font-size: 12px; margin-right: 2px; }
-      .zh-search-daterange-row button { font-size: 11px; padding: 3px 8px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; }
-      .zh-search-daterange-row button:hover { background: #fff; border-color: #888; }
+      .zh-search-daterange-label { grid-column: 1; text-align: right; color: #777; }
+      .zh-search-daterange-buttons { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; width: 270px; max-width: 45vw; box-sizing: border-box; }
+      .zh-search-daterange-buttons button { font-size: 11px; padding: 3px 8px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; white-space: nowrap; }
+      .zh-search-daterange-buttons button:hover { background: #fff; border-color: #888; }
       .zh-search-hidden-scaffold { display: none !important; }
     `);
   }
@@ -3964,7 +3937,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     window.setTimeout(applyDependentFields, 600);
 
     setPriorityPlainField(["Betreff"], ["Subject"], fields.subject);
-    window.setTimeout(() => setPriorityRichText(fields.body, { prepend: isComposeTicketPage() }), 50);
+    window.setTimeout(() => setPriorityRichText(fields.body), 50);
     window.setTimeout(closePriorityAutocompleteDropdowns, 80);
   }
 
@@ -4390,12 +4363,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function setManualCategory(ticketId, category) {
-    if (category === "__auto") {
-      delete ticketState.categories[ticketId];
-    } else {
-      ticketState.categories[ticketId] = category;
-    }
-
+    ticketState.categories[ticketId] = category;
     saveTicketState();
   }
 
@@ -4439,16 +4407,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (id) cell.dataset.zhTicketId = id;
 
     return id;
-  }
-
-  function getSearchText(row, indexes) {
-    return [
-      getCellText(row, indexes.case),
-      getCellText(row, indexes.sender),
-      getCellText(row, indexes.title),
-      getCellText(row, indexes.status),
-      getCellText(row, indexes.customer)
-    ].join(" ").toLowerCase();
   }
 
   function getAgeMinutes(row, indexes) {
@@ -4748,27 +4706,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     infiniteScrollState.done = true;
   }
 
-  function autoDetectCategory(row, indexes) {
-    const text = getSearchText(row, indexes);
-
-    const priority = getCategoryGroups()
-      .filter((group) => group.id)
-      .sort((a, b) => a.order - b.order)
-      .map((group) => group.id);
-    const keywords = getCategoryKeywords();
-
-    for (const groupId of priority) {
-      const words = keywords[groupId] || [];
-      if (words.some((word) => text.includes(word.toLowerCase()))) return groupId;
-    }
-
-    return "";
-  }
-
   function getEffectiveCategory(row, indexes) {
     const ticketId = getTicketId(row, indexes);
     const manual = getManualCategory(ticketId);
-    return manual !== null ? manual : autoDetectCategory(row, indexes);
+    return manual !== null ? manual : "";
   }
 
   function isStarred(row, indexes) {
@@ -4816,9 +4757,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       .zh-category-modal header { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #ddd; background: #f1f1f1; }
       .zh-category-modal h2 { margin: 0; font-size: 15px; }
       .zh-category-modal-body { padding: 12px; }
-      .zh-category-editor-row { display: grid; grid-template-columns: 30px 1fr 90px 70px 1.5fr 130px; gap: 6px; align-items: start; margin-bottom: 7px; }
-      .zh-category-editor-row input, .zh-category-editor-row textarea { width: 100%; box-sizing: border-box; font-size: 12px; }
-      .zh-category-editor-row textarea { min-height: 48px; resize: vertical; }
+      .zh-category-editor-row { display: grid; grid-template-columns: 30px 1fr 90px 70px 130px; gap: 6px; align-items: start; margin-bottom: 7px; }
+      .zh-category-editor-row input { width: 100%; box-sizing: border-box; font-size: 12px; }
       .zh-category-editor-head { font-weight: 700; font-size: 11px; color: #333; }
       .zh-category-editor-actions { display: flex; gap: 4px; flex-wrap: wrap; }
       .zh-category-modal button { font-size: 11px; padding: 3px 7px; border: 1px solid #999; border-radius: 3px; background: #eee; cursor: pointer; }
@@ -4933,15 +4873,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const select = document.createElement("select");
     select.className = "zh-category-select";
 
-    const autoOption = document.createElement("option");
-    autoOption.value = "__auto";
-    autoOption.textContent = "Auto";
-    select.appendChild(autoOption);
-
-        getCategoryGroups().forEach((group) => {
-          const option = document.createElement("option");
-          option.value = group.id;
-          option.textContent = group.title;
+    getCategoryGroups().forEach((group) => {
+      const option = document.createElement("option");
+      option.value = group.id;
+      option.textContent = group.title;
       select.appendChild(option);
     });
 
@@ -5023,7 +4958,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     document.querySelectorAll(".zh-category-modal-backdrop").forEach((element) => element.remove());
   }
 
-  function createCategoryEditorRow(group, keywords) {
+  function createCategoryEditorRow(group) {
     const row = document.createElement("div");
     row.className = "zh-category-editor-row";
     row.dataset.categoryId = group.id;
@@ -5047,12 +4982,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     color.value = /^#[0-9a-f]{6}$/i.test(group.color) ? group.color : "#eeeeee";
     color.disabled = group.id === "";
 
-    const keywordBox = document.createElement("textarea");
-    keywordBox.name = "keywords";
-    keywordBox.value = (keywords[group.id] || []).join(", ");
-    keywordBox.placeholder = "Keywords, getrennt mit Komma oder Zeile";
-    keywordBox.disabled = group.id === "";
-
     const actions = document.createElement("div");
     actions.className = "zh-category-editor-actions";
 
@@ -5075,13 +5004,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     remove.disabled = group.id === "";
 
     actions.append(up, down, remove);
-    row.append(order, title, short, color, keywordBox, actions);
+    row.append(order, title, short, color, actions);
     return row;
   }
 
   function readCategoryManagerRows(container) {
     const groups = [];
-    const keywords = {};
 
     [...container.querySelectorAll(".zh-category-editor-row[data-category-id]")].forEach((row, index) => {
       const oldId = row.dataset.categoryId;
@@ -5089,10 +5017,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       const short = row.querySelector('[name="short"]').value.trim() || title;
       const id = oldId === "" ? "" : normalizeCategoryId(oldId || short || title);
       const color = oldId === "" ? "" : row.querySelector('[name="color"]').value;
-      const words = row.querySelector('[name="keywords"]').value
-        .split(/[\n,]+/)
-        .map((word) => word.trim())
-        .filter(Boolean);
 
       groups.push({
         id,
@@ -5101,10 +5025,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         color,
         order: index + 1
       });
-      keywords[id] = words;
     });
 
-    return normalizeCategoryConfig({ groups, keywords });
+    return normalizeCategoryConfig({ groups });
   }
 
   function renderCategoryManagerRows(list) {
@@ -5112,7 +5035,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const header = document.createElement("div");
     header.className = "zh-category-editor-row zh-category-editor-head";
-    ["#", "Titel", "Kurz", "Farbe", "Keywords für Auto", "Aktion"].forEach((text) => {
+    ["#", "Titel", "Kurz", "Farbe", "Aktion"].forEach((text) => {
       const cell = document.createElement("div");
       cell.textContent = text;
       header.appendChild(cell);
@@ -5120,8 +5043,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     list.appendChild(header);
 
     const groups = getCategoryGroups();
-    const keywords = getCategoryKeywords();
-    groups.forEach((group) => list.appendChild(createCategoryEditorRow(group, keywords)));
+    groups.forEach((group) => list.appendChild(createCategoryEditorRow(group)));
   }
 
   function openCategoryManager() {
@@ -5164,7 +5086,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         color: "#eeeeee",
         order: current.groups.length + 1
       });
-      current.keywords[nextId] = [];
       categoryConfig = normalizeCategoryConfig(current);
       renderCategoryManagerRows(list);
     });
@@ -5173,7 +5094,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     resetButton.type = "button";
     resetButton.textContent = "Standard wiederherstellen";
     resetButton.addEventListener("click", () => {
-      categoryConfig = normalizeCategoryConfig({ groups: DEFAULT_GROUPS, keywords: DEFAULT_KEYWORDS });
+      categoryConfig = normalizeCategoryConfig({ groups: DEFAULT_GROUPS });
       renderCategoryManagerRows(list);
     });
 
@@ -5192,7 +5113,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     importButton.title = "Kategorien aus einer Datei laden";
     importButton.addEventListener("click", () => {
       importJsonFile((data) => {
-        if (!data || (!Array.isArray(data.groups) && !data.keywords)) {
+        if (!data || !Array.isArray(data.groups)) {
           window.alert("Diese Datei enthält keine gültigen Ticket-Kategorien.");
           return;
         }
@@ -5231,7 +5152,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
       if (button.dataset.action === "remove") {
         categoryConfig.groups.splice(index, 1);
-        delete categoryConfig.keywords[id];
       } else if (button.dataset.action === "up" && index > 1) {
         [categoryConfig.groups[index - 1], categoryConfig.groups[index]] = [categoryConfig.groups[index], categoryConfig.groups[index - 1]];
       } else if (button.dataset.action === "down" && index < categoryConfig.groups.length - 1) {
@@ -5300,16 +5220,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       const noteButton = caseCell.querySelector(".zh-note-btn");
 
       if (badge) {
-        const marker = manualCategory === null ? " A" : "";
-        badge.textContent = group.id ? `${group.short}${marker}` : `Keine${marker}`;
+        badge.textContent = group.id ? group.short : "Keine";
         badge.style.background = group.color || "#eee";
         badge.style.color = group.color ? getReadableTextColor(group.color) : "#111";
-        badge.title = manualCategory === null ? "Automatisch erkannt" : "Manuell gesetzt";
+        badge.title = "Kategorie";
       }
 
       if (select) {
-        select.value = manualCategory === null ? "__auto" : manualCategory;
-        select.title = manualCategory === null ? "Auto-Erkennung aktiv" : "Manuell gesetzt";
+        select.value = manualCategory === null ? "" : manualCategory;
+        select.title = "Kategorie ändern";
       }
 
       if (noteButton) {
@@ -5410,10 +5329,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     };
 
     const storedCategoryConfig = await syncGet("local", {
-      [CATEGORY_CONFIG_KEY]: {
-        groups: DEFAULT_GROUPS,
-        keywords: DEFAULT_KEYWORDS
-      }
+      [CATEGORY_CONFIG_KEY]: { groups: DEFAULT_GROUPS }
     });
     categoryConfig = normalizeCategoryConfig(storedCategoryConfig[CATEGORY_CONFIG_KEY]);
 
