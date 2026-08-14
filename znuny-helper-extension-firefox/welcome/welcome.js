@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "0.1.40",
+      items: [
+        "Anhang-Vorschau: PDFs, deren Server-Antwort keinen application/pdf-Typ meldet, werden jetzt korrekt im Browser angezeigt statt als unbenannte Datei heruntergeladen."
+      ]
+    },
+    {
       version: "0.1.39",
       items: [
         "Prioritäts-Vorlagen: Anzeige auf der Antwortseite wieder entfernt (Platzierung passte dort nicht).",

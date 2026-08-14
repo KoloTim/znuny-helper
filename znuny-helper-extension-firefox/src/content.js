@@ -1354,7 +1354,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       }
 
       const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
       const type = guessAttachmentType(fileName, blob.type);
 
       content.textContent = "";
@@ -1362,6 +1361,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       if (type === "pdf" && blob.type.includes("html") && renderDirectAttachmentPreview(content, loadedHref || previewHref, fileName)) {
         return;
       }
+
+      const previewBlob = type === "pdf" && !blob.type.toLowerCase().includes("pdf")
+        ? new Blob([blob], { type: "application/pdf" })
+        : blob;
+      const blobUrl = URL.createObjectURL(previewBlob);
 
       if (type === "pdf") {
         const iframe = document.createElement("iframe");
