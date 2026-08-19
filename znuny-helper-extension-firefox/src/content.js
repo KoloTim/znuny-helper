@@ -87,7 +87,8 @@
       "bildschirm", "netzteil", "defekt", "kaputt", "reparatur", "reparieren", "neugeraet",
       "neugerät", "neues notebook", "neues geraet", "neues gerät", "zur abholung bereit",
       "drucker", "printer", "scanner", "webcam", "headset", "maus", "thinclient",
-      "thin client", "geraet", "gerät", "hardware", "rechner"
+      "thin client", "geraet", "gerät", "hardware", "rechner", "laptop", "notebook",
+      "arbeitslaptop"
     ],
     studis: [
       "matrikelnummer", "matrikel-nr", "matrikel", "hisinone", "his in one", "moodle",
@@ -190,6 +191,16 @@
   function saveCategoryConfig() {
     categoryConfig = normalizeCategoryConfig(categoryConfig);
     syncSet("local", { [CATEGORY_CONFIG_KEY]: categoryConfig });
+  }
+
+  function setProtectedFill(element, color) {
+    // Dark Reader (and similar recoloring extensions) rewrite plain background-color,
+    // which flattens all category colors to the same dark tone. A same-stop gradient
+    // renders identically but is generally left alone by those extensions, so the
+    // category colors stay distinguishable.
+    element.style.background = "";
+    element.style.backgroundColor = "";
+    element.style.backgroundImage = color ? `linear-gradient(${color}, ${color})` : "";
   }
 
   function getReadableTextColor(hexColor) {
@@ -5483,7 +5494,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       const group = groups.find((item) => item.id === effectiveCategory) || groups[0];
 
       const textColor = group.color ? getReadableTextColor(group.color) : "";
-      caseCell.style.background = group.color || "";
+      setProtectedFill(caseCell, group.color);
       caseCell.style.fontWeight = "";
       caseCell.style.color = textColor;
 
@@ -5495,7 +5506,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       if (badge) {
         const marker = isAuto && group.id ? " (Vorschlag)" : "";
         badge.textContent = (group.id ? group.short : "Keine") + marker;
-        badge.style.background = group.color || "#eee";
+        setProtectedFill(badge, group.color || "#eeeeee");
         badge.style.color = group.color ? getReadableTextColor(group.color) : "#111";
         badge.classList.toggle("zh-badge-auto", isAuto && Boolean(group.id));
         badge.title = isAuto
@@ -5549,6 +5560,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
         row.querySelectorAll("[data-zh-original-background]").forEach((cell) => {
           cell.style.background = cell.dataset.zhOriginalBackground || "";
+          cell.style.backgroundImage = "";
           cell.style.fontWeight = cell.dataset.zhOriginalFontWeight || "";
           cell.style.color = "";
         });

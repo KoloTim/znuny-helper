@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "0.1.44",
+      items: [
+        "Ticket-Kategorien: Farben werden jetzt so gesetzt, dass Dark-Reader-artige Addons sie seltener plattbügeln (betroffene Farben blieben zuvor alle gleich dunkel).",
+        "Ticket-Kategorien: Keyword \"laptop\"/\"notebook\" zu Hardware/Abholung ergänzt, damit z. B. \"Neuer Arbeitslaptop benötigt\" korrekt erkannt wird."
+      ]
+    },
+    {
       version: "0.1.43",
       items: [
         "Ticket-Kategorien: automatische Erkennung ist zurück, neu aufgebaut mit sechs Themen-Kategorien (Dringend/Störung, Externe Zuständigkeit, Software/Zugang, Hardware/Abholung, Studis, Warten/Rückmeldung).",
