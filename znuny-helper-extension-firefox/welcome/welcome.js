@@ -9,6 +9,14 @@
 
   const releases = [
     {
+      version: "0.1.43",
+      items: [
+        "Ticket-Kategorien: automatische Erkennung ist zurück, neu aufgebaut mit sechs Themen-Kategorien (Dringend/Störung, Externe Zuständigkeit, Software/Zugang, Hardware/Abholung, Studis, Warten/Rückmeldung).",
+        "Automatisch erkannte Kategorien sind jetzt klar als Vorschlag markiert (kursiv, gestrichelter Rahmen, \"(Vorschlag)\") und nie mit einer manuellen Auswahl zu verwechseln.",
+        "Kategorien bearbeiten: Keywords sind wieder pflegbar; die Reihenfolge der Kategorien bestimmt jetzt sichtbar auch die Priorität bei mehrdeutigen Treffern."
+      ]
+    },
+    {
       version: "0.1.42",
       items: [
         "Neu: Tastenkürzel Strg+Enter übermittelt das aktuelle Formular (Antwort, Notiz, Schließen, ...); der Tab schließt danach wie gewohnt automatisch."

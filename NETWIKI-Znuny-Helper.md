@@ -138,15 +138,34 @@ Hinweis: Ticketinhalte, die Znuny noch nicht geladen hat, müssen ggf. erst geö
 
 Die Funktion **Ticket-Kategorien** erweitert bestimmte Ticketlisten um eine lokale Kategorisierung.
 
-Standardkategorien sind ein pastellfarbenes Ampelschema:
+Standardkategorien sind sechs Themen-Kategorien plus "Ohne Kategorie":
 
 - Ohne Kategorie
-- Wichtig (pastellrot)
-- Wartend (pastellgelb)
-- Neu (pastellgrün)
-- Fertig (grau)
+- Dringend / Störung (pastellrot)
+- Externe Zuständigkeit (pastelllila)
+- Software / Zugang (pastellblau)
+- Hardware / Abholung (pastellorange)
+- Studis (pastellgrün)
+- Warten / Rückmeldung (pastellgelb)
 
-Tickets können dadurch übersichtlicher gruppiert und schneller wiedergefunden werden. Die Zuordnung erfolgt lokal im Browser, ausschließlich manuell über das Kategorie-Feld in der Ticketliste, und verändert keine offiziellen Znuny-Daten.
+Tickets können dadurch übersichtlicher gruppiert und schneller wiedergefunden werden. Die Zuordnung verändert keine offiziellen Znuny-Daten und bleibt ausschließlich lokal im Browser gespeichert.
+
+### Automatische Erkennung
+
+Ist eine Kategorie noch nicht manuell gesetzt, schlägt das Addon anhand von Stichwörtern in Case, Titel, Absender, Status und Kundennummer automatisch eine Kategorie vor.
+
+**Wichtig – der Vorschlag ist keine Bestätigung:** automatisch erkannte Kategorien sind immer sichtbar als Vorschlag markiert (kursive Schrift, gestrichelter Rahmen, Zusatz "(Vorschlag)" im Badge und "Auto (Vorschlag)" in der Auswahlliste). Erst eine manuelle Auswahl im Kategorie-Feld gilt als bestätigt und bleibt dauerhaft gespeichert, auch wenn sich der Ticketinhalt später ändert.
+
+Passt der Ticketinhalt auf mehrere Kategorien gleichzeitig, gewinnt die Kategorie, die in der Liste weiter oben steht. Die Standardreihenfolge (= Prüfreihenfolge) ist bewusst so gewählt:
+
+1. **Dringend / Störung** – muss zuerst auffallen, auch wenn der Text sonst nach Software oder Hardware aussieht.
+2. **Externe Zuständigkeit** – Tickets, die eigentlich an eine andere Stelle gehören, sollen nicht erst als IT-Thema einsortiert werden.
+3. **Software / Zugang** – die häufigsten, meist schnell lösbaren Anfragen.
+4. **Hardware / Abholung** – planbare Aufgaben (Abholung, Reparatur, Beschaffung).
+5. **Studis** – Themen rund um Studierende, die nicht bereits als dringend/extern/Software/Hardware erkannt wurden.
+6. **Warten / Rückmeldung** – niedrigste Priorität, da es eher ein Status als ein Thema ist.
+
+Über **Auto (Vorschlag)** im Kategorie-Feld lässt sich eine manuelle Auswahl jederzeit wieder auf automatische Erkennung zurückstellen.
 
 ### Bearbeitung der Kategorien
 
@@ -156,12 +175,19 @@ Tickets können dadurch übersichtlicher gruppiert und schneller wiedergefunden 
 - Kategorien umbenennen
 - Kurzbezeichnungen ändern
 - Farben anpassen
-- Reihenfolge ändern
+- Reihenfolge ändern (bestimmt zugleich die Priorität bei der automatischen Erkennung)
+- Keywords für die automatische Erkennung pflegen
 - Standard wiederherstellen
 - Kategorien als Datei exportieren, um sie mit Kolleginnen und Kollegen zu teilen
 - Kategorien aus einer Datei importieren
 
 Manuelle Anpassungen bleiben lokal gespeichert.
+
+### Grenzen der automatischen Erkennung
+
+- Die Erkennung liest nur die in der Ticketliste sichtbaren Spalten (Case, Titel, Absender, Status, Kundennummer) – keine E-Mail-Header, keine Anhänge, keine Artikeltexte.
+- Es handelt sich um reinen Stichwortabgleich, keine Absenderprüfung und keine echte Domänen-/Identitätsprüfung.
+- Das Addon vergibt, versendet, schließt oder eskaliert nichts automatisch – jede Aktion bleibt bei der Person, die das Ticket bearbeitet.
 
 ### Lokale Notizen
 
