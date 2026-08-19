@@ -22,7 +22,8 @@
     ticketCategories: true,
     ticketListInfiniteScroll: true,
     attachmentReminder: true,
-    pendingDateButtons: true
+    pendingDateButtons: true,
+    keyboardShortcuts: true
   };
 
   const DEFAULT_PRIORITY_TEMPLATES = [
@@ -398,6 +399,52 @@
 
       window.setTimeout(() => requestCloseSubmittedTab(3000), 0);
     }, true);
+  }
+
+  function findSubmitShortcutControl() {
+    const candidates = [...document.querySelectorAll('button, input[type="submit"], input[type="button"]')]
+      .filter(isVisibleFormControl)
+      .filter((control) => !control.closest("#zh-priority-template-toolbar, .zh-priority-modal, .zh-category-modal-backdrop, .zh-note-popup, #zh-attachment-reminder, .zh-pending-date-row"));
+
+    return candidates.find(isTransmitSubmitControl) || null;
+  }
+
+  function handleSubmitShortcutKeydown(event) {
+    if (!settings.keyboardShortcuts) return;
+    if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
+    if (event.target?.closest?.("#zh-priority-template-toolbar, .zh-priority-modal, .zh-category-modal-backdrop, .zh-note-popup")) return;
+
+    const control = findSubmitShortcutControl();
+    if (!control) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    control.click();
+  }
+
+  function bindSubmitShortcutToDocument(doc) {
+    if (!doc || doc.__zhSubmitShortcutBound) return;
+
+    try {
+      doc.__zhSubmitShortcutBound = true;
+      doc.addEventListener("keydown", handleSubmitShortcutKeydown, true);
+    } catch (error) {
+      // Cross-origin document access can fail; nothing to bind in that case.
+    }
+  }
+
+  function enableSubmitShortcut() {
+    if (window.top !== window.self) return;
+
+    bindSubmitShortcutToDocument(document);
+
+    document.querySelectorAll("iframe").forEach((iframe) => {
+      try {
+        if (iframe.contentDocument) bindSubmitShortcutToDocument(iframe.contentDocument);
+      } catch (error) {
+        // Cross-origin iframe; the page's own shortcuts still apply there.
+      }
+    });
   }
 
   const ATTACHMENT_MENTION_PATTERN = /\b(anbei|im\s+anhang|als\s+anhang|anhang\s+beigef(?:ue|ü)gt|angeh(?:ae|ä)ngt|beigef(?:ue|ü)gt|attached|attachment)\b/i;
@@ -5412,6 +5459,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     if (settings.pendingDateButtons) enablePendingDateQuickButtons();
     else disablePendingDateQuickButtons();
+
+    enableSubmitShortcut();
   }
 
   async function init() {

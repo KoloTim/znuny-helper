@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "0.1.42",
+      items: [
+        "Neu: Tastenkürzel Strg+Enter übermittelt das aktuelle Formular (Antwort, Notiz, Schließen, ...); der Tab schließt danach wie gewohnt automatisch."
+      ]
+    },
+    {
       version: "0.1.41",
       items: [
         "Neu: Knopf \"Als Vorlage speichern\" auf Prioritätsseiten übernimmt die aktuell ausgefüllten Felder direkt als neue Prioritäts-Vorlage.",

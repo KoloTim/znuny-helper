@@ -63,6 +63,7 @@ Die Einstellungen werden im Browser gespeichert. Änderungen im Popup gelten dir
 | ServiceDesk | Prioritäts-Vorlagen | Prioritätsseiten mit anpassbaren Schnellbuttons vorbefüllen |
 | Antwort | Anhang-Erinnerung | Hinweis, wenn der Text einen Anhang erwähnt, aber keiner angehängt ist |
 | Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status |
+| Tastenkürzel | Strg+Enter zum Senden | Aktuelles Formular übermitteln, Tab schließt danach automatisch |
 
 ## Anhang-Vorschau
 
@@ -207,6 +208,12 @@ Wo immer beim Setzen eines "Warten"-Status ein Datum verlangt wird, ergänzt das
 - +14 Tage
 
 Ein Klick auf einen anderen Knopf überschreibt die Vorbelegung jederzeit.
+
+## Tastenkürzel
+
+**Strg+Enter** übermittelt das aktuell offene Formular (Antwort, Notiz, Schließen, Priorität, ...), egal ob der Cursor gerade im normalen Formular oder im Text-Editor steht. Danach greift wie gewohnt die Funktion **Popups als Tabs**: Der Tab schließt automatisch und die Ursprungsseite wird aktualisiert.
+
+Das Kürzel funktioniert nur, wenn auf der aktuellen Seite ein passender "Übermitteln"-Knopf sichtbar ist; sonst passiert nichts.
 
 ## EB Helper
 

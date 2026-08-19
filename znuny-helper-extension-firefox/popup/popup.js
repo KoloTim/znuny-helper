@@ -13,7 +13,8 @@
     ticketCategories: true,
     ticketListInfiniteScroll: true,
     attachmentReminder: true,
-    pendingDateButtons: true
+    pendingDateButtons: true,
+    keyboardShortcuts: true
   };
 
   const api = typeof browser !== "undefined" ? browser : chrome;
