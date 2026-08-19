@@ -184,7 +184,9 @@ Da automatisch weitere Znuny-Seiten abgerufen werden, kann die Funktion bei sehr
 
 Die Funktion **Prioritäts-Vorlagen** ergänzt Prioritätsseiten um anpassbare Schnellbuttons. Ein Klick füllt Felder wie Priorität, Betreff oder Text automatisch mit einer hinterlegten Vorlage.
 
-Über die Vorlagenverwaltung können Nutzerinnen und Nutzer:
+Über den Knopf **Als Vorlage speichern** lässt sich der aktuell ausgefüllte Zustand der Seite (Typ, Queue, Service, Besitzer, Kategorie, Betreff, Text) direkt als neue Vorlage übernehmen, ohne die Felder von Hand in die Vorlagenverwaltung abtippen zu müssen.
+
+Über die Vorlagenverwaltung können Nutzerinnen und Nutzer außerdem:
 
   * Vorlagen anlegen, umbenennen und löschen
   * Feldwerte je Vorlage anpassen

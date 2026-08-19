@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "0.1.41",
+      items: [
+        "Neu: Knopf \"Als Vorlage speichern\" auf Prioritätsseiten übernimmt die aktuell ausgefüllten Felder direkt als neue Prioritäts-Vorlage.",
+        "Prioritäts-Vorlagen bearbeiten: Design überarbeitet (klarere Karten, bessere Abstände) und ein Problem behoben, durch das der erzwungene Dunkelmodus des Browsers das Fenster unleserlich machen konnte."
+      ]
+    },
+    {
       version: "0.1.40",
       items: [
         "Anhang-Vorschau: PDFs, deren Server-Antwort keinen application/pdf-Typ meldet, werden jetzt korrekt im Browser angezeigt statt als unbenannte Datei heruntergeladen."

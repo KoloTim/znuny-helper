@@ -3945,6 +3945,79 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     window.setTimeout(closePriorityAutocompleteDropdowns, 80);
   }
 
+  function getPrioritySelectFieldText(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select || !isVisibleFormControl(select)) return "";
+    return getSelectOptionText(select.selectedOptions?.[0]);
+  }
+
+  function getPriorityPlainFieldValue(labels, ids) {
+    const control = findPriorityControl(labels, ids);
+    return control ? String(control.value || "").trim() : "";
+  }
+
+  function getPriorityRichTextValue() {
+    const row = findPriorityFieldSection(["Text"]);
+
+    const textarea = [...(row?.querySelectorAll("textarea") || [])]
+      .find((control) => {
+        const signature = `${control.name || ""} ${control.id || ""}`.toLowerCase();
+        return /richtext|body|article|text/.test(signature);
+      });
+    if (textarea?.value) return textarea.value;
+
+    const editable = row?.querySelector?.("[contenteditable='true']") ||
+      document.querySelector(".cke_editable[contenteditable='true'], [contenteditable='true']");
+    if (editable) return editable.innerText || "";
+
+    const iframe = row?.querySelector?.("iframe") || document.querySelector(".cke_wysiwyg_frame, iframe");
+    try {
+      const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
+      if (iframeDoc?.body) return iframeDoc.body.innerText || "";
+    } catch (error) {
+      // Ignore cross-document editor access errors.
+    }
+
+    return "";
+  }
+
+  function capturePriorityTemplateFields() {
+    return {
+      type: getPrioritySelectFieldText("TypeID"),
+      queue: getPrioritySelectFieldText("NewQueueID"),
+      service: getPrioritySelectFieldText("ServiceID"),
+      owner: getPrioritySelectFieldText("NewOwnerID"),
+      category: getPrioritySelectFieldText("DynamicField_Kategorie"),
+      subject: getPriorityPlainFieldValue(["Betreff"], ["Subject"]),
+      body: getPriorityRichTextValue()
+    };
+  }
+
+  function saveCurrentFieldsAsPriorityTemplate() {
+    const title = window.prompt("Name für die neue Vorlage:", "");
+    if (!title || !title.trim()) return;
+
+    const fields = capturePriorityTemplateFields();
+    const hasAnyValue = Object.values(fields).some((value) => value);
+    if (!hasAnyValue) {
+      window.alert("Es wurden keine ausgefüllten Felder gefunden, die als Vorlage gespeichert werden können.");
+      return;
+    }
+
+    const palette = ["#3976bb", "#4caf50", "#e07b00", "#8e44ad", "#c0392b", "#009688"];
+    const usedColors = getPriorityTemplates().map((template) => template.color);
+    const color = palette.find((candidate) => !usedColors.includes(candidate)) || palette[0];
+
+    priorityTemplateConfig = normalizePriorityTemplateConfig({
+      templates: [
+        ...getPriorityTemplates(),
+        { title: title.trim(), color, fields }
+      ]
+    });
+    savePriorityTemplateConfig();
+    enablePriorityTemplates();
+  }
+
   function isAllowedHsrwCustomerEmail(email) {
     const domain = String(email || "").toLowerCase().split("@").pop() || "";
     return ["hsrw.org", "hsrw.eu", "hochschule-rhein-waal.de"]
@@ -4071,33 +4144,44 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function addPriorityTemplateStyles() {
     addStyle("zh-priority-template-style", `
-      #zh-priority-template-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 12px 26px; padding: 8px 10px; border: 1px solid #d5d5d5; background: #f7f7f7; }
+      #zh-priority-template-toolbar { color-scheme: light; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 12px 26px; padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; background: #f7f7f7; }
       #zh-priority-template-toolbar.zh-priority-template-side { float: right; width: 330px; max-width: calc(100% - 590px); margin: 12px 28px 10px 18px; align-items: flex-start; }
       #zh-priority-template-toolbar strong { margin-right: 4px; color: #333; }
       #zh-priority-template-toolbar.zh-priority-template-side strong { width: 100%; margin: 0 0 2px; }
-      .zh-priority-template-button, .zh-priority-template-config { border: 1px solid rgba(0,0,0,.18); border-radius: 4px; padding: 5px 10px; cursor: pointer; font-weight: 700; line-height: 1.3; }
+      .zh-priority-template-button, .zh-priority-template-config, .zh-priority-template-save-current { border: 1px solid rgba(0,0,0,.18); border-radius: 5px; padding: 6px 11px; cursor: pointer; font-weight: 700; line-height: 1.3; font-size: 12.5px; transition: filter .1s ease, background .1s ease; }
       .zh-priority-template-button { color: #fff; }
-      .zh-priority-template-config { background: #fff; color: #333; }
+      .zh-priority-template-button:hover { filter: brightness(1.08); }
+      .zh-priority-template-config, .zh-priority-template-save-current { background: #fff; color: #333; }
+      .zh-priority-template-config:hover, .zh-priority-template-save-current:hover { background: #f0f0f0; }
+      .zh-priority-template-save-current { border-color: #3976bb; color: #2a5c96; }
+      .zh-priority-template-save-current:hover { background: #eaf1fb; }
       #zh-priority-external-customer-warning { width: 100%; box-sizing: border-box; margin-top: 4px; padding: 7px 9px; border: 1px solid #d98200; border-left: 4px solid #ff9900; background: #fff4cf; color: #4b3400; font-size: 12px; line-height: 1.35; }
       #zh-priority-external-customer-warning strong { color: #8a3b00; margin: 0; width: auto; }
       #zh-priority-external-customer-bottom-warning { display: inline-block; margin: 0 0 0 12px; padding: 5px 9px; border: 1px solid #c30000; border-left: 5px solid #d40000; background: #ffe0e0; color: #8a0000; font-size: 12px; font-weight: 700; line-height: 1.3; vertical-align: middle; }
-      .zh-priority-modal-backdrop { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.45); }
-      .zh-priority-modal { width: min(1180px, calc(100vw - 48px)); max-height: calc(100vh - 48px); overflow: auto; background: #fff; border: 1px solid #aaa; box-shadow: 0 12px 40px rgba(0,0,0,.35); }
-      .zh-priority-modal header, .zh-priority-modal footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; background: #f1f1f1; border-bottom: 1px solid #d6d6d6; }
-      .zh-priority-modal footer { border-top: 1px solid #d6d6d6; border-bottom: 0; }
-      .zh-priority-modal h2 { margin: 0; font-size: 16px; }
-      .zh-priority-modal-body { padding: 12px; }
-      .zh-priority-template-list { display: grid; gap: 10px; }
-      .zh-priority-template-row { display: grid; gap: 10px; padding: 10px; border: 1px solid #d8d8d8; background: #fafafa; }
-      .zh-priority-template-row-head { display: grid; grid-template-columns: minmax(190px, 1fr) 92px auto; gap: 10px; align-items: end; }
-      .zh-priority-template-fields { display: grid; grid-template-columns: repeat(3, minmax(150px, 1fr)); gap: 10px; }
-      .zh-priority-template-field { display: grid; gap: 3px; }
-      .zh-priority-template-field label { color: #555; font-size: 11px; font-weight: 700; }
-      .zh-priority-template-row input, .zh-priority-template-row textarea { width: 100%; box-sizing: border-box; font-size: 12px; padding: 4px 5px; border: 1px solid #aaa; background: #fff; }
-      .zh-priority-template-row input[type="color"] { height: 28px; padding: 2px; }
+      .zh-priority-modal-backdrop { color-scheme: light; position: fixed; inset: 0; z-index: 100000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.5); }
+      .zh-priority-modal { color-scheme: light; width: min(1100px, calc(100vw - 48px)); max-height: calc(100vh - 48px); overflow: auto; background: #fff; color: #222; border-radius: 8px; box-shadow: 0 16px 48px rgba(0,0,0,.35); }
+      .zh-priority-modal header, .zh-priority-modal footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 20px; background: #f4f5f6; border-bottom: 1px solid #e2e2e2; }
+      .zh-priority-modal header { border-radius: 8px 8px 0 0; }
+      .zh-priority-modal footer { border-top: 1px solid #e2e2e2; border-bottom: 0; border-radius: 0 0 8px 8px; }
+      .zh-priority-modal h2 { margin: 0; font-size: 17px; color: #222; }
+      .zh-priority-modal-body { padding: 18px 20px; background: #fbfbfb; }
+      .zh-priority-template-list { display: grid; gap: 14px; }
+      .zh-priority-template-row { display: grid; gap: 12px; padding: 14px 16px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+      .zh-priority-template-row-head { display: grid; grid-template-columns: minmax(190px, 1fr) 60px auto; gap: 12px; align-items: end; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+      .zh-priority-template-fields { display: grid; grid-template-columns: repeat(3, minmax(150px, 1fr)); gap: 12px; }
+      .zh-priority-template-field { display: grid; gap: 4px; }
+      .zh-priority-template-field label { color: #666; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+      .zh-priority-template-row input, .zh-priority-template-row textarea { width: 100%; box-sizing: border-box; font-size: 12.5px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #222; transition: border-color .1s ease, box-shadow .1s ease; }
+      .zh-priority-template-row input:focus, .zh-priority-template-row textarea:focus { outline: none; border-color: #3976bb; box-shadow: 0 0 0 2px rgba(57,118,187,.15); }
+      .zh-priority-template-row input[type="color"] { height: 32px; padding: 2px; border-radius: 6px; cursor: pointer; }
       .zh-priority-template-row textarea { min-height: 54px; resize: vertical; font-family: inherit; }
-      .zh-priority-template-remove { align-self: end; white-space: nowrap; }
-      .zh-priority-modal button { cursor: pointer; }
+      .zh-priority-template-remove { align-self: end; white-space: nowrap; background: #fff3f3 !important; border-color: #e0acac !important; color: #a30000 !important; }
+      .zh-priority-template-remove:hover { background: #ffe2e2 !important; }
+      .zh-priority-modal button { cursor: pointer; border-radius: 5px; }
+      .zh-priority-modal footer button { border: 1px solid #ccc; background: #fff; color: #333; padding: 7px 14px; font-size: 12.5px; }
+      .zh-priority-modal footer button:hover { background: #f0f0f0; }
+      .zh-priority-modal footer .zh-priority-template-save { border-color: #2f6a2f; background: #e9f7e9; color: #1e5c1e; font-weight: 700; }
+      .zh-priority-modal footer .zh-priority-template-save:hover { background: #dcf1dc; }
       @media (max-width: 980px) {
         #zh-priority-template-toolbar.zh-priority-template-side { float: none; width: auto; max-width: none; margin: 10px 12px; }
         .zh-priority-template-row-head, .zh-priority-template-fields { grid-template-columns: 1fr; }
@@ -4270,6 +4354,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const saveButton = document.createElement("button");
     saveButton.type = "button";
+    saveButton.className = "zh-priority-template-save";
     saveButton.textContent = "Speichern";
     saveButton.addEventListener("click", () => {
       priorityTemplateConfig = normalizePriorityTemplateConfig({ templates: readPriorityTemplateEditorRows(list) });
@@ -4333,6 +4418,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       button.addEventListener("click", () => applyPriorityTemplate(template));
       toolbar.appendChild(button);
     });
+
+    const saveCurrentButton = document.createElement("button");
+    saveCurrentButton.type = "button";
+    saveCurrentButton.className = "zh-priority-template-save-current";
+    saveCurrentButton.textContent = "Als Vorlage speichern";
+    saveCurrentButton.title = "Aktuell ausgefüllte Felder als neue Vorlage speichern";
+    saveCurrentButton.addEventListener("click", saveCurrentFieldsAsPriorityTemplate);
+    toolbar.appendChild(saveCurrentButton);
 
     const configButton = document.createElement("button");
     configButton.type = "button";
