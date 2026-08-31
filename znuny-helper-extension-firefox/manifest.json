@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Znuny Helper Firefox",
-  "version": "0.1.44",
+  "name": "Znuny Helper",
+  "version": "0.1.53",
   "description": "Consolidated Znuny helper features with per-feature toggles.",
   "action": {
     "default_title": "Znuny Helper",
@@ -14,13 +14,12 @@
   "background": {
     "scripts": [
       "src/background.js"
-    ],
-    "service_worker": "src/background.js"
+    ]
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "znuny-helper@hsrw.local",
-      "strict_min_version": "128.0",
+      "id": "{c1306de7-e38a-471d-8085-4f3d32727947}",
+      "strict_min_version": "140.0",
       "data_collection_permissions": {
         "required": [
           "none"
@@ -30,6 +29,12 @@
   },
   "host_permissions": [
     "https://otrs.staff.hsrw/otrs/index.pl*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["sounds/*.mp3"],
+      "matches": ["https://otrs.staff.hsrw/*"]
+    }
   ],
   "content_scripts": [
     {

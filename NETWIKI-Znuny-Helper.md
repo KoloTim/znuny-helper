@@ -6,7 +6,7 @@ Der **Znuny Helper** ist eine Browser-Erweiterung für unser Znuny-/OTRS-Tickets
 
 Ziel ist es, die tägliche Arbeit im Ticketsystem schneller und übersichtlicher zu machen: Anhänge können direkt als Vorschau geöffnet werden, Suchfunktionen werden erweitert, Ticketlisten können lokal kategorisiert werden und ServiceDesk-Prozesse wie Empfangsbestätigungen werden unterstützt.
 
-Die Erweiterung ist aktuell primär für Chromium-basierte Browser vorgesehen, also z. B. Google Chrome oder Microsoft Edge. Firefox-Unterstützung ist grundsätzlich vorgesehen, aber noch nicht der Hauptfokus.
+Die Erweiterung steht für Google Chrome, Microsoft Edge und Firefox (ab Version 128) zur Verfügung.
 
 ## Zielgruppe
 
@@ -21,16 +21,30 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 
 | Punkt | Beschreibung |
 | --- | --- |
-| Typ | Browser-Erweiterung / WebExtension |
-| Browser-Fokus | Chromium, z. B. Chrome oder Edge |
+| Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
+| Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 128) |
 | Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` |
 | Speicherung | Browserspeicher der Erweiterung |
 | Externe Server | Nur für EB Helper: lokale EB-Seite `https://digi-eb.staff.hsrw/new` |
 | Tampermonkey nötig | Nein |
 
-## Installation in Chrome oder Edge
+## Installation
 
-1. Addon-Ordner lokal bereitstellen.
+### Installation über den Browser-Store (empfohlen)
+
+Über den offiziellen Store installierte Erweiterungen aktualisieren sich automatisch, sobald eine neue Version veröffentlicht wird.
+
+- **Edge:** [Znuny Helper im Edge Add-ons Store](https://microsoftedge.microsoft.com/addons/detail/znuny-helper/hklflemenkhibeeljjdnimmcefdldhl)
+- **Chrome:** [Znuny Helper im Chrome Web Store](https://chromewebstore.google.com/detail/znuny-helper/minjlaeigjamojdmolnadadpmiempcnd)
+- **Firefox:** [Znuny Helper auf addons.mozilla.org](https://addons.mozilla.org/de/firefox/addon/znuny-helper/)
+
+Alle drei Einträge sind als **nicht gelistet** eingestellt: kein Auftauchen in der Store-Suche, Installation nur über den direkten Link.
+
+### Manuelle Installation (Entwickler-/Testmodus)
+
+**Chrome oder Edge:**
+
+1. Addon-Ordner lokal bereitstellen (`znuny-helper-extension`).
 2. Browser öffnen.
 3. Erweiterungsseite öffnen:
    - Chrome: `chrome://extensions`
@@ -41,6 +55,16 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 7. Znuny-Seite neu laden.
 
 Nach Änderungen am Addon muss die Erweiterung auf der Erweiterungsseite neu geladen werden. Danach sollte auch der Znuny-Tab aktualisiert werden.
+
+**Firefox:**
+
+1. Addon-Ordner lokal bereitstellen (`znuny-helper-extension-firefox`).
+2. `about:debugging#/runtime/this-firefox` aufrufen.
+3. **Temporäres Add-on laden…** anklicken.
+4. Die Datei `manifest.json` aus dem Ordner `znuny-helper-extension-firefox` auswählen.
+5. Znuny-Seite neu laden.
+
+> Temporär geladene Firefox-Erweiterungen verschwinden beim Neustart des Browsers und müssen dann erneut geladen werden. Für eine dauerhafte Installation ist eine von Mozilla signierte Version aus dem addons.mozilla.org-Store nötig.
 
 ## Bedienung
 
@@ -64,6 +88,7 @@ Die Einstellungen werden im Browser gespeichert. Änderungen im Popup gelten dir
 | Antwort | Anhang-Erinnerung | Hinweis, wenn der Text einen Anhang erwähnt, aber keiner angehängt ist |
 | Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status |
 | Tastenkürzel | Strg+Enter zum Senden | Aktuelles Formular übermitteln, Tab schließt danach automatisch |
+| Benachrichtigung | Ton bei neuem Ticket | Sound abspielen, sobald ein neues Ticket bei einem selbst gesperrt wird |
 
 ## Anhang-Vorschau
 
@@ -241,6 +266,20 @@ Ein Klick auf einen anderen Knopf überschreibt die Vorbelegung jederzeit.
 
 Das Kürzel funktioniert nur, wenn auf der aktuellen Seite ein passender "Übermitteln"-Knopf sichtbar ist; sonst passiert nichts.
 
+## Ton bei neuem Ticket
+
+Ist diese Funktion aktiv, spielt das Addon einen kurzen Sound ab, sobald ein neues Ticket bei einem selbst gesperrt wird. Dazu gleicht das Addon im Hintergrund regelmäßig (etwa einmal pro Minute) die eigene Ansicht "Gesperrte Tickets" ab und merkt sich lokal, welche Ticketnummern schon bekannt sind.
+
+Im Addon-Popup lässt sich unter **Benachrichtigung**:
+
+- der gewünschte Sound aus einer Liste auswählen und per Knopf vorab anhören,
+- ein eigener Sound per Datei-Upload hinzufügen,
+- ein selbst hinzugefügter Sound wieder entfernen.
+
+Fünf Sounds sind bereits eingebaut (ICQ, iPhone, Minecraft Huhn 1, Minecraft Huhn 2, WhatsApp).
+
+> Direkt nach der Installation bzw. dem ersten Aktivieren merkt sich das Addon nur den aktuellen Stand der gesperrten Tickets. Für bereits vorher gesperrte Tickets wird noch kein Ton abgespielt, erst für neu hinzukommende.
+
 ## EB Helper
 
 Der **EB Helper** unterstützt beim Erstellen von Empfangsbestätigungen aus passenden Hardware-Tickets.
@@ -295,6 +334,8 @@ Das Addon speichert bestimmte Informationen lokal im Browser:
 - lokale Ticketkategorien
 - lokale Ticketnotizen
 - Suchhistorie
+- Liste der zuletzt bekannten gesperrten Ticketnummern (für "Ton bei neuem Ticket")
+- ausgewählter bzw. selbst hochgeladener Benachrichtigungston
 
 Diese Informationen werden nicht automatisch in Znuny geschrieben und nicht automatisch an andere Personen übertragen.
 
@@ -306,7 +347,7 @@ Ausnahme: Beim EB Helper werden erkannte Hardwaredaten an die lokale EB-Seite ü
 - Lokale Kategorien und Notizen sind nur im jeweiligen Browserprofil verfügbar.
 - Nach Addon-Updates sollte die Erweiterung neu geladen und die Znuny-Seite aktualisiert werden.
 - Wenn Znuny seine HTML-Struktur ändert, können einzelne Funktionen Anpassungen benötigen.
-- Die Firefox-Unterstützung ist geplant, aber aktuell nicht Hauptziel.
+- Manuell geladene Firefox-Erweiterungen sind nur temporär aktiv (siehe Installation); für Dauerbetrieb wird die Store-Version benötigt.
 
 ## Deaktivieren einzelner Funktionen
 

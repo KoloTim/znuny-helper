@@ -6,10 +6,13 @@
   const SEARCH_HISTORY_KEY = "znunyHelperSearchHistory";
   const CATEGORY_CONFIG_KEY = "znunyHelperCategoryConfig";
   const PRIORITY_TEMPLATE_CONFIG_KEY = "znunyHelperPriorityTemplateConfig";
+  const TICKET_SOUND_CONFIG_KEY = "znunyHelperTicketSoundConfig";
+  const TICKET_SOUND_SEEN_KEY = "znunyHelperSeenLockedTicketIds";
   const EB_BASE_URL = "https://digi-eb.staff.hsrw/new";
   const TEXT_PREVIEW_LIMIT = 2 * 1024 * 1024;
   const SPREADSHEET_PREVIEW_MAX_ROWS = 1000;
   const SPREADSHEET_PREVIEW_MAX_COLS = 80;
+  const TICKET_SOUND_CHECK_INTERVAL_MS = 60000;
 
   const DEFAULT_SETTINGS = {
     popupTabs: true,
@@ -23,8 +26,17 @@
     ticketListInfiniteScroll: true,
     attachmentReminder: true,
     pendingDateButtons: true,
-    keyboardShortcuts: true
+    keyboardShortcuts: true,
+    assignedTicketSound: true
   };
+
+  const BUILTIN_TICKET_SOUNDS = [
+    { id: "icq", name: "ICQ", file: "sounds/icq.mp3" },
+    { id: "iphone", name: "iPhone", file: "sounds/iphone.mp3" },
+    { id: "minecraft-chicken-1", name: "Minecraft Huhn 1", file: "sounds/minecraft-chicken-1.mp3" },
+    { id: "minecraft-chicken-2", name: "Minecraft Huhn 2", file: "sounds/minecraft-chicken-2.mp3" },
+    { id: "whatsapp", name: "WhatsApp", file: "sounds/whatsapp.mp3" }
+  ];
 
   const DEFAULT_PRIORITY_TEMPLATES = [
     {
@@ -112,6 +124,7 @@
   let ticketState = { categories: {}, notes: {} };
   let categoryConfig = null;
   let priorityTemplateConfig = { templates: DEFAULT_PRIORITY_TEMPLATES };
+  let ticketSoundConfig = { customSounds: [], selectedId: BUILTIN_TICKET_SOUNDS[0].id };
   let openNoteTicketId = null;
   let scanQueued = false;
   let searchModalFixQueued = false;
@@ -121,7 +134,10 @@
     nextUrl: "",
     loading: false,
     done: false,
-    bound: false
+    bound: false,
+    hasLoadedPage: false,
+    failCount: 0,
+    nextRetryAt: 0
   };
   let articleSearchState = {
     terms: [],
@@ -299,6 +315,90 @@
   function savePriorityTemplateConfig() {
     priorityTemplateConfig = normalizePriorityTemplateConfig(priorityTemplateConfig);
     syncSet("local", { [PRIORITY_TEMPLATE_CONFIG_KEY]: priorityTemplateConfig });
+  }
+
+  function normalizeTicketSoundConfig(config) {
+    const customSounds = Array.isArray(config?.customSounds)
+      ? config.customSounds
+          .filter((sound) => sound?.dataUrl)
+          .map((sound, index) => ({
+            id: String(sound.id || `custom-${index + 1}`),
+            name: String(sound.name || `Eigener Sound ${index + 1}`).trim(),
+            dataUrl: String(sound.dataUrl)
+          }))
+      : [];
+
+    const availableIds = [...BUILTIN_TICKET_SOUNDS, ...customSounds].map((sound) => sound.id);
+    const selectedId = availableIds.includes(config?.selectedId) ? config.selectedId : BUILTIN_TICKET_SOUNDS[0].id;
+
+    return { customSounds, selectedId };
+  }
+
+  function getTicketSoundSource(sound) {
+    if (!sound) return "";
+    if (sound.dataUrl) return sound.dataUrl;
+    if (sound.file) return api.runtime.getURL(sound.file);
+    return "";
+  }
+
+  function playAssignedTicketSound() {
+    const allSounds = [...BUILTIN_TICKET_SOUNDS, ...ticketSoundConfig.customSounds];
+    const selected = allSounds.find((sound) => sound.id === ticketSoundConfig.selectedId) || allSounds[0];
+    const src = getTicketSoundSource(selected);
+    if (!src) return;
+
+    try {
+      const audio = new Audio(src);
+      audio.volume = 0.6;
+      audio.play().catch((error) => console.warn("Znuny Helper: Sound konnte nicht abgespielt werden:", error));
+    } catch (error) {
+      console.warn("Znuny Helper: Sound konnte nicht abgespielt werden:", error);
+    }
+  }
+
+  function findLockedTicketsUrl() {
+    const direct = document.querySelector("a[href*='Action=AgentTicketLockedView']");
+    if (direct) return direct.href;
+
+    const fallback = [...document.querySelectorAll("a[href*='Action=AgentTicket']")]
+      .find((link) => /gesperrt/i.test(`${link.title || ""} ${link.getAttribute("aria-label") || ""}`));
+    return fallback?.href || "";
+  }
+
+  async function checkForAssignedTickets() {
+    if (!settings.assignedTicketSound) return;
+
+    const url = findLockedTicketsUrl();
+    if (!url) return;
+
+    try {
+      const response = await fetch(url, { credentials: "include", cache: "no-store" });
+      if (!response.ok) return;
+
+      const html = await response.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const table = findTicketTable(doc);
+      if (!table) return;
+
+      const indexes = getIndexes(table);
+      const currentIds = [...table.querySelectorAll("tbody tr")]
+        .map((row) => getTicketId(row, indexes))
+        .filter(Boolean);
+
+      const stored = await syncGet("local", { [TICKET_SOUND_SEEN_KEY]: null });
+      const seen = stored[TICKET_SOUND_SEEN_KEY];
+
+      syncSet("local", { [TICKET_SOUND_SEEN_KEY]: currentIds });
+
+      // First run ever: just record the current baseline, don't sound off for
+      // every ticket already locked before this feature existed.
+      if (!Array.isArray(seen)) return;
+
+      const seenIds = new Set(seen);
+      if (currentIds.some((id) => !seenIds.has(id))) playAssignedTicketSound();
+    } catch (error) {
+      console.warn("Znuny Helper: Ticket-Sound-Prüfung fehlgeschlagen:", error);
+    }
   }
 
   function syncGet(area, defaults) {
@@ -1073,9 +1173,8 @@
   }
 
   function stripHtmlToText(html) {
-    const doc = document.implementation.createHTMLDocument("");
-    doc.body.innerHTML = String(html || "");
-    return normalizeText(doc.body.innerText || doc.body.textContent || "");
+    const doc = new DOMParser().parseFromString(String(html || ""), "text/html");
+    return normalizeText(doc.body?.innerText || doc.body?.textContent || "");
   }
 
   function decodeMailBody(bodyText, headers) {
@@ -3980,6 +4079,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (selection) selection.style.display = "block";
   }
 
+  function isModernizedSelectWidgetVisible(select) {
+    const field = select.closest(".Field") || select.parentElement;
+    const searchInput = document.getElementById(`${select.id}_Search`) ||
+      field?.querySelector(".InputField_Search");
+    const inputContainer = searchInput?.closest(".InputField_InputContainer") ||
+      field?.querySelector(".InputField_InputContainer");
+    return Boolean(inputContainer && isVisibleFormControl(inputContainer));
+  }
+
   function setPrioritySelectField(selectId, value) {
     const select = document.getElementById(selectId);
     const option = findSelectOptionByTemplateValue(select, value);
@@ -4007,6 +4115,29 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       .replace(/"/g, "&quot;");
   }
 
+  function fragmentFromLines(text) {
+    const fragment = document.createDocumentFragment();
+    String(text || "")
+      .split("\n")
+      .forEach((line, index) => {
+        if (index > 0) fragment.appendChild(document.createElement("br"));
+        fragment.appendChild(document.createTextNode(line));
+      });
+    return fragment;
+  }
+
+  function insertRichTextInto(target, value, prepend) {
+    if (prepend) {
+      const fragment = fragmentFromLines(value);
+      fragment.appendChild(document.createElement("br"));
+      target.insertBefore(fragment, target.firstChild);
+    } else {
+      target.replaceChildren(fragmentFromLines(value));
+    }
+    target.dispatchEvent(new Event("input", { bubbles: true }));
+    target.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
   function setPriorityRichText(value, options = {}) {
     if (!value) return false;
 
@@ -4021,15 +4152,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       setControlValue(textarea, prepend ? `${value}\n${textarea.value || ""}` : value);
     }
 
-    const html = escapeHtml(value).replace(/\n/g, "<br>");
     const editable =
       row?.querySelector?.("[contenteditable='true']") ||
       document.querySelector(".cke_editable[contenteditable='true'], [contenteditable='true']");
 
     if (editable) {
-      editable.innerHTML = prepend ? `${html}<br>${editable.innerHTML || ""}` : html;
-      editable.dispatchEvent(new Event("input", { bubbles: true }));
-      editable.dispatchEvent(new Event("change", { bubbles: true }));
+      insertRichTextInto(editable, value, prepend);
       return true;
     }
 
@@ -4037,9 +4165,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     try {
       const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
       if (iframeDoc?.body) {
-        iframeDoc.body.innerHTML = prepend ? `${html}<br>${iframeDoc.body.innerHTML || ""}` : html;
-        iframeDoc.body.dispatchEvent(new Event("input", { bubbles: true }));
-        iframeDoc.body.dispatchEvent(new Event("change", { bubbles: true }));
+        insertRichTextInto(iframeDoc.body, value, prepend);
         return true;
       }
     } catch (error) {
@@ -4072,7 +4198,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function getPrioritySelectFieldText(selectId) {
     const select = document.getElementById(selectId);
-    if (!select || !isVisibleFormControl(select)) return "";
+    if (!select) return "";
+    if (!isVisibleFormControl(select) && !isModernizedSelectWidgetVisible(select)) return "";
     return getSelectOptionText(select.selectedOptions?.[0]);
   }
 
@@ -4221,7 +4348,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const notice = document.createElement("div");
     notice.id = "zh-priority-external-customer-warning";
-    notice.innerHTML = `<strong>EXTERN:</strong> ${escapeHtml(warningText)}`;
+    const strong = document.createElement("strong");
+    strong.textContent = "EXTERN:";
+    notice.appendChild(strong);
+    notice.appendChild(document.createTextNode(` ${warningText}`));
     toolbar.appendChild(notice);
   }
 
@@ -4778,7 +4908,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     if (explicitNext) return explicitNext.href;
 
-    const currentPage = Number((doc.body?.innerText || "").match(/Seite:\s*(\d+)/i)?.[1] || 0);
+    const currentPage = Number(getElementText(doc.body).match(/Seite:\s*(\d+)/i)?.[1] || 0);
     const numericLinks = links
       .map((item) => ({ ...item, page: Number(item.text.match(/^\d+$/)?.[0] || 0) }))
       .filter((item) => item.page > 0)
@@ -4802,7 +4932,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return ids;
   }
 
-  function ensureInfiniteScrollStatus() {
+  function ensureInfiniteScrollStatus(table) {
     let status = document.getElementById("zh-infinite-scroll-status");
     if (status) return status;
 
@@ -4810,8 +4940,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     status.id = "zh-infinite-scroll-status";
     status.textContent = "";
 
-    const table = findTicketTable();
-    table?.parentElement?.appendChild(status);
+    const resolvedTable = table || findTicketTable();
+    resolvedTable?.parentElement?.appendChild(status);
     return status;
   }
 
@@ -4822,9 +4952,18 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     `);
   }
 
-  function setInfiniteScrollStatus(text) {
-    document.getElementById("zh-infinite-scroll-status")?.remove();
+  function setInfiniteScrollStatus(text, table) {
+    if (!text) {
+      document.getElementById("zh-infinite-scroll-status")?.remove();
+      return;
+    }
+
+    const status = ensureInfiniteScrollStatus(table);
+    status.textContent = text;
   }
+
+  const INFINITE_SCROLL_MAX_FAILURES = 3;
+  const INFINITE_SCROLL_RETRY_DELAY_MS = 4000;
 
   async function loadNextTicketListPage() {
     if (infiniteScrollState.loading || infiniteScrollState.done || !infiniteScrollState.nextUrl) return;
@@ -4834,7 +4973,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (!table || !tbody) return;
 
     infiniteScrollState.loading = true;
-    setInfiniteScrollStatus("");
+    setInfiniteScrollStatus("Weitere Tickets werden geladen …", table);
 
     try {
       const response = await fetch(infiniteScrollState.nextUrl, {
@@ -4851,14 +4990,13 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
       if (!nextTable || !nextBody) {
         infiniteScrollState.done = true;
-        setInfiniteScrollStatus("");
+        setInfiniteScrollStatus("Weitere Tickets konnten nicht automatisch geladen werden.", table);
         return;
       }
 
       const indexes = getIndexes(table);
       const nextIndexes = getIndexes(nextTable);
       const existingIds = getExistingTicketIds(table, indexes);
-      let added = 0;
 
       [...nextBody.querySelectorAll("tr")].forEach((row) => {
         const ticketId = getTicketId(row, nextIndexes);
@@ -4867,7 +5005,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         const clone = document.importNode(row, true);
         tbody.appendChild(clone);
         if (ticketId) existingIds.add(ticketId);
-        added += 1;
       });
 
       const loadedUrl = infiniteScrollState.nextUrl;
@@ -4875,18 +5012,30 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       infiniteScrollState.nextUrl =
         followingUrl && normalizeListUrl(followingUrl) !== normalizeListUrl(loadedUrl) ? followingUrl : "";
       infiniteScrollState.done = !infiniteScrollState.nextUrl;
+      infiniteScrollState.hasLoadedPage = true;
+      infiniteScrollState.failCount = 0;
+      infiniteScrollState.nextRetryAt = 0;
 
       if (settings.ticketCategories && isCategoryTicketListPage()) {
         applyTicketCategories();
       }
 
-      setInfiniteScrollStatus("");
+      setInfiniteScrollStatus(infiniteScrollState.done ? "Alle Tickets geladen." : "", table);
     } catch (error) {
       console.warn("Znuny Helper infinite scroll failed:", error);
-      setInfiniteScrollStatus("");
+      infiniteScrollState.failCount += 1;
+
+      if (infiniteScrollState.failCount >= INFINITE_SCROLL_MAX_FAILURES) {
+        infiniteScrollState.done = true;
+        setInfiniteScrollStatus("Weitere Tickets konnten nicht geladen werden. Bitte Seite neu laden.", table);
+      } else {
+        infiniteScrollState.nextRetryAt = Date.now() + INFINITE_SCROLL_RETRY_DELAY_MS;
+        setInfiniteScrollStatus("Weitere Tickets konnten nicht geladen werden, wird erneut versucht …", table);
+      }
     } finally {
       infiniteScrollState.loading = false;
-      window.setTimeout(maybeLoadNextTicketListPage, 80);
+      const delay = Math.max(80, infiniteScrollState.nextRetryAt - Date.now());
+      window.setTimeout(maybeLoadNextTicketListPage, delay);
     }
   }
 
@@ -4894,6 +5043,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (!settings.ticketListInfiniteScroll) return;
     if (infiniteScrollState.loading || infiniteScrollState.done) return;
     if (!infiniteScrollState.nextUrl) return;
+    if (Date.now() < infiniteScrollState.nextRetryAt) return;
 
     const distanceToBottom = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
     if (distanceToBottom < 650) {
@@ -4908,24 +5058,32 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     }
 
     const currentUrl = normalizeListUrl(window.location.href);
-    const nextUrl = findNextTicketListUrl();
 
     addInfiniteScrollStyles();
 
     if (infiniteScrollState.enabledUrl !== currentUrl) {
+      const nextUrl = findNextTicketListUrl();
       infiniteScrollState = {
         enabledUrl: currentUrl,
         nextUrl,
         loading: false,
         done: !nextUrl,
-        bound: infiniteScrollState.bound
+        bound: infiniteScrollState.bound,
+        hasLoadedPage: false,
+        failCount: 0,
+        nextRetryAt: 0
       };
-    } else if (!infiniteScrollState.nextUrl && nextUrl) {
-      infiniteScrollState.nextUrl = nextUrl;
-      infiniteScrollState.done = false;
+      setInfiniteScrollStatus("");
+    } else if (!infiniteScrollState.nextUrl && !infiniteScrollState.hasLoadedPage && !infiniteScrollState.loading) {
+      // Only recover nextUrl from the live DOM before any page has loaded (pagination
+      // can render late). Afterward the live pager is stale and re-checking it here
+      // would keep resetting an already-exhausted or in-flight state.
+      const nextUrl = findNextTicketListUrl();
+      if (nextUrl) {
+        infiniteScrollState.nextUrl = nextUrl;
+        infiniteScrollState.done = false;
+      }
     }
-
-    setInfiniteScrollStatus("");
 
     if (!infiniteScrollState.bound) {
       infiniteScrollState.bound = true;
@@ -4941,6 +5099,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     removeStyle("zh-infinite-scroll-style");
     infiniteScrollState.nextUrl = "";
     infiniteScrollState.done = true;
+    infiniteScrollState.hasLoadedPage = false;
+    infiniteScrollState.failCount = 0;
+    infiniteScrollState.nextRetryAt = 0;
   }
 
   function autoDetectCategory(row, indexes) {
@@ -5606,6 +5767,305 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     else disablePendingDateQuickButtons();
 
     enableSubmitShortcut();
+    enableLogoPongEasterEgg();
+  }
+
+  function findAgentAvatarElement() {
+    const candidates = [...document.querySelectorAll("div, span, a")].filter((element) => {
+      if (element.children.length > 0) return false;
+
+      const text = normalizeText(element.textContent || "");
+      if (!/^[A-ZÄÖÜ]{2,3}$/.test(text)) return false;
+
+      const rect = element.getBoundingClientRect();
+      if (rect.width < 16 || rect.width > 80) return false;
+      if (Math.abs(rect.width - rect.height) > 12) return false;
+      if (rect.top > 120 || rect.bottom < 0) return false;
+
+      const style = window.getComputedStyle(element);
+      const radius = Number.parseFloat(style.borderRadius) || 0;
+      if (radius < rect.width * 0.3) return false;
+
+      return elementIsVisible(element);
+    });
+
+    return candidates[0] || null;
+  }
+
+  function enableLogoPongEasterEgg() {
+    const avatar = findAgentAvatarElement();
+    if (!avatar || avatar.dataset.zhPongBound) return;
+
+    avatar.dataset.zhPongBound = "1";
+    avatar.style.cursor = "pointer";
+
+    let hoverTimer = null;
+    avatar.addEventListener("mouseenter", () => {
+      hoverTimer = window.setTimeout(openLogoPongModal, 3000);
+    });
+    avatar.addEventListener("mouseleave", () => {
+      window.clearTimeout(hoverTimer);
+    });
+  }
+
+  const LOGO_PONG_COLORS = { left: "#2c2569", right: "#3f6fd8", ball: "#1c1b29", line: "#e2dfee" };
+
+  function addLogoPongStyles() {
+    addStyle("zh-pong-style", `
+      .zh-pong-backdrop { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: center; justify-content: center; background: rgba(20, 20, 30, .55); color-scheme: light; }
+      .zh-pong-modal { width: min(640px, calc(100vw - 48px)); background: #fff; color: #1c1b29; border-radius: 14px; box-shadow: 0 24px 64px rgba(0,0,0,.4); overflow: hidden; }
+      .zh-pong-modal header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #e7e5ef; }
+      .zh-pong-modal h2 { margin: 0 0 4px; font-size: 17px; }
+      .zh-pong-modal header p { margin: 0; font-size: 12.5px; color: #6b6880; }
+      .zh-pong-close { border: none; background: #efedf5; color: #1c1b29; border-radius: 999px; padding: 7px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+      .zh-pong-close:hover { background: #e2dff0; }
+      .zh-pong-legend { display: flex; gap: 20px; padding: 10px 20px; font-size: 12.5px; color: #4b4860; }
+      .zh-pong-legend strong { color: #1c1b29; }
+      .zh-pong-court { margin: 0 20px 20px; border: 1px solid #e7e5ef; border-radius: 12px; overflow: hidden; background: #fff; }
+      .zh-pong-court canvas { display: block; width: 100%; height: 360px; touch-action: none; cursor: none; }
+    `);
+  }
+
+  function drawLogoPongLeftPaddle(ctx, x, centerY, height, color) {
+    const top = centerY - height / 2;
+    const bottom = centerY + height / 2;
+    const cornerY = top + height * 0.42;
+    const reach = height * 0.34;
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 10;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(x - reach, top);
+    ctx.lineTo(x, cornerY);
+    ctx.lineTo(x, bottom);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawLogoPongRightPaddle(ctx, x, centerY, height, color) {
+    const top = centerY - height / 2;
+    const bottom = centerY + height / 2;
+    const cornerY = top + height * 0.42;
+    const reach = height * 0.34;
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 10;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(x + reach, top);
+    ctx.lineTo(x, cornerY);
+    ctx.lineTo(x, bottom);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function startLogoPongGame(canvas) {
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+    const paddleHeight = 70;
+    const paddleMargin = 26;
+    const ballRadius = 7;
+
+    const state = {
+      leftY: height / 2,
+      rightY: height / 2,
+      targetLeftY: height / 2,
+      ballX: width / 2,
+      ballY: height / 2,
+      ballVX: 4.2,
+      ballVY: 2.4,
+      leftScore: 0,
+      rightScore: 0,
+      running: true,
+      frame: 0
+    };
+
+    function resetBall(direction) {
+      state.ballX = width / 2;
+      state.ballY = height / 2;
+      state.ballVX = 4.2 * direction;
+      state.ballVY = Math.random() * 4 - 2;
+    }
+
+    function onPointerMove(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleY = height / rect.height;
+      state.targetLeftY = (event.clientY - rect.top) * scaleY;
+    }
+
+    canvas.addEventListener("pointermove", onPointerMove);
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.strokeStyle = LOGO_PONG_COLORS.line;
+      ctx.setLineDash([6, 10]);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(width / 2, 0);
+      ctx.lineTo(width / 2, height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.textAlign = "center";
+      ctx.font = "700 22px system-ui, sans-serif";
+      ctx.fillStyle = LOGO_PONG_COLORS.left;
+      ctx.fillText(String(state.leftScore), width / 2 - 60, 40);
+      ctx.fillStyle = LOGO_PONG_COLORS.right;
+      ctx.fillText(String(state.rightScore), width / 2 + 60, 40);
+
+      drawLogoPongLeftPaddle(ctx, paddleMargin, state.leftY, paddleHeight, LOGO_PONG_COLORS.left);
+      drawLogoPongRightPaddle(ctx, width - paddleMargin, state.rightY, paddleHeight, LOGO_PONG_COLORS.right);
+
+      ctx.fillStyle = LOGO_PONG_COLORS.ball;
+      ctx.beginPath();
+      ctx.arc(state.ballX, state.ballY, ballRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function step() {
+      if (!state.running) return;
+
+      state.leftY += (state.targetLeftY - state.leftY) * 0.25;
+      state.leftY = Math.min(height - paddleHeight / 2, Math.max(paddleHeight / 2, state.leftY));
+
+      state.rightY += (state.ballY - state.rightY) * 0.08;
+      state.rightY = Math.min(height - paddleHeight / 2, Math.max(paddleHeight / 2, state.rightY));
+
+      state.ballX += state.ballVX;
+      state.ballY += state.ballVY;
+
+      if (state.ballY < ballRadius || state.ballY > height - ballRadius) {
+        state.ballVY *= -1;
+        state.ballY = Math.min(height - ballRadius, Math.max(ballRadius, state.ballY));
+      }
+
+      const leftPaddleX = paddleMargin;
+      const rightPaddleX = width - paddleMargin;
+
+      if (
+        state.ballVX < 0 &&
+        state.ballX - ballRadius <= leftPaddleX + 6 &&
+        state.ballX - ballRadius >= leftPaddleX - 12 &&
+        Math.abs(state.ballY - state.leftY) <= paddleHeight / 2 + ballRadius
+      ) {
+        state.ballVX = Math.abs(state.ballVX) * 1.03;
+        state.ballVY += (state.ballY - state.leftY) * 0.05;
+      }
+
+      if (
+        state.ballVX > 0 &&
+        state.ballX + ballRadius >= rightPaddleX - 6 &&
+        state.ballX + ballRadius <= rightPaddleX + 12 &&
+        Math.abs(state.ballY - state.rightY) <= paddleHeight / 2 + ballRadius
+      ) {
+        state.ballVX = -Math.abs(state.ballVX) * 1.03;
+        state.ballVY += (state.ballY - state.rightY) * 0.05;
+      }
+
+      if (state.ballX < 0) {
+        state.rightScore += 1;
+        resetBall(1);
+      } else if (state.ballX > width) {
+        state.leftScore += 1;
+        resetBall(-1);
+      }
+
+      draw();
+      state.frame = window.requestAnimationFrame(step);
+    }
+
+    draw();
+    state.frame = window.requestAnimationFrame(step);
+
+    return {
+      stop() {
+        state.running = false;
+        if (state.frame) window.cancelAnimationFrame(state.frame);
+        canvas.removeEventListener("pointermove", onPointerMove);
+      }
+    };
+  }
+
+  function openLogoPongModal() {
+    if (document.querySelector(".zh-pong-backdrop")) return;
+
+    addLogoPongStyles();
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "zh-pong-backdrop";
+
+    const modal = document.createElement("div");
+    modal.className = "zh-pong-modal";
+
+    const header = document.createElement("header");
+    const heading = document.createElement("div");
+    const title = document.createElement("h2");
+    title.textContent = "Logo Pong";
+    heading.appendChild(title);
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "zh-pong-close";
+    closeButton.textContent = "Schließen";
+
+    header.appendChild(heading);
+    header.appendChild(closeButton);
+
+    const legend = document.createElement("div");
+    legend.className = "zh-pong-legend";
+
+    const leftLegend = document.createElement("span");
+    const leftLabel = document.createElement("strong");
+    leftLabel.textContent = "Links:";
+    leftLegend.appendChild(leftLabel);
+    leftLegend.appendChild(document.createTextNode(" HSRW Indigo"));
+
+    const rightLegend = document.createElement("span");
+    const rightLabel = document.createElement("strong");
+    rightLabel.textContent = "Rechts:";
+    rightLegend.appendChild(rightLabel);
+    rightLegend.appendChild(document.createTextNode(" Campus Blau"));
+
+    legend.appendChild(leftLegend);
+    legend.appendChild(rightLegend);
+
+    const court = document.createElement("div");
+    court.className = "zh-pong-court";
+    const canvas = document.createElement("canvas");
+    canvas.width = 600;
+    canvas.height = 360;
+    court.appendChild(canvas);
+
+    modal.appendChild(header);
+    modal.appendChild(legend);
+    modal.appendChild(court);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    const game = startLogoPongGame(canvas);
+
+    function close() {
+      game.stop();
+      backdrop.remove();
+      document.removeEventListener("keydown", onKeydown);
+    }
+
+    function onKeydown(event) {
+      if (event.key === "Escape") close();
+    }
+
+    closeButton.addEventListener("click", close);
+    backdrop.addEventListener("click", (event) => {
+      if (event.target === backdrop) close();
+    });
+    document.addEventListener("keydown", onKeydown);
   }
 
   async function init() {
@@ -5631,6 +6091,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     });
     priorityTemplateConfig = normalizePriorityTemplateConfig(storedPriorityTemplateConfig[PRIORITY_TEMPLATE_CONFIG_KEY]);
 
+    const storedTicketSoundConfig = await syncGet("local", { [TICKET_SOUND_CONFIG_KEY]: ticketSoundConfig });
+    ticketSoundConfig = normalizeTicketSoundConfig(storedTicketSoundConfig[TICKET_SOUND_CONFIG_KEY]);
+
     dispatchPageSettings();
 
     if (document.readyState === "loading") {
@@ -5646,11 +6109,20 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     });
 
     api.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName !== "local" || !changes[SETTINGS_KEY]) return;
+      if (areaName !== "local") return;
 
-      settings = { ...DEFAULT_SETTINGS, ...(changes[SETTINGS_KEY].newValue || {}) };
-      runEnabledFeatures();
+      if (changes[SETTINGS_KEY]) {
+        settings = { ...DEFAULT_SETTINGS, ...(changes[SETTINGS_KEY].newValue || {}) };
+        runEnabledFeatures();
+      }
+
+      if (changes[TICKET_SOUND_CONFIG_KEY]) {
+        ticketSoundConfig = normalizeTicketSoundConfig(changes[TICKET_SOUND_CONFIG_KEY].newValue);
+      }
     });
+
+    window.setTimeout(checkForAssignedTickets, 5000);
+    window.setInterval(checkForAssignedTickets, TICKET_SOUND_CHECK_INTERVAL_MS);
   }
 
   init().catch((error) => console.warn("Znuny Helper failed to initialize:", error));

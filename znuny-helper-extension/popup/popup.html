@@ -132,6 +132,32 @@
             </span>
           </label>
         </fieldset>
+
+        <fieldset class="settings-group">
+          <legend>Benachrichtigung</legend>
+
+          <label class="toggle">
+            <input type="checkbox" name="assignedTicketSound">
+            <span>
+              <strong>Ton bei neuem Ticket</strong>
+              <small>Spielt einen Sound, sobald ein neues Ticket bei dir gesperrt ist.</small>
+            </span>
+          </label>
+
+          <div class="sound-settings">
+            <div class="sound-row">
+              <select id="soundSelect"></select>
+              <button type="button" id="soundPreview" class="ghost-button" title="Anhören">▶</button>
+            </div>
+
+            <ul id="customSoundList" class="sound-list"></ul>
+
+            <div class="sound-row">
+              <button type="button" id="soundAdd" class="ghost-button">+ Eigenen Sound hinzufügen</button>
+            </div>
+            <input type="file" id="soundFileInput" accept="audio/*" hidden>
+          </div>
+        </fieldset>
       </form>
 
       <footer>
