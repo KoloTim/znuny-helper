@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Znuny Helper",
-  "version": "0.1.53",
+  "version": "1.4.0",
   "description": "Consolidated Znuny helper features with per-feature toggles.",
   "action": {
     "default_title": "Znuny Helper",
@@ -32,7 +32,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["sounds/*.mp3"],
+      "resources": ["sounds/*.mp3", "sounds/*.wav"],
       "matches": ["https://otrs.staff.hsrw/*"]
     }
   ],

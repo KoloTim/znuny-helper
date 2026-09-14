@@ -2,6 +2,111 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.4.0] – 2026-09-14
+
+### Added
+- **Case-/Ticketnummer kopieren:** Im geöffneten Ticket (AgentTicketZoom) wird die Nummer oben links in der Überschrift jetzt anklickbar. Ein Klick kopiert die Nummer in die Zwischenablage und bestätigt kurz grün mit „Kopiert!". Die Funktion ist im Popup unter „Suchen" abschaltbar (Standard: an). Erkannt wird die erste Ziffernfolge der Überschrift, sodass sowohl die reine Ticketnummer als auch eine „Case …"-Schreibweise erfasst wird.
+
+## [1.3.2] – 2026-09-14
+
+### Fixed
+- **Excel-/Tabellen-Vorschau in Firefox:** Die Vorschau brach mit „Vorschau konnte nicht geladen werden: e.replace is not a function" ab. Ursache: In Firefox-Content-Scripts kann das `ArrayBuffer` aus `blob.arrayBuffer()` aus einer anderen Herkunft (Realm) stammen, wodurch die interne Typprüfung von SheetJS fehlschlug und die Bytes fälschlich als Base64-String verarbeitet wurden. Die Bytes werden jetzt als `Uint8Array` mit explizitem `type: "array"` übergeben.
+- **„Abbrechen und Schließen" in per „Popups als Tabs" geöffneten Aktionen war ohne Funktion:** Znuny bindet diesen Knopf nur, wenn das Fenster als echtes Znuny-Popup erkannt wird (Fenstername `OTRSPopup_…`); in einem normalen Tab blieb er daher wirkungslos. Das Addon bindet den Knopf in solchen Aktions-Tabs jetzt selbst und schließt den Tab. In der Schnellantwort schließt derselbe Knopf nun das eingebettete Fenster, statt nichts zu tun.
+- **Schnellantwort: automatische Warten-Vorbelegung (+3 Tage) griff nicht zuverlässig:** Das eingebettete Formular wird jetzt – wie die normale Ticketseite – während der offenen Aktion periodisch geprüft, nicht mehr nur beim Laden und bei Änderungen. Dadurch werden spät nachgeladene Datumsfelder (z. B. in der Schließen-Aktion) erfasst und mit +3 Tagen vorbelegt.
+- **Kein Scroll-Sprung beim Anwenden einer Vorlage:** Beim Setzen der Felder wird kein Feld mehr fokussiert (das zog die Seite nach unten zum Textfeld), und die Scroll-Position wird nach dem Znuny-Nachladen der abhängigen Felder wiederhergestellt – es sei denn, man scrollt selbst.
+- **„Artikel hinzufügen" ist jetzt standardmäßig aufgeklappt:** Das Artikel-Widget wird auf allen Aktionsseiten (inkl. Schnellantwort) beim Laden automatisch aufgeklappt und das „Artikel anlegen"-Häkchen gesetzt.
+- **Überlappung von Feldern mit der Vorlagen-Leiste behoben:** In der zweispaltigen Ansicht (Priorität/Besitzer/Schnellantwort) wird die Feldspalte jetzt begrenzt und horizontal beschnitten, sodass breite Felder wie „Neuer Besitzer" nicht mehr unter die Vorlagen-Leiste laufen.
+
+### Changed
+- **Prioritäts-/Personen-Vorlagen: Gruppen, Drag & Drop, stabile Oberfläche:** Jede Vorlage hat jetzt eine optionale „Gruppe". Die Schnellbuttons sind nach Gruppen sortiert (Reihenfolge frei anpassbar, „Ohne Gruppe" zuletzt) und als klar getrennte Abschnitte mit eigener Überschrift dargestellt; „Bearbeiten" und „Als Vorlage speichern" liegen in eigenen Bereichen. Die Leiste sitzt in allen Kontexten – normale Prioritäts-/Besitzer-Seite **und** Schnellantwort – rechts im „Ticket-Einstellungen"-Bereich als echte zweite Spalte (CSS-Grid), ohne die Felder zu überlagern oder nach unten zu drücken. Die Leiste wird nur noch bei echten Vorlagen-Änderungen neu aufgebaut statt bei jedem Seiten-Scan; beim Anwenden einer Vorlage wird die Scroll-Position gehalten. Außerdem werden die Felder nach dem Znuny-Nachladen der abhängigen Felder erneut gesetzt, sodass auch freie Felder (Betreff/Text) schon beim ersten Klick gefüllt werden. Der Bearbeiten-Dialog wurde überarbeitet: kleine Kacheln je Vorlage, nach Gruppen sortiert (mit Überschrift und Anzahl), Filterfeld, ausklappbare Feldbearbeitung, **Drag & Drop** zum Sortieren von Vorlagen (innerhalb/zwischen Gruppen) und Gruppen, ein echtes Gruppen-Auswahlfeld inkl. „Neue Gruppe…" sowie Entfernen direkt an der Kachel.
+- **Kategorien-Bearbeitungsseite kompakter:** Jede Kategorie belegt nur noch eine Zeile mit den Kurzfeldern und einer automatisch mitwachsenden Keyword-Box; die separate Kopfzeile entfällt.
+- **Kein öffentlicher Bug-Melde-Link mehr:** Der Link „Bug/Vorschlag melden" wurde aus dem Popup und der Willkommensseite entfernt, da das Addon über die Store-Direktlinks weltweit installierbar ist und eine interne Support-Adresse sonst öffentlich erreichbar wäre.
+
+## [1.3.1] – 2026-09-07
+
+### Fixed
+- **Prioritäts-Vorlagen und Warten-Schnellauswahl fehlten in der Schnellantwort für "Besitzer" und "Notiz":** Beide Funktionen wurden bisher nur auf der äußeren Ticketseite gesucht statt im eingebetteten Formular. Die komplette Prioritäts-Vorlagen-Funktion (Werkzeugleiste, Felder befüllen, "Als Vorlage speichern") ist jetzt konsequent auf das jeweilige Dokument bezogen und funktioniert dadurch identisch in der Schnellantwort wie auf der normalen Seite. Die "Vorlagen bearbeiten"-Verwaltung bleibt bewusst ein normales Overlay über der Ticketseite. Warten-Schnellauswahl war technisch bereits vorbereitet; falls sie in einem konkreten Fall dennoch fehlt, liegt es daran, dass dort schlicht kein Warten-Status-Feld vorhanden ist.
+
+### Added
+- **Schnellantwort deckt jetzt zusätzlich "Schließen", "Verknüpfen" und "Zusammenfassen" ab.** Die zugrunde liegenden Znuny-Aktionsnamen für Schließen/Verknüpfen/Zusammenfassen sind unsere beste Einschätzung und an dieser Installation ungeprüft – trifft ein Name nicht zu, öffnet der jeweilige Link einfach weiterhin wie gewohnt in Tab oder Popup, ohne Fehler.
+
+## [1.3.0] – 2026-09-07
+
+### Added
+- **Schnellantwort deckt jetzt auch "Besitzer" (Personen → Besitzer) und "Notiz" (Kommunikation → Notiz) ab**, nicht mehr nur Antworten/Allen-antworten. Beide öffnen bei aktivierter Schnellantwort ebenfalls als eingebettetes Fenster direkt im Ticket statt in einem neuen Tab, inklusive Ctrl+Enter, Warten-Schnellauswahl und automatischem Schließen/Aktualisieren nach dem Übermitteln. Das Fenster zeigt dabei die passende Überschrift ("Besitzer ändern" / "Notiz hinzufügen" / "Schnellantwort").
+
+## [1.2.7] – 2026-09-03
+
+### Security
+- **Verbleibende Lücke im PDF-Vorschau-Fallback geschlossen:** Der übliche Vorschauweg (Fetch + erzwungener `application/pdf`-Blob) war bereits sicher, unabhängig vom `sandbox`-Attribut. Der seltenere Fallback – wenn der Fetch fehlschlägt oder der Server den Anhang selbst als HTML statt PDF meldet – hat den Anhang bisher trotzdem direkt und automatisch in einem ungesicherten, gleichen-Ursprungs-iframe geöffnet. Da eine Sandbox hier den PDF-Betrachter komplett lahmlegt (siehe 1.2.6), zeigt das Addon in diesem Fall jetzt stattdessen einen Hinweis mit einem normalen Download-Link – der Anhang wird nur noch nach einem bewussten Klick geöffnet, genau wie beim direkten Klick auf den ursprünglichen Znuny-Anhang-Link, statt automatisch als Vorschau.
+
+## [1.2.6] – 2026-09-03
+
+### Fixed
+- **PDF-Vorschau in Chrome/Edge weiterhin kaputt:** Der 1.2.5-Fix (`allow-same-origin` ergänzt) hat nur das Laden der `blob:`-Quelle repariert, nicht aber ein zweites, unabhängiges Problem: Der eingebaute PDF-Betrachter von Chrome/Edge aktiviert sich grundsätzlich nicht innerhalb eines sandboxed iframes, unabhängig davon, welche Rechte diesem per `sandbox`-Attribut erteilt werden – ein bekanntes, dokumentiertes Chromium-Verhalten. Das `sandbox`-Attribut wurde daher für die PDF-Vorschau wieder vollständig entfernt (Zustand vor 1.2.2). Der PDF-Betrachter läuft ohnehin bereits isoliert auf Browser-Prozess-Ebene, wodurch die HTML-Sandbox dort keinen zusätzlichen Schutz bietet, aber die Darstellung verhindert hätte. DOCX- und Tabellen-Vorschau (die kein PDF-Plugin nutzen) bleiben weiterhin sandboxed.
+
+## [1.2.5] – 2026-09-03
+
+### Fixed
+- **PDF-Vorschau war seit 1.2.2 kaputt:** Das in 1.2.2 ergänzte leere `sandbox`-Attribut hat verhindert, dass der Browser die per `blob:`-URL geladene PDF-Datei überhaupt öffnen konnte – `blob:`-URLs sind nur aus der Herkunft abrufbar, die sie erzeugt hat, und ein leeres `sandbox`-Attribut versetzt den Rahmen in eine fremde, anonyme Herkunft. Das `sandbox`-Attribut der PDF-Vorschau setzt jetzt zusätzlich `allow-same-origin`, wodurch das Laden wieder funktioniert; Skriptausführung bleibt weiterhin vollständig unterbunden (kein `allow-scripts`), die Absicherung aus 1.2.2 bleibt also erhalten.
+
+## [1.2.4] – 2026-09-03
+
+### Fixed
+- **Sichtbarkeitsprüfung über Frame-Grenzen hinweg:** `isVisibleFormControl` (u. a. von der Warten-Schnellauswahl genutzt) rief `getComputedStyle` bisher immer über das äußere Fenster auf, auch für Felder innerhalb des Schnellantwort-iframes. Das ist der wahrscheinlichste Grund, warum die Warten-Schnellauswahl dort trotz des 1.2.3-Fixes weiterhin nicht erschien. Die Sichtbarkeitsprüfung verwendet jetzt immer das Fenster des jeweiligen Elements.
+
+## [1.2.3] – 2026-09-03
+
+### Fixed
+- **Schnellantwort:** Die Warten-Schnellauswahl (Schnellknöpfe für das Wartedatum) erschien innerhalb des Schnellantwort-Fensters nicht, aus demselben Grund wie zuvor bei Strg+Enter – die Funktion suchte bisher nur auf der äußeren Ticketseite nach den Datumsfeldern statt im eingebetteten Antwortformular. Läuft jetzt zusätzlich direkt im Antwortformular und reagiert auch, wenn der Status erst nachträglich auf einen Warten-Status umgestellt wird.
+
+## [1.2.2] – 2026-09-03
+
+### Security
+- **PDF-Vorschau in der Anhang-Vorschau abgesichert:** Das Vorschau-Fenster für PDFs bekommt jetzt wie die DOCX- und Tabellen-Vorschau ein leeres `sandbox`-Attribut (kein `allow-scripts`, kein `allow-same-origin`). Bisher fehlte das dort. Betroffen ist vor allem der Fallback-Pfad, der die Anhang-URL direkt lädt: Falls eine Datei entgegen ihrer Endung tatsächlich HTML/JS statt eines echten PDFs ist und Znuny sie mit einem entsprechenden Content-Type ausliefert, verhindert das Sandbox-Attribut jetzt, dass darin enthaltenes Skript in der Znuny-Herkunft (mit Zugriff auf die eigene Sitzung) ausgeführt wird. Die eigentliche PDF-Darstellung läuft ohnehin über den eingebauten PDF-Betrachter des Browsers und ist davon nicht betroffen.
+
+## [1.2.1] – 2026-09-03
+
+### Fixed
+- **Schnellantwort:** Strg+Enter zum Senden funktionierte innerhalb des Schnellantwort-Fensters nicht, da die Tastenkombination bisher nur auf der äußeren Ticketseite gebunden wurde statt im eingebetteten Antwortformular selbst. Wird jetzt direkt im Antwortformular (inklusive Editor) gebunden.
+- **Schnellantwort:** Nach dem Absenden blieb die Ticketseite unverändert stehen, was so aussah, als sei nichts abgeschickt worden. Die Erkennung des erfolgreichen Absendens reagierte bisher nur auf ein wiederholtes Abfragen der Fenster-Adresse, das durch einen kurzen Ladezustand ("about:blank") vor dem eigentlichen Laden des Formulars fehlgeleitet werden konnte. Sie reagiert jetzt zusätzlich direkt auf das Laden der Folgeseite und lädt die Ticketseite danach zuverlässig neu.
+
+### Changed
+- **Schnellantwort** trägt nicht mehr den Zusatz "(Beta)" – die Funktion hat sich bewährt und bleibt weiterhin standardmäßig deaktiviert, da sie das gewohnte Antwortverhalten grundlegend ändert.
+
+## [1.2.0] – 2026-09-03
+
+### Added
+- **Schnellantwort:** "Antworten" und "Allen antworten" öffnen jetzt wahlweise nicht mehr in einem neuen Tab, sondern als kleines Fenster direkt über dem Ticket – ganz ohne Tabwechsel. Es ist weiterhin die echte Znuny-Antwortseite (inkl. Editor, Signatur, Pflichtfeldern), nur eingebettet statt in einem eigenen Tab. Nach dem Absenden schliesst sich das Fenster automatisch und das Ticket wird aktualisiert; über den "Schliessen"-Knopf lässt es sich jederzeit ohne Senden verwerfen. Standardmässig deaktiviert, da es das gewohnte Antwortverhalten grundlegend ändert – Einschalten im Popup unter "Schnellantwort".
+
+## [1.1.1] – 2026-09-03
+
+### Fixed
+- **Prioritäts-Vorlagen funktionierten nicht beim "Neues Telefon-Ticket"-Formular:** Die Vorlagen-Werkzeugleiste erschien dort bisher gar nicht, und selbst mit Erweiterung hätten Queue- und Besitzer-Feld nicht gefunden werden können, weil dieses Formular andere Feld-IDs verwendet als die Besitzer-/Prioritäts-Aktionsseiten (z. B. `Dest` statt `NewQueueID`). Die Felderkennung sucht jetzt mehrere bekannte ID-Varianten und fällt zusätzlich auf eine Suche über die sichtbare Feldbeschriftung zurück, sodass Vorlagen jetzt auch beim Telefon-Ticket zuverlässig greifen.
+
+## [1.1.0] – 2026-09-02
+
+### Added
+- **Bilder in Ticketartikeln sind jetzt anklickbar und vergrößerbar:** Bereits im Ticket angezeigte Bilder (z. B. eingebettete Bilder aus HTML-Mails) bekommen beim Hover einen Rahmen und öffnen per Klick eine Großansicht (schließbar per Klick daneben, Escape oder Schließen-Button). Läuft über den bestehenden "Anhang-Vorschau"-Schalter, kein neuer Schalter nötig. Sehr kleine Bilder (unter 24×24 px, typischerweise Spacer/Tracking-Pixel) bleiben bewusst ausgenommen.
+- **Drei neue, dezente Benachrichtigungstöne** für "Ton bei neuem Ticket": Sanfter Ping, Zwei-Ton-Chime, Weicher Klick – synthetisch erzeugte, kurze Glockentöne statt der bisherigen Sounds. Sanfter Ping ist jetzt der Standard-Sound.
+
+### Changed
+- **Prioritäts-Vorlagen** und **Ton bei neuem Ticket** sind jetzt standardmäßig deaktiviert (vorher aktiv). Wer sie nutzen möchte, schaltet sie im Popup ein; bereits gespeicherte eigene Einstellungen bleiben unangetastet.
+
+### Fixed
+- **Tab-Schließen nach dem Übermitteln war unzuverlässig** (blieb manchmal offen, schloss manchmal gar nicht automatisch). Ursache: Der Schließen-Befehl wurde bisher im `submit`-Event der Seite gesendet – genau in dem Moment, in dem die Seite durch die eigentliche Formularübermittlung bereits zu entladen beginnt, wodurch die Nachricht an den Hintergrundprozess gelegentlich verloren ging, bevor sie überhaupt verschickt werden konnte. Jetzt wird die Absicht schon beim Klick auf "Übermitteln" (bevor die Seite zu entladen beginnt) über `sessionStorage` vermerkt und erst auf der danach geladenen Folgeseite zuverlässig ausgeführt. Die beiden getrennten, leicht unterschiedlichen Mechanismen für normale Aktionen und E-Mail-Antworten wurden dabei zu einem gemeinsamen, einfacheren Mechanismus zusammengeführt.
+- **"Ton bei neuem Ticket" fand die eigene "Gesperrte Tickets"-Liste nicht zuverlässig:** Die Erkennung hat bisher nach einem entsprechenden Link in der aktuellen Seite gesucht – auf Seiten ohne volle Werkzeugleiste (z. B. per "Popups als Tabs" geöffnete Aktions-Tabs) wurde dieser Link nie gefunden, wodurch die minütliche Prüfung dort stillschweigend nichts tat. Die Ziel-URL wird jetzt direkt aus der aktuellen Znuny-Adresse gebildet, unabhängig von der sichtbaren Werkzeugleiste.
+- **Mehrfache Benachrichtigungen bei mehreren offenen Znuny-Tabs:** Sind gleichzeitig mehrere Znuny-Tabs offen, prüfen alle unabhängig voneinander im Minutentakt. Ohne Abstimmung konnten mehrere Tabs denselben neuen Ticket-Eingang gleichzeitig entdecken und den Sound mehrfach abspielen. Die Prüfung läuft jetzt (wo vom Browser unterstützt) über die Web-Locks-API serialisiert, sodass ein neues Ticket nur einmal gemeldet wird.
+
+## [1.0.0] – 2026-08-31
+
+Erstes Release, das gleichzeitig für Chrome, Edge und Firefox veröffentlicht wird. Fasst die 0.1.45–0.1.54-Arbeit (Firefox-Freigabe, Ton bei neuem Ticket, Infinite-Scroll- und Prioritäts-Vorlagen-Fixes, Projektaufräumung) als stabilen Meilenstein zusammen; siehe die Einträge darunter für die Einzelheiten.
+
+## [0.1.54] – 2026-08-31
+
+### Added
+- **Ton bei neuem Ticket** aktualisiert jetzt zusätzlich die gerade sichtbare Ticketliste, sobald ein neues Ticket erkannt wird, statt nur den Sound abzuspielen. Dadurch taucht das neue Ticket sofort in der Übersicht auf, unabhängig von Znunys eigenem Aktualisierungsintervall der Übersichten.
+
 ## [0.1.53] – 2026-08-31
 
 ### Added

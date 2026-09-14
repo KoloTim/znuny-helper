@@ -3,7 +3,8 @@
 
   const DEFAULT_SETTINGS = {
     popupTabs: true,
-    searchResultsPopup: true
+    searchResultsPopup: true,
+    quickReply: false
   };
 
   let settings = { ...DEFAULT_SETTINGS };
@@ -19,6 +20,18 @@
     if (root.dataset.zhSearchResultsPopup) {
       settings.searchResultsPopup = root.dataset.zhSearchResultsPopup === "1";
     }
+
+    if (root.dataset.zhQuickReply) {
+      settings.quickReply = root.dataset.zhQuickReply === "1";
+    }
+  }
+
+  // Actions the quick-reply drawer knows how to embed: replying (Compose),
+  // changing the owner (Owner), adding a note (Note), closing (Close),
+  // linking (LinkObject) and merging (Merge). Keep this in sync with
+  // QUICK_REPLY_ACTION_PATTERN in content.js.
+  function isQuickReplyEligibleUrl(url) {
+    return /Action=(?:AgentTicket(?:Compose|Owner|Note|Close|Merge)|AgentLinkObject)\b/i.test(String(url || ""));
   }
 
   function isZnunyUrl(url) {
@@ -290,15 +303,22 @@
   window.open = function (url, target, features) {
     readDomSettings();
 
-    if (settings.popupTabs && isZnunyUrl(url)) {
+    if (isZnunyUrl(url)) {
       const normalizedUrl = normalizeZnunyUrl(url);
 
-      if (!settings.searchResultsPopup && isSearchUrl(normalizedUrl)) {
-        window.location.href = normalizedUrl;
+      if (settings.quickReply && isQuickReplyEligibleUrl(normalizedUrl)) {
+        window.dispatchEvent(new CustomEvent("znuny-helper-open-quick-reply", { detail: { url: normalizedUrl } }));
         return window;
       }
 
-      return originalOpen.call(window, normalizedUrl, "_blank");
+      if (settings.popupTabs) {
+        if (!settings.searchResultsPopup && isSearchUrl(normalizedUrl)) {
+          window.location.href = normalizedUrl;
+          return window;
+        }
+
+        return originalOpen.call(window, normalizedUrl, "_blank");
+      }
     }
 
     return originalOpen.apply(window, arguments);
@@ -315,7 +335,7 @@
       const originalPopup = popup.OpenPopup;
 
       popup.OpenPopup = function (url) {
-        if (settings.popupTabs && url) {
+        if ((settings.popupTabs || settings.quickReply) && url) {
           window.open(url, "_blank");
           return false;
         }

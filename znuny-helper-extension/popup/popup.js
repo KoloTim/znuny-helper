@@ -9,17 +9,22 @@
     ticketNumberSearch: true,
     searchResultsPopup: false,
     ticketArticleSearch: true,
+    ticketNumberCopy: true,
     ebHelper: false,
-    priorityTemplates: true,
+    priorityTemplates: false,
     ticketCategories: true,
     ticketListInfiniteScroll: true,
     attachmentReminder: true,
     pendingDateButtons: true,
     keyboardShortcuts: true,
-    assignedTicketSound: true
+    assignedTicketSound: false,
+    quickReply: false
   };
 
   const BUILTIN_TICKET_SOUNDS = [
+    { id: "soft-ping", name: "Sanfter Ping", file: "sounds/soft-ping.wav" },
+    { id: "two-tone-chime", name: "Zwei-Ton-Chime", file: "sounds/two-tone-chime.wav" },
+    { id: "soft-click", name: "Weicher Klick", file: "sounds/soft-click.wav" },
     { id: "icq", name: "ICQ", file: "sounds/icq.mp3" },
     { id: "iphone", name: "iPhone", file: "sounds/iphone.mp3" },
     { id: "minecraft-chicken-1", name: "Minecraft Huhn 1", file: "sounds/minecraft-chicken-1.mp3" },

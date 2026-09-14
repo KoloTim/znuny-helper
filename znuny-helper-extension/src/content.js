@@ -13,6 +13,15 @@
   const SPREADSHEET_PREVIEW_MAX_ROWS = 1000;
   const SPREADSHEET_PREVIEW_MAX_COLS = 80;
   const TICKET_SOUND_CHECK_INTERVAL_MS = 60000;
+  // Actions the quick-reply drawer knows how to embed: replying (Compose),
+  // changing the owner (Owner), adding a note (Note), closing (Close),
+  // linking (LinkObject) and merging (Merge). The Close/Merge/LinkObject
+  // action names are our best-known guess at the standard Znuny naming and
+  // are unverified against this live instance — if one of them doesn't
+  // trigger the drawer, the link simply falls back to its normal tab/popup
+  // behaviour, so this is safe to leave in place either way.
+  // Keep this in sync with isQuickReplyEligibleUrl in page-bridge.js.
+  const QUICK_REPLY_ACTION_PATTERN = /Action=(?:AgentTicket(?:Compose|Owner|Note|Close|Merge)|AgentLinkObject)\b/i;
 
   const DEFAULT_SETTINGS = {
     popupTabs: true,
@@ -20,17 +29,22 @@
     ticketNumberSearch: true,
     searchResultsPopup: false,
     ticketArticleSearch: true,
+    ticketNumberCopy: true,
     ebHelper: false,
-    priorityTemplates: true,
+    priorityTemplates: false,
     ticketCategories: true,
     ticketListInfiniteScroll: true,
     attachmentReminder: true,
     pendingDateButtons: true,
     keyboardShortcuts: true,
-    assignedTicketSound: true
+    assignedTicketSound: false,
+    quickReply: false
   };
 
   const BUILTIN_TICKET_SOUNDS = [
+    { id: "soft-ping", name: "Sanfter Ping", file: "sounds/soft-ping.wav" },
+    { id: "two-tone-chime", name: "Zwei-Ton-Chime", file: "sounds/two-tone-chime.wav" },
+    { id: "soft-click", name: "Weicher Klick", file: "sounds/soft-click.wav" },
     { id: "icq", name: "ICQ", file: "sounds/icq.mp3" },
     { id: "iphone", name: "iPhone", file: "sounds/iphone.mp3" },
     { id: "minecraft-chicken-1", name: "Minecraft Huhn 1", file: "sounds/minecraft-chicken-1.mp3" },
@@ -124,6 +138,8 @@
   let ticketState = { categories: {}, notes: {} };
   let categoryConfig = null;
   let priorityTemplateConfig = { templates: DEFAULT_PRIORITY_TEMPLATES };
+  let priorityTemplateFilter = "";
+  const priorityTemplateOpenIds = new Set();
   let ticketSoundConfig = { customSounds: [], selectedId: BUILTIN_TICKET_SOUNDS[0].id };
   let openNoteTicketId = null;
   let scanQueued = false;
@@ -274,42 +290,61 @@
       ? config.templates
       : DEFAULT_PRIORITY_TEMPLATES;
 
-    return {
-      templates: sourceTemplates.map((template, index) => {
-        const id = String(template.id || `priority-template-${index + 1}`).trim() || `priority-template-${index + 1}`;
-        const title = String(template.title || "Vorlage").trim();
-        const fields = {
-          type: String(template.fields?.type || "").trim(),
-          queue: String(template.fields?.queue || "").trim(),
-          service: String(template.fields?.service || "").trim(),
-          owner: String(template.fields?.owner || "").trim(),
-          category: String(template.fields?.category || "").trim(),
-          subject: String(template.fields?.subject || "").trim(),
-          body: String(template.fields?.body || "").trim()
-        };
-        const isAssignmentTemplate =
-          id === "assignment-to-agent" ||
-          /assignment\s+to\s+(agent|me)/i.test(title) ||
-          /assignment\s+to\s+(agent|me)/i.test(fields.subject);
+    const templates = sourceTemplates.map((template, index) => {
+      const id = String(template.id || `priority-template-${index + 1}`).trim() || `priority-template-${index + 1}`;
+      const title = String(template.title || "Vorlage").trim();
+      const fields = {
+        type: String(template.fields?.type || "").trim(),
+        queue: String(template.fields?.queue || "").trim(),
+        service: String(template.fields?.service || "").trim(),
+        owner: String(template.fields?.owner || "").trim(),
+        category: String(template.fields?.category || "").trim(),
+        subject: String(template.fields?.subject || "").trim(),
+        body: String(template.fields?.body || "").trim()
+      };
+      const isAssignmentTemplate =
+        id === "assignment-to-agent" ||
+        /assignment\s+to\s+(agent|me)/i.test(title) ||
+        /assignment\s+to\s+(agent|me)/i.test(fields.subject);
 
-        if (isAssignmentTemplate) {
-          fields.type ||= "ServiceRequest";
-          fields.queue ||= "2nd Line";
-          fields.service ||= "Person";
-          fields.owner ||= "Tim Kolodzej";
-          fields.category ||= "Authorisation";
-          if (!fields.subject || /^s\.?u\.?,?$/i.test(fields.subject)) fields.subject = "Assignment to Agent";
-          fields.body ||= "s.u,";
-        }
+      if (isAssignmentTemplate) {
+        fields.type ||= "ServiceRequest";
+        fields.queue ||= "2nd Line";
+        fields.service ||= "Person";
+        fields.owner ||= "Tim Kolodzej";
+        fields.category ||= "Authorisation";
+        if (!fields.subject || /^s\.?u\.?,?$/i.test(fields.subject)) fields.subject = "Assignment to Agent";
+        fields.body ||= "s.u,";
+      }
 
-        return {
-          id,
-          title,
-          color: String(template.color || "#3976bb").trim(),
-          fields
-        };
-      })
-    };
+      return {
+        id,
+        title,
+        color: String(template.color || "#3976bb").trim(),
+        group: String(template.group || "").trim(),
+        fields
+      };
+    });
+
+    const declaredGroups = Array.isArray(config?.groups)
+      ? config.groups.map((name) => String(name || "").trim()).filter(Boolean)
+      : [];
+    const groups = [...new Set([...declaredGroups, ...templates.map((template) => template.group).filter(Boolean)])];
+
+    return { groups, templates };
+  }
+
+  function getPriorityGroups() {
+    priorityTemplateConfig = normalizePriorityTemplateConfig(priorityTemplateConfig);
+    return priorityTemplateConfig.groups || [];
+  }
+
+  function orderPriorityGroups(byGroup) {
+    const configured = getPriorityGroups().filter((name) => byGroup.has(name));
+    const extra = [...byGroup.keys()]
+      .filter((name) => name && !configured.includes(name))
+      .sort((left, right) => left.localeCompare(right, "de"));
+    return [...configured, ...extra, ...(byGroup.has("") ? [""] : [])];
   }
 
   function savePriorityTemplateConfig() {
@@ -356,21 +391,47 @@
     }
   }
 
-  function findLockedTicketsUrl() {
-    const direct = document.querySelector("a[href*='Action=AgentTicketLockedView']");
-    if (direct) return direct.href;
-
-    const fallback = [...document.querySelectorAll("a[href*='Action=AgentTicket']")]
-      .find((link) => /gesperrt/i.test(`${link.title || ""} ${link.getAttribute("aria-label") || ""}`));
-    return fallback?.href || "";
+  function getLockedTicketsUrl() {
+    // Built directly instead of scanning the page for the "Gesperrte Tickets" toolbar
+    // link: that link (and its accessible text) isn't present on every Znuny page —
+    // e.g. bare action tabs opened by "Popups als Tabs" — which made the periodic
+    // check silently do nothing whenever it happened to run in one of those tabs.
+    try {
+      return new URL("index.pl?Action=AgentTicketLockedView", window.location.href).href;
+    } catch (error) {
+      return "";
+    }
   }
 
-  async function checkForAssignedTickets() {
-    if (!settings.assignedTicketSound) return;
+  async function refreshCurrentTicketList() {
+    if (!isTicketListPage()) return;
 
-    const url = findLockedTicketsUrl();
-    if (!url) return;
+    const table = findTicketTable();
+    const tbody = table?.querySelector("tbody");
+    if (!table || !tbody) return;
 
+    try {
+      const response = await fetch(window.location.href, { credentials: "include", cache: "no-store" });
+      if (!response.ok) return;
+
+      const html = await response.text();
+      const freshDoc = new DOMParser().parseFromString(html, "text/html");
+      const freshTable = findTicketTable(freshDoc);
+      const freshBody = freshTable?.querySelector("tbody");
+      if (!freshTable || !freshBody) return;
+
+      const freshRows = [...freshBody.querySelectorAll("tr")].map((row) => document.importNode(row, true));
+      tbody.replaceChildren(...freshRows);
+
+      if (settings.ticketCategories && isCategoryTicketListPage()) {
+        applyTicketCategories();
+      }
+    } catch (error) {
+      console.warn("Znuny Helper: Ticketliste konnte nicht aktualisiert werden:", error);
+    }
+  }
+
+  async function runAssignedTicketsCheck(url) {
     try {
       const response = await fetch(url, { credentials: "include", cache: "no-store" });
       if (!response.ok) return;
@@ -388,17 +449,43 @@
       const stored = await syncGet("local", { [TICKET_SOUND_SEEN_KEY]: null });
       const seen = stored[TICKET_SOUND_SEEN_KEY];
 
-      syncSet("local", { [TICKET_SOUND_SEEN_KEY]: currentIds });
+      // Persist the new baseline before playing anything: another tab's poll
+      // running right after this one reads the already-updated baseline and
+      // correctly sees no new tickets, instead of also sounding off for the
+      // same ticket. See the navigator.locks wrapper below for the other half
+      // of this (serializing concurrent polls from multiple open Znuny tabs).
+      await syncSet("local", { [TICKET_SOUND_SEEN_KEY]: currentIds });
 
       // First run ever: just record the current baseline, don't sound off for
       // every ticket already locked before this feature existed.
       if (!Array.isArray(seen)) return;
 
       const seenIds = new Set(seen);
-      if (currentIds.some((id) => !seenIds.has(id))) playAssignedTicketSound();
+      if (currentIds.some((id) => !seenIds.has(id))) {
+        playAssignedTicketSound();
+        refreshCurrentTicketList();
+      }
     } catch (error) {
       console.warn("Znuny Helper: Ticket-Sound-Prüfung fehlgeschlagen:", error);
     }
+  }
+
+  async function checkForAssignedTickets() {
+    if (!settings.assignedTicketSound) return;
+
+    const url = getLockedTicketsUrl();
+    if (!url) return;
+
+    if (navigator.locks?.request) {
+      try {
+        await navigator.locks.request("znuny-helper-ticket-sound-check", () => runAssignedTicketsCheck(url));
+        return;
+      } catch (error) {
+        // Fall through to an unlocked check if the Locks API itself rejects.
+      }
+    }
+
+    await runAssignedTicketsCheck(url);
   }
 
   function syncGet(area, defaults) {
@@ -413,23 +500,24 @@
 
   function syncSet(area, value) {
     if (usesPromiseStorage) {
-      api.storage[area]
+      return api.storage[area]
         .set(value)
         .catch((error) => console.warn("Znuny Helper storage write failed:", error));
-      return;
     }
 
-    api.storage[area].set(value);
+    return new Promise((resolve) => api.storage[area].set(value, resolve));
   }
 
   function dispatchPageSettings() {
     document.documentElement.dataset.zhPopupTabs = settings.popupTabs ? "1" : "0";
     document.documentElement.dataset.zhSearchResultsPopup = settings.searchResultsPopup ? "1" : "0";
+    document.documentElement.dataset.zhQuickReply = settings.quickReply ? "1" : "0";
 
     window.dispatchEvent(new CustomEvent("znuny-helper-settings", {
       detail: {
         popupTabs: settings.popupTabs,
-        searchResultsPopup: settings.searchResultsPopup
+        searchResultsPopup: settings.searchResultsPopup,
+        quickReply: settings.quickReply
       }
     }));
   }
@@ -476,36 +564,28 @@
     return /Action=AgentTicket(?:Owner|Locked)View/i.test(window.location.href);
   }
 
-  function isPriorityTicketPage() {
-    return /Action=AgentTicketPriority/i.test(window.location.href);
+  function isPriorityTicketPage(href = window.location.href) {
+    return /Action=AgentTicketPriority/i.test(href);
   }
 
-  function isOwnerTicketPage() {
-    return /Action=AgentTicketOwner/i.test(window.location.href);
+  function isOwnerTicketPage(href = window.location.href) {
+    return /Action=AgentTicketOwner/i.test(href);
+  }
+
+  function isPhoneTicketPage(href = window.location.href) {
+    return /Action=AgentTicketPhone/i.test(href);
   }
 
   function isComposeTicketPage() {
     return /Action=AgentTicketCompose/i.test(window.location.href);
   }
 
-  function isPriorityTemplatePage() {
-    return isPriorityTicketPage() || isOwnerTicketPage();
+  function isPriorityTemplatePage(href = window.location.href) {
+    return isPriorityTicketPage(href) || isOwnerTicketPage(href) || isPhoneTicketPage(href);
   }
 
   function getFormControlValue(form, name) {
     return form?.querySelector?.(`[name="${name}"]`)?.value || "";
-  }
-
-  function isSubmittedZnunyActionForm(form) {
-    if (!form || form.dataset.zhCloseAfterSubmitBound === "1") return false;
-
-    const action = getFormControlValue(form, "Action");
-    const subaction = getFormControlValue(form, "Subaction");
-    const hasSubmitControl = Boolean(form.querySelector('button, input[type="submit"], input[type="button"]'));
-
-    return /^AgentTicket/i.test(action) &&
-      hasSubmitControl &&
-      (!subaction || /store|send|submit/i.test(subaction));
   }
 
   function isTransmitSubmitControl(control) {
@@ -529,54 +609,70 @@
     }
   }
 
-  function enableCloseActionTabAfterSubmit() {
+  const AUTO_CLOSE_FLAG_KEY = "zhAutoCloseAfterSubmit";
+  const AUTO_CLOSE_FLAG_TTL_MS = 20000;
+
+  function isZnunyActionSubmitContext(form) {
+    const formAction = getFormControlValue(form, "Action");
+    if (formAction) return /^AgentTicket/i.test(formAction);
+
+    const urlAction = new URLSearchParams(window.location.search).get("Action") || "";
+    return /^AgentTicket/i.test(urlAction);
+  }
+
+  function armAutoCloseOnSubmit(event) {
+    const control = event.target?.closest?.('button, input[type="submit"], input[type="button"], a, [role="button"]');
+    if (!control || !isTransmitSubmitControl(control)) return;
+    if (!isZnunyActionSubmitContext(control.closest?.("form") || null)) return;
+
+    try {
+      sessionStorage.setItem(AUTO_CLOSE_FLAG_KEY, String(Date.now()));
+    } catch (error) {
+      // sessionStorage can be unavailable in rare privacy-mode edge cases; ignore.
+    }
+  }
+
+  function enableCloseTabAfterSubmit() {
+    if (window.top !== window.self || !settings.popupTabs) return;
+    if (document.documentElement.dataset.zhCloseAfterSubmitBound === "1") return;
+
+    document.documentElement.dataset.zhCloseAfterSubmitBound = "1";
+    // Arming on the click that precedes submission (rather than on the form's
+    // "submit" event, which fires just as the page starts unloading) avoids a
+    // race where the close-tab message never reaches the background script
+    // because navigation begins before it can be flushed. The flag survives
+    // the resulting same-tab navigation via sessionStorage and is consumed
+    // once the landing page has fully loaded, see consumeAutoCloseFlag().
+    document.addEventListener("click", armAutoCloseOnSubmit, true);
+  }
+
+  function enableActionPopupCancelFallback() {
     if (window.top !== window.self || !settings.popupTabs) return;
 
-    document.querySelectorAll("form").forEach((form) => {
-      if (!isSubmittedZnunyActionForm(form)) return;
-
-      form.dataset.zhCloseAfterSubmitBound = "1";
-      form.addEventListener("click", (event) => {
-        const control = event.target?.closest?.('button, input[type="submit"], input[type="button"]');
-        if (!control || !form.contains(control)) return;
-
-        if (isTransmitSubmitControl(control)) {
-          form.dataset.zhCloseAfterSubmitIntent = "1";
-        } else {
-          delete form.dataset.zhCloseAfterSubmitIntent;
-        }
-      }, true);
-
-      form.addEventListener("submit", (event) => {
-        const shouldClose =
-          isTransmitSubmitControl(event.submitter) ||
-          form.dataset.zhCloseAfterSubmitIntent === "1";
-
-        delete form.dataset.zhCloseAfterSubmitIntent;
-        if (shouldClose && !event.defaultPrevented) requestCloseSubmittedTab();
+    document.querySelectorAll(".CancelClosePopup").forEach((link) => {
+      if (link.dataset.zhCancelFallbackBound === "1") return;
+      link.dataset.zhCancelFallbackBound = "1";
+      link.addEventListener("click", (event) => {
+        stopEvent(event);
+        window.close();
       });
     });
   }
 
-  function enableCloseComposeTabAfterMailSubmit() {
-    if (window.top !== window.self || !settings.popupTabs || !isComposeTicketPage()) return;
-    if (document.documentElement.dataset.zhComposeMailCloseBound === "1") return;
+  function consumeAutoCloseFlag() {
+    if (window.top !== window.self) return;
 
-    document.documentElement.dataset.zhComposeMailCloseBound = "1";
-    document.addEventListener("click", (event) => {
-      const control = event.target?.closest?.('button, a, [role="button"], input[type="submit"], input[type="button"]');
-      if (!control) return;
+    let armedAt = 0;
+    try {
+      armedAt = Number(sessionStorage.getItem(AUTO_CLOSE_FLAG_KEY) || 0);
+      sessionStorage.removeItem(AUTO_CLOSE_FLAG_KEY);
+    } catch (error) {
+      return;
+    }
 
-      const text = normalizeText(control.value || control.textContent || control.title || control.getAttribute?.("aria-label") || "");
-      if (/entwurf|speichern/i.test(text)) return;
-      if (!/e-?\s*mail\s+bermitteln/i.test(text) && !/bermitteln/i.test(text)) return;
+    if (!settings.popupTabs || !armedAt || Date.now() - armedAt > AUTO_CLOSE_FLAG_TTL_MS) return;
 
-      const form = control.closest?.("form");
-      const action = getFormControlValue(form, "Action") || new URLSearchParams(window.location.search).get("Action") || "";
-      if (action && !/^AgentTicketCompose/i.test(action)) return;
-
-      window.setTimeout(() => requestCloseSubmittedTab(3000), 0);
-    }, true);
+    window.setTimeout(() => requestCloseSubmittedTab(), 400);
   }
 
   function findSubmitShortcutControl() {
@@ -760,6 +856,35 @@
     attachmentReminderState = { bound: false, timer: null };
   }
 
+  function findArticleWidget(doc = document) {
+    const byId = doc.getElementById("WidgetArticle");
+    if (byId) return byId;
+
+    return [...doc.querySelectorAll(".WidgetSimple")]
+      .find((widget) => /artikel hinzuf|add article/i.test(normalizeText(getElementText(widget.querySelector(".Header") || widget)))) || null;
+  }
+
+  function expandArticleWidget(doc = document) {
+    const widget = findArticleWidget(doc);
+    if (!widget || widget.dataset.zhArticleExpanded === "1") return;
+
+    widget.dataset.zhArticleExpanded = "1";
+
+    // Open it by default on every screen. Done via classes (not a click) so it
+    // cannot trigger Znuny's anchor navigation/scroll; the CreateArticle
+    // checkbox is set so submitting still creates the article.
+    if (widget.classList.contains("Collapsed")) {
+      widget.classList.remove("Collapsed");
+      widget.classList.add("Expanded");
+    }
+
+    const createArticle = widget.querySelector("#CreateArticle");
+    if (createArticle && createArticle.type === "checkbox" && !createArticle.checked) {
+      createArticle.checked = true;
+      createArticle.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+
   const PENDING_DATE_PRESETS = [3, 7, 14];
 
   function selectNearestDateNumber(select, target) {
@@ -790,8 +915,8 @@
     return true;
   }
 
-  function findPendingDateGroups() {
-    const selects = [...document.querySelectorAll("select")]
+  function findPendingDateGroups(doc = document) {
+    const selects = [...doc.querySelectorAll("select")]
       .filter((select) => !select.closest("#zh-search-primary-fields, .zh-priority-modal, #zh-priority-template-toolbar, #zh-attachment-reminder"));
 
     const byPrefix = new Map();
@@ -817,8 +942,8 @@
     return groups;
   }
 
-  function pageHasPendingStateSelected() {
-    return [...document.querySelectorAll("select")].some((select) => {
+  function pageHasPendingStateSelected(doc = document) {
+    return [...doc.querySelectorAll("select")].some((select) => {
       const signature = `${select.name || ""} ${select.id || ""}`.toLowerCase();
       if (!signature.includes("state")) return false;
 
@@ -849,7 +974,7 @@
     return anchor.parentElement;
   }
 
-  function ensurePendingDateButtons(group) {
+  function ensurePendingDateButtons(group, doc = document) {
     if (group.Year.dataset.zhPendingButtonsBound === "1") return;
 
     const container = findPendingDateContainer(group);
@@ -857,16 +982,16 @@
 
     group.Year.dataset.zhPendingButtonsBound = "1";
 
-    const row = document.createElement("div");
+    const row = doc.createElement("div");
     row.className = "zh-pending-date-row";
 
-    const label = document.createElement("span");
+    const label = doc.createElement("span");
     label.className = "zh-pending-date-label";
     label.textContent = "Warten bis:";
     row.appendChild(label);
 
     PENDING_DATE_PRESETS.forEach((days) => {
-      const button = document.createElement("button");
+      const button = doc.createElement("button");
       button.type = "button";
       button.textContent = days === 3 ? "+3 Tage (Standard)" : `+${days} Tage`;
       button.addEventListener("click", (event) => {
@@ -880,8 +1005,8 @@
     setPendingDateOffset(group, 3);
   }
 
-  function addPendingDateStyles() {
-    addStyle("zh-pending-date-style", `
+  function addPendingDateStyles(doc = document) {
+    addStyleToDocument(doc, "zh-pending-date-style", `
       .zh-pending-date-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 0; }
       .zh-pending-date-label { color: #777; font-size: 12px; }
       .zh-pending-date-row button { font-size: 11px; padding: 3px 8px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; }
@@ -889,14 +1014,15 @@
     `);
   }
 
-  function enablePendingDateQuickButtons() {
-    if (window.top !== window.self || !pageHasPendingStateSelected()) return;
+  function enablePendingDateQuickButtons(doc = document) {
+    if (doc === document && window.top !== window.self) return;
+    if (!pageHasPendingStateSelected(doc)) return;
 
-    const groups = findPendingDateGroups();
+    const groups = findPendingDateGroups(doc);
     if (!groups.length) return;
 
-    addPendingDateStyles();
-    groups.forEach(ensurePendingDateButtons);
+    addPendingDateStyles(doc);
+    groups.forEach((group) => ensurePendingDateButtons(group, doc));
   }
 
   function disablePendingDateQuickButtons() {
@@ -1018,15 +1144,36 @@
     return getAttachmentPreviewHrefs(anchor, fileName)[0] || "";
   }
 
+  function renderAttachmentDownloadFallback(content, href, message) {
+    const fallback = document.createElement("div");
+    fallback.className = "zh-preview-loading";
+    fallback.textContent = message;
+
+    const link = document.createElement("a");
+    link.href = href;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = "Anhang herunterladen";
+
+    fallback.append(document.createElement("br"), document.createElement("br"), link);
+    content.appendChild(fallback);
+  }
+
   function renderDirectAttachmentPreview(content, href, fileName) {
     const type = guessAttachmentType(fileName || href, "");
 
     content.textContent = "";
 
     if (type === "pdf") {
-      const iframe = document.createElement("iframe");
-      iframe.src = href;
-      content.appendChild(iframe);
+      // Deliberately no inline iframe here: this path is only reached when
+      // the normal fetch-based preview (which forces the blob's MIME type
+      // to application/pdf before rendering it) failed or the server itself
+      // reported HTML instead of a PDF, so the content can't be confirmed
+      // safe to render inline. A same-origin iframe pointed straight at the
+      // URL would otherwise let a mislabeled HTML/JS attachment execute
+      // script with access to the Znuny session. Sandboxing isn't a fix
+      // here either, since it also disables Chromium's PDF viewer outright.
+      renderAttachmentDownloadFallback(content, href, "Vorschau nicht möglich, da der Anhang nicht sicher als PDF bestätigt werden konnte.");
       return true;
     }
 
@@ -1435,7 +1582,13 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       throw new Error("SheetJS ist nicht geladen");
     }
 
-    const workbook = sheetApi.read(await blob.arrayBuffer(), {
+    // Pass a same-realm Uint8Array with an explicit type. In Firefox content
+    // scripts the ArrayBuffer from blob.arrayBuffer() can come from another
+    // realm, which makes SheetJS's own instanceof check fail and fall back to
+    // treating the bytes as a base64 string ("e.replace is not a function").
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const workbook = sheetApi.read(bytes, {
+      type: "array",
       cellDates: true,
       cellNF: false,
       cellStyles: false
@@ -1593,6 +1746,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
       if (type === "pdf") {
         const iframe = document.createElement("iframe");
+        // No "sandbox" here: Chromium's built-in PDF viewer refuses to
+        // activate inside a sandboxed iframe at all (a known Chromium
+        // limitation, independent of which tokens are granted), so sandboxing
+        // this frame breaks PDF rendering outright rather than adding
+        // protection. The viewer itself already runs isolated at the browser
+        // process level.
         iframe.src = blobUrl;
         content.appendChild(iframe);
       } else if (type === "image") {
@@ -1638,6 +1797,96 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     }
   }
 
+  function closeArticleImageLightbox() {
+    document.querySelectorAll(".zh-image-lightbox-backdrop").forEach((element) => element.remove());
+  }
+
+  function openArticleImageLightbox(img) {
+    closeArticleImageLightbox();
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "zh-image-lightbox-backdrop";
+
+    const large = document.createElement("img");
+    large.src = img.currentSrc || img.src;
+    large.alt = img.alt || "";
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "zh-image-lightbox-close";
+    closeButton.textContent = "Schliessen";
+    closeButton.addEventListener("click", (event) => {
+      stopEvent(event);
+      closeArticleImageLightbox();
+    });
+
+    backdrop.append(large, closeButton);
+    document.body.appendChild(backdrop);
+
+    backdrop.addEventListener("click", (event) => {
+      if (event.target === backdrop) closeArticleImageLightbox();
+    });
+
+    const escHandler = (event) => {
+      if (event.key === "Escape") {
+        closeArticleImageLightbox();
+        document.removeEventListener("keydown", escHandler);
+      }
+    };
+    document.addEventListener("keydown", escHandler);
+  }
+
+  function isEnlargeableArticleImage(img) {
+    if (!img) return false;
+    if (img.closest(".zh-preview-backdrop, .zh-image-lightbox-backdrop, #zh-ticket-article-search")) return false;
+    if (isNonArticleSearchArea(img)) return false;
+
+    const table = img.closest("table");
+    if (table && isArticleOverviewTable(table)) return false;
+
+    const width = img.naturalWidth || img.width || 0;
+    const height = img.naturalHeight || img.height || 0;
+    return width >= 24 && height >= 24;
+  }
+
+  function bindArticleImageZoom() {
+    const selector = [
+      ".ArticleBody img",
+      ".ArticleContent img",
+      ".ArticleMailContent img",
+      ".ArticleMailContentHTML img",
+      ".MessageBody img",
+      ".RichText img",
+      ".Article img"
+    ].join(", ");
+
+    [...document.querySelectorAll(selector)].forEach((img) => {
+      if (img.dataset.zhZoomBound === "1") return;
+      img.dataset.zhZoomBound = "1";
+
+      const markClickable = () => {
+        if (isEnlargeableArticleImage(img)) img.classList.add("zh-article-image-zoomable");
+      };
+
+      if (img.complete) markClickable();
+      else img.addEventListener("load", markClickable, { once: true });
+
+      img.addEventListener("click", (event) => {
+        if (!img.classList.contains("zh-article-image-zoomable")) return;
+        stopEvent(event);
+        openArticleImageLightbox(img);
+      });
+    });
+  }
+
+  function disableArticleImageZoom() {
+    closeArticleImageLightbox();
+    document.querySelectorAll("[data-zh-zoom-bound]").forEach((img) => {
+      delete img.dataset.zhZoomBound;
+      img.classList.remove("zh-article-image-zoomable");
+    });
+  }
+
   function enableAttachmentPreview() {
     addStyle("zh-attachment-preview-style", `
       .zh-attachment-container { position: relative !important; padding-right: 150px !important; min-height: 52px !important; }
@@ -1671,7 +1920,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       .zh-preview-spreadsheet-tabs button { border: 1px solid #aaa; background: #fff; color: #111; padding: 4px 9px; cursor: pointer; white-space: nowrap; font-size: 12px; }
       .zh-preview-spreadsheet-tabs button.is-active { background: #ff9900; border-color: #b86f00; font-weight: 700; }
       .zh-preview-spreadsheet iframe { flex: 1; min-height: 0; width: 100%; border: 0; background: #fff; }
+      .zh-article-image-zoomable { cursor: zoom-in; transition: outline-color .1s ease; }
+      .zh-article-image-zoomable:hover { outline: 2px solid #ff9900; outline-offset: 2px; }
+      .zh-image-lightbox-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 999999; display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
+      .zh-image-lightbox-backdrop img { max-width: 92vw; max-height: 92vh; object-fit: contain; box-shadow: 0 10px 40px rgba(0,0,0,.5); border-radius: 4px; cursor: default; }
+      .zh-image-lightbox-close { position: absolute; top: 16px; right: 20px; font-size: 13px; font-weight: 700; padding: 6px 12px; border: 1px solid #999; border-radius: 999px; background: #eee; color: #111; cursor: pointer; }
+      .zh-image-lightbox-close:hover { background: #fff; }
     `);
+
+    bindArticleImageZoom();
 
     [...document.querySelectorAll("a[href]")]
       .filter(looksLikeAttachmentLink)
@@ -1705,6 +1962,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function disableAttachmentPreview() {
     closeAttachmentPreview();
+    disableArticleImageZoom();
     removeStyle("zh-attachment-preview-style");
 
     document.querySelectorAll(".zh-attachment-btn").forEach((element) => element.remove());
@@ -3427,6 +3685,121 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     removeStyle("zh-ticket-article-search-style");
   }
 
+  function copyTextToClipboard(text) {
+    const value = String(text || "");
+    if (!value) return Promise.resolve(false);
+
+    if (navigator.clipboard?.writeText) {
+      return navigator.clipboard.writeText(value)
+        .then(() => true)
+        .catch(() => copyTextFallback(value));
+    }
+
+    return Promise.resolve(copyTextFallback(value));
+  }
+
+  function copyTextFallback(text) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.top = "-1000px";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch (error) {
+      ok = false;
+    }
+
+    textarea.remove();
+    return ok;
+  }
+
+  function addTicketNumberCopyStyles() {
+    addStyle("zh-ticket-number-copy-style", `
+      .zh-ticket-number-copy { cursor: pointer; border-radius: 4px; padding: 0 4px; margin: 0 -4px; transition: background-color .15s ease, color .15s ease; }
+      .zh-ticket-number-copy:hover { background: rgba(57, 118, 187, .16); text-decoration: underline; }
+      .zh-ticket-number-copy:focus-visible { outline: 2px solid #3976bb; outline-offset: 1px; }
+      .zh-ticket-number-copy.zh-ticket-number-copied { background: #b7f0c0; color: #0a5d1e; text-decoration: none; }
+    `);
+  }
+
+  function findTicketNumberTextNode(headline) {
+    const walker = document.createTreeWalker(headline, NodeFilter.SHOW_TEXT);
+    let node;
+
+    while ((node = walker.nextNode())) {
+      if (/\d{4,}/.test(node.nodeValue || "")) return node;
+    }
+
+    return null;
+  }
+
+  function enableTicketNumberCopy() {
+    if (!isTicketZoomPage()) return;
+
+    addTicketNumberCopyStyles();
+
+    const headline = document.querySelector(".MainBox.TicketZoom .Headline h1") ||
+      document.querySelector(".TicketZoom .Headline h1") ||
+      document.querySelector(".Headline h1");
+    if (!headline || headline.querySelector(".zh-ticket-number-copy")) return;
+
+    const node = findTicketNumberTextNode(headline);
+    if (!node) return;
+
+    const match = node.nodeValue.match(/\d{4,}/);
+    if (!match) return;
+
+    const after = node.splitText(match.index);
+    after.nodeValue = after.nodeValue.slice(match[0].length);
+
+    const span = document.createElement("span");
+    span.className = "zh-ticket-number-copy";
+    span.textContent = match[0];
+    span.title = "Case-/Ticketnummer kopieren";
+    span.setAttribute("role", "button");
+    span.tabIndex = 0;
+
+    after.parentNode.insertBefore(span, after);
+
+    const copy = () => {
+      copyTextToClipboard(match[0]).then((ok) => {
+        span.title = ok ? "Kopiert!" : "Kopieren nicht möglich";
+        span.classList.add("zh-ticket-number-copied");
+        window.setTimeout(() => {
+          span.classList.remove("zh-ticket-number-copied");
+          span.title = "Case-/Ticketnummer kopieren";
+        }, 900);
+      });
+    };
+
+    span.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      copy();
+    });
+    span.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      copy();
+    });
+  }
+
+  function disableTicketNumberCopy() {
+    document.querySelectorAll(".zh-ticket-number-copy").forEach((span) => {
+      const parent = span.parentNode;
+      if (!parent) return;
+      parent.replaceChild(document.createTextNode(span.textContent), span);
+      parent.normalize();
+    });
+    removeStyle("zh-ticket-number-copy-style");
+  }
+
   function getMainText() {
     return normalizeText(document.body ? document.body.innerText || "" : "");
   }
@@ -3715,7 +4088,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (!control) return false;
     if (control.type === "hidden") return false;
 
-    const style = window.getComputedStyle(control);
+    const view = control.ownerDocument?.defaultView || window;
+    const style = view.getComputedStyle(control);
     if (style.display === "none" || style.visibility === "hidden") return false;
 
     const rect = control.getBoundingClientRect();
@@ -3730,9 +4104,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       .toLowerCase();
   }
 
-  function findPriorityLabelCandidates(labels) {
+  function findPriorityLabelCandidates(labels, doc = document) {
     const wanted = labels.map((label) => cleanFieldLabel(label));
-    return [...document.querySelectorAll("label, dt, th, td, div, span")]
+    return [...doc.querySelectorAll("label, dt, th, td, div, span")]
       .filter((element) => {
         if (element.closest("#zh-priority-template-toolbar, .zh-priority-modal")) return false;
         const text = cleanFieldLabel(getElementText(element));
@@ -3740,15 +4114,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       });
   }
 
-  function getVisiblePriorityControls() {
-    return [...document.querySelectorAll("input, select, textarea")]
+  function getVisiblePriorityControls(doc = document) {
+    return [...doc.querySelectorAll("input, select, textarea")]
       .filter((control) => !control.closest("#zh-priority-template-toolbar, .zh-priority-modal"))
       .filter(isVisibleFormControl);
   }
 
-  function findPriorityControlNearLabel(labels) {
-    const candidates = findPriorityLabelCandidates(labels);
-    const controls = getVisiblePriorityControls();
+  function findPriorityControlNearLabel(labels, doc = document) {
+    const candidates = findPriorityLabelCandidates(labels, doc);
+    const controls = getVisiblePriorityControls(doc);
 
     for (const candidate of candidates) {
       const candidateRect = candidate.getBoundingClientRect();
@@ -3781,13 +4155,13 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return null;
   }
 
-  function findPriorityFieldRow(labels) {
-    const candidates = findPriorityLabelCandidates(labels);
+  function findPriorityFieldRow(labels, doc = document) {
+    const candidates = findPriorityLabelCandidates(labels, doc);
 
     for (const candidate of candidates) {
       let element = candidate;
       let fallback = null;
-      while (element && element !== document.body) {
+      while (element && element !== doc.body) {
         if (element.querySelector?.("input, select, textarea, iframe, [contenteditable='true']")) {
           const controlCount = element.querySelectorAll("input, select, textarea").length;
           const labelCount = [...element.querySelectorAll("label, dt, th, td, div, span")]
@@ -3818,28 +4192,28 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return null;
   }
 
-  function findPriorityFieldSection(labels) {
-    const row = findPriorityFieldRow(labels);
+  function findPriorityFieldSection(labels, doc = document) {
+    const row = findPriorityFieldRow(labels, doc);
     if (!row) return null;
 
     const section = row.closest("fieldset, .WidgetSimple, .Field, .Row, tr, li");
     return section || row;
   }
 
-  function findPriorityControl(labels, ids = []) {
+  function findPriorityControl(labels, ids = [], doc = document) {
     for (const id of ids) {
       const direct = [
-        document.getElementById(id),
-        document.querySelector(`[name="${id}"]`),
-        ...document.querySelectorAll(`[id^="${id}_"], [id$="_${id}"], [name^="${id}_"], [name$="_${id}"]`)
+        doc.getElementById(id),
+        doc.querySelector(`[name="${id}"]`),
+        ...doc.querySelectorAll(`[id^="${id}_"], [id$="_${id}"], [name^="${id}_"], [name$="_${id}"]`)
       ].find((control) => control && isVisibleFormControl(control));
       if (direct) return direct;
     }
 
-    const nearLabel = findPriorityControlNearLabel(labels);
+    const nearLabel = findPriorityControlNearLabel(labels, doc);
     if (nearLabel) return nearLabel;
 
-    const row = findPriorityFieldRow(labels);
+    const row = findPriorityFieldRow(labels, doc);
     if (!row) return null;
 
     return [...row.querySelectorAll("input, select, textarea")]
@@ -3918,7 +4292,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         control.value = value;
       }
     } else {
-      control.focus();
+      if (options.focus !== false) control.focus({ preventScroll: true });
       control.value = value;
     }
 
@@ -4010,19 +4384,19 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return changed;
   }
 
-  function setPriorityPlainField(labels, ids, value) {
+  function setPriorityPlainField(labels, ids, value, doc = document) {
     if (!value) return false;
 
-    const control = findPriorityControl(labels, ids);
+    const control = findPriorityControl(labels, ids, doc);
     if (!control) return false;
 
-    return setControlValue(control, value, { blur: true });
+    return setControlValue(control, value, { blur: true, focus: false });
   }
 
-  function closePriorityAutocompleteDropdowns() {
-    document.activeElement?.blur?.();
+  function closePriorityAutocompleteDropdowns(doc = document) {
+    doc.activeElement?.blur?.();
 
-    document.querySelectorAll(".ui-autocomplete, .select2-drop, .select2-dropdown, .autocomplete-suggestions, .AutoCompleteResult")
+    doc.querySelectorAll(".ui-autocomplete, .select2-drop, .select2-dropdown, .autocomplete-suggestions, .AutoCompleteResult")
       .forEach((element) => {
         element.style.display = "none";
       });
@@ -4046,8 +4420,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function updateModernizedSelectDisplay(select, label) {
+    const doc = select.ownerDocument || document;
     const field = select.closest(".Field") || select.parentElement;
-    const searchInput = document.getElementById(`${select.id}_Search`) ||
+    const searchInput = doc.getElementById(`${select.id}_Search`) ||
       field?.querySelector(".InputField_Search");
     const inputContainer = searchInput?.closest(".InputField_InputContainer") ||
       field?.querySelector(".InputField_InputContainer");
@@ -4060,12 +4435,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     let selection = inputContainer?.querySelector(".InputField_Selection");
     if (!selection && inputContainer) {
-      selection = document.createElement("div");
+      selection = doc.createElement("div");
       selection.className = "InputField_Selection";
       selection.style.left = "5px";
       selection.style.display = "block";
 
-      const text = document.createElement("div");
+      const text = doc.createElement("div");
       text.className = "Text";
       selection.appendChild(text);
 
@@ -4080,16 +4455,17 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function isModernizedSelectWidgetVisible(select) {
+    const doc = select.ownerDocument || document;
     const field = select.closest(".Field") || select.parentElement;
-    const searchInput = document.getElementById(`${select.id}_Search`) ||
+    const searchInput = doc.getElementById(`${select.id}_Search`) ||
       field?.querySelector(".InputField_Search");
     const inputContainer = searchInput?.closest(".InputField_InputContainer") ||
       field?.querySelector(".InputField_InputContainer");
     return Boolean(inputContainer && isVisibleFormControl(inputContainer));
   }
 
-  function setPrioritySelectField(selectId, value) {
-    const select = document.getElementById(selectId);
+  function setPrioritySelectField(ids, value, labels = [], doc = document) {
+    const select = findPrioritySelectControl(ids, labels, doc);
     const option = findSelectOptionByTemplateValue(select, value);
     if (!select || !option) return false;
 
@@ -4115,53 +4491,54 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       .replace(/"/g, "&quot;");
   }
 
-  function fragmentFromLines(text) {
-    const fragment = document.createDocumentFragment();
+  function fragmentFromLines(text, doc = document) {
+    const fragment = doc.createDocumentFragment();
     String(text || "")
       .split("\n")
       .forEach((line, index) => {
-        if (index > 0) fragment.appendChild(document.createElement("br"));
-        fragment.appendChild(document.createTextNode(line));
+        if (index > 0) fragment.appendChild(doc.createElement("br"));
+        fragment.appendChild(doc.createTextNode(line));
       });
     return fragment;
   }
 
   function insertRichTextInto(target, value, prepend) {
+    const doc = target.ownerDocument || document;
     if (prepend) {
-      const fragment = fragmentFromLines(value);
-      fragment.appendChild(document.createElement("br"));
+      const fragment = fragmentFromLines(value, doc);
+      fragment.appendChild(doc.createElement("br"));
       target.insertBefore(fragment, target.firstChild);
     } else {
-      target.replaceChildren(fragmentFromLines(value));
+      target.replaceChildren(fragmentFromLines(value, doc));
     }
     target.dispatchEvent(new Event("input", { bubbles: true }));
     target.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
-  function setPriorityRichText(value, options = {}) {
+  function setPriorityRichText(value, options = {}, doc = document) {
     if (!value) return false;
 
     const prepend = Boolean(options.prepend);
-    const row = findPriorityFieldSection(["Text"]);
+    const row = findPriorityFieldSection(["Text"], doc);
     const textarea = [...(row?.querySelectorAll("textarea") || [])]
       .find((control) => {
         const signature = `${control.name || ""} ${control.id || ""}`.toLowerCase();
         return /richtext|body|article|text/.test(signature);
       });
     if (textarea) {
-      setControlValue(textarea, prepend ? `${value}\n${textarea.value || ""}` : value);
+      setControlValue(textarea, prepend ? `${value}\n${textarea.value || ""}` : value, { focus: false });
     }
 
     const editable =
       row?.querySelector?.("[contenteditable='true']") ||
-      document.querySelector(".cke_editable[contenteditable='true'], [contenteditable='true']");
+      doc.querySelector(".cke_editable[contenteditable='true'], [contenteditable='true']");
 
     if (editable) {
       insertRichTextInto(editable, value, prepend);
       return true;
     }
 
-    const iframe = row?.querySelector?.("iframe") || document.querySelector(".cke_wysiwyg_frame, iframe");
+    const iframe = row?.querySelector?.("iframe") || doc.querySelector(".cke_wysiwyg_frame, iframe");
     try {
       const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
       if (iframeDoc?.body) {
@@ -4175,41 +4552,78 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return Boolean(textarea);
   }
 
-  function applyPriorityTemplate(template) {
+  function applyPriorityTemplate(template, doc = document) {
     const fields = template.fields || {};
+    const view = doc.defaultView || window;
+    const startScrollX = view.scrollX;
+    const startScrollY = view.scrollY;
+    let userScrolled = false;
 
-    setPrioritySelectField("TypeID", fields.type);
-    const applyDependentFields = () => {
-      setPrioritySelectField("NewQueueID", fields.queue);
-      setPrioritySelectField("ServiceID", fields.service);
-      setPrioritySelectField("NewOwnerID", fields.owner);
-      setPrioritySelectField("DynamicField_Kategorie", fields.category);
-      closePriorityAutocompleteDropdowns();
+    const markUserScroll = () => {
+      userScrolled = true;
+    };
+    const userScrollEvents = ["wheel", "touchmove", "keydown", "mousedown"];
+    userScrollEvents.forEach((type) => view.addEventListener(type, markUserScroll, { passive: true }));
+
+    const applyFields = () => {
+      setPrioritySelectField(["TypeID"], fields.type, [], doc);
+      setPrioritySelectField(["NewQueueID", "Dest"], fields.queue, ["An Queue", "Queue"], doc);
+      setPrioritySelectField(["ServiceID"], fields.service, [], doc);
+      setPrioritySelectField(["NewOwnerID", "NewUserID", "OwnerID"], fields.owner, ["Besitzer", "Owner"], doc);
+      setPrioritySelectField(["DynamicField_Kategorie"], fields.category, [], doc);
+      setPriorityPlainField(["Betreff"], ["Subject"], fields.subject, doc);
+      setPriorityRichText(fields.body, {}, doc);
+      closePriorityAutocompleteDropdowns(doc);
     };
 
-    applyDependentFields();
-    window.setTimeout(applyDependentFields, 180);
-    window.setTimeout(applyDependentFields, 600);
+    const applyAndKeepPosition = () => {
+      applyFields();
+      // Znuny re-renders dependent fields after a select change and can scroll
+      // the page (to top or bottom). Restore the previous position unless the
+      // user scrolled on purpose in the meantime.
+      if (!userScrolled && Math.abs(view.scrollY - startScrollY) > 30) {
+        view.scrollTo({ top: startScrollY, left: startScrollX });
+      }
+    };
 
-    setPriorityPlainField(["Betreff"], ["Subject"], fields.subject);
-    window.setTimeout(() => setPriorityRichText(fields.body), 50);
-    window.setTimeout(closePriorityAutocompleteDropdowns, 80);
+    // Repeat a few times: after a select change Znuny may re-render the form and
+    // wipe the free-text fields, which is why a template sometimes only applied
+    // fully on the second click.
+    applyAndKeepPosition();
+    [150, 350, 700, 1200].forEach((delay) => view.setTimeout(applyAndKeepPosition, delay));
+    view.setTimeout(() => {
+      userScrollEvents.forEach((type) => view.removeEventListener(type, markUserScroll));
+    }, 1300);
   }
 
-  function getPrioritySelectFieldText(selectId) {
-    const select = document.getElementById(selectId);
+  function findPrioritySelectControl(ids, labels = [], doc = document) {
+    for (const id of [].concat(ids)) {
+      const select = doc.getElementById(id);
+      if (select && (isVisibleFormControl(select) || isModernizedSelectWidgetVisible(select))) return select;
+    }
+
+    if (labels.length) {
+      const row = findPriorityFieldRow(labels, doc);
+      const select = row?.querySelector("select");
+      if (select && (isVisibleFormControl(select) || isModernizedSelectWidgetVisible(select))) return select;
+    }
+
+    return null;
+  }
+
+  function getPrioritySelectFieldText(ids, labels = [], doc = document) {
+    const select = findPrioritySelectControl(ids, labels, doc);
     if (!select) return "";
-    if (!isVisibleFormControl(select) && !isModernizedSelectWidgetVisible(select)) return "";
     return getSelectOptionText(select.selectedOptions?.[0]);
   }
 
-  function getPriorityPlainFieldValue(labels, ids) {
-    const control = findPriorityControl(labels, ids);
+  function getPriorityPlainFieldValue(labels, ids, doc = document) {
+    const control = findPriorityControl(labels, ids, doc);
     return control ? String(control.value || "").trim() : "";
   }
 
-  function getPriorityRichTextValue() {
-    const row = findPriorityFieldSection(["Text"]);
+  function getPriorityRichTextValue(doc = document) {
+    const row = findPriorityFieldSection(["Text"], doc);
 
     const textarea = [...(row?.querySelectorAll("textarea") || [])]
       .find((control) => {
@@ -4219,10 +4633,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (textarea?.value) return textarea.value;
 
     const editable = row?.querySelector?.("[contenteditable='true']") ||
-      document.querySelector(".cke_editable[contenteditable='true'], [contenteditable='true']");
+      doc.querySelector(".cke_editable[contenteditable='true'], [contenteditable='true']");
     if (editable) return editable.innerText || "";
 
-    const iframe = row?.querySelector?.("iframe") || document.querySelector(".cke_wysiwyg_frame, iframe");
+    const iframe = row?.querySelector?.("iframe") || doc.querySelector(".cke_wysiwyg_frame, iframe");
     try {
       const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
       if (iframeDoc?.body) return iframeDoc.body.innerText || "";
@@ -4233,23 +4647,23 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return "";
   }
 
-  function capturePriorityTemplateFields() {
+  function capturePriorityTemplateFields(doc = document) {
     return {
-      type: getPrioritySelectFieldText("TypeID"),
-      queue: getPrioritySelectFieldText("NewQueueID"),
-      service: getPrioritySelectFieldText("ServiceID"),
-      owner: getPrioritySelectFieldText("NewOwnerID"),
-      category: getPrioritySelectFieldText("DynamicField_Kategorie"),
-      subject: getPriorityPlainFieldValue(["Betreff"], ["Subject"]),
-      body: getPriorityRichTextValue()
+      type: getPrioritySelectFieldText(["TypeID"], [], doc),
+      queue: getPrioritySelectFieldText(["NewQueueID", "Dest"], ["An Queue", "Queue"], doc),
+      service: getPrioritySelectFieldText(["ServiceID"], [], doc),
+      owner: getPrioritySelectFieldText(["NewOwnerID", "NewUserID", "OwnerID"], ["Besitzer", "Owner"], doc),
+      category: getPrioritySelectFieldText(["DynamicField_Kategorie"], [], doc),
+      subject: getPriorityPlainFieldValue(["Betreff"], ["Subject"], doc),
+      body: getPriorityRichTextValue(doc)
     };
   }
 
-  function saveCurrentFieldsAsPriorityTemplate() {
+  function saveCurrentFieldsAsPriorityTemplate(doc = document) {
     const title = window.prompt("Name für die neue Vorlage:", "");
     if (!title || !title.trim()) return;
 
-    const fields = capturePriorityTemplateFields();
+    const fields = capturePriorityTemplateFields(doc);
     const hasAnyValue = Object.values(fields).some((value) => value);
     if (!hasAnyValue) {
       window.alert("Es wurden keine ausgefüllten Felder gefunden, die als Vorlage gespeichert werden können.");
@@ -4267,7 +4681,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       ]
     });
     savePriorityTemplateConfig();
-    enablePriorityTemplates();
+    enablePriorityTemplates(doc);
   }
 
   function isAllowedHsrwCustomerEmail(email) {
@@ -4397,56 +4811,111 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     else target.appendChild(notice);
   }
 
-  function addPriorityTemplateStyles() {
-    addStyle("zh-priority-template-style", `
-      #zh-priority-template-toolbar { color-scheme: light; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 12px 26px; padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; background: #f7f7f7; }
-      #zh-priority-template-toolbar.zh-priority-template-side { float: right; width: 330px; max-width: calc(100% - 590px); margin: 12px 28px 10px 18px; align-items: flex-start; }
-      #zh-priority-template-toolbar strong { margin-right: 4px; color: #333; }
-      #zh-priority-template-toolbar.zh-priority-template-side strong { width: 100%; margin: 0 0 2px; }
-      .zh-priority-template-button, .zh-priority-template-config, .zh-priority-template-save-current { border: 1px solid rgba(0,0,0,.18); border-radius: 5px; padding: 6px 11px; cursor: pointer; font-weight: 700; line-height: 1.3; font-size: 12.5px; transition: filter .1s ease, background .1s ease; }
-      .zh-priority-template-button { color: #fff; }
+  function addPriorityTemplateStyles(doc = document) {
+    addStyleToDocument(doc, "zh-priority-template-style", `
+      #zh-priority-template-toolbar { color-scheme: light; margin: 12px 26px; border: 1px solid #e2e4e8; border-radius: 8px; background: #fff; overflow: hidden; font-size: 12.5px; color: #2b2f36; }
+      #zh-priority-template-toolbar.zh-priority-template-side { margin: 0; }
+      .zh-priority-side-layout { display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(220px, 300px); column-gap: 16px; align-items: start; }
+      .zh-priority-side-layout > #zh-priority-template-toolbar { grid-column: 2; grid-row: 1; }
+      .zh-priority-side-layout > :not(#zh-priority-template-toolbar) { grid-column: 1; min-width: 0; max-width: 100%; box-sizing: border-box; overflow-x: clip; }
+      .zh-priority-side-layout fieldset,
+      .zh-priority-side-layout .Row,
+      .zh-priority-side-layout .Field,
+      .zh-priority-side-layout .InputField,
+      .zh-priority-side-layout .InputField_Container,
+      .zh-priority-side-layout .InputField_InputContainer,
+      .zh-priority-side-layout .InputField_Search,
+      .zh-priority-side-layout table { max-width: 100%; box-sizing: border-box; }
+      @supports not (overflow-x: clip) {
+        .zh-priority-side-layout > :not(#zh-priority-template-toolbar) { overflow-x: hidden; }
+      }
+      .zh-priority-toolbar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; background: #f4f5f7; border-bottom: 1px solid #e2e4e8; }
+      .zh-priority-toolbar-head strong { font-size: 12.5px; letter-spacing: .02em; color: #2b2f36; }
+      .zh-priority-toolbar-edit { border: 1px solid #c9ccd2; background: #fff; color: #3a3f47; border-radius: 5px; padding: 3px 9px; font-size: 11.5px; cursor: pointer; }
+      .zh-priority-toolbar-edit:hover { background: #eef0f3; }
+      .zh-priority-toolbar-groups { display: grid; gap: 12px; padding: 11px 12px; }
+      .zh-priority-toolbar-group { display: grid; gap: 6px; }
+      .zh-priority-toolbar-group-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #8a909a; }
+      .zh-priority-toolbar-group-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+      .zh-priority-toolbar-actions { display: flex; justify-content: flex-end; padding: 9px 12px; border-top: 1px solid #e2e4e8; background: #fafbfc; }
+      .zh-priority-template-button { border: 1px solid rgba(0,0,0,.16); border-radius: 6px; padding: 5px 11px; cursor: pointer; font-weight: 600; line-height: 1.3; font-size: 12px; color: #fff; transition: filter .1s ease; }
       .zh-priority-template-button:hover { filter: brightness(1.08); }
-      .zh-priority-template-config, .zh-priority-template-save-current { background: #fff; color: #333; }
-      .zh-priority-template-config:hover, .zh-priority-template-save-current:hover { background: #f0f0f0; }
-      .zh-priority-template-save-current { border-color: #3976bb; color: #2a5c96; }
+      .zh-priority-template-save-current { border: 1px solid #3976bb; background: #fff; color: #2a5c96; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-weight: 600; font-size: 12px; }
       .zh-priority-template-save-current:hover { background: #eaf1fb; }
       #zh-priority-external-customer-warning { width: 100%; box-sizing: border-box; margin-top: 4px; padding: 7px 9px; border: 1px solid #d98200; border-left: 4px solid #ff9900; background: #fff4cf; color: #4b3400; font-size: 12px; line-height: 1.35; }
       #zh-priority-external-customer-warning strong { color: #8a3b00; margin: 0; width: auto; }
       #zh-priority-external-customer-bottom-warning { display: inline-block; margin: 0 0 0 12px; padding: 5px 9px; border: 1px solid #c30000; border-left: 5px solid #d40000; background: #ffe0e0; color: #8a0000; font-size: 12px; font-weight: 700; line-height: 1.3; vertical-align: middle; }
-      .zh-priority-modal-backdrop { color-scheme: light; position: fixed; inset: 0; z-index: 100000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.5); }
-      .zh-priority-modal { color-scheme: light; width: min(1100px, calc(100vw - 48px)); max-height: calc(100vh - 48px); overflow: auto; background: #fff; color: #222; border-radius: 8px; box-shadow: 0 16px 48px rgba(0,0,0,.35); }
-      .zh-priority-modal header, .zh-priority-modal footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 20px; background: #f4f5f6; border-bottom: 1px solid #e2e2e2; }
-      .zh-priority-modal header { border-radius: 8px 8px 0 0; }
-      .zh-priority-modal footer { border-top: 1px solid #e2e2e2; border-bottom: 0; border-radius: 0 0 8px 8px; }
-      .zh-priority-modal h2 { margin: 0; font-size: 17px; color: #222; }
-      .zh-priority-modal-body { padding: 18px 20px; background: #fbfbfb; }
-      .zh-priority-template-list { display: grid; gap: 14px; }
-      .zh-priority-template-row { display: grid; gap: 12px; padding: 14px 16px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-      .zh-priority-template-row-head { display: grid; grid-template-columns: minmax(190px, 1fr) 60px auto; gap: 12px; align-items: end; padding-bottom: 10px; border-bottom: 1px solid #eee; }
-      .zh-priority-template-fields { display: grid; grid-template-columns: repeat(3, minmax(150px, 1fr)); gap: 12px; }
-      .zh-priority-template-field { display: grid; gap: 4px; }
-      .zh-priority-template-field label { color: #666; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
-      .zh-priority-template-row input, .zh-priority-template-row textarea { width: 100%; box-sizing: border-box; font-size: 12.5px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #222; transition: border-color .1s ease, box-shadow .1s ease; }
-      .zh-priority-template-row input:focus, .zh-priority-template-row textarea:focus { outline: none; border-color: #3976bb; box-shadow: 0 0 0 2px rgba(57,118,187,.15); }
-      .zh-priority-template-row input[type="color"] { height: 32px; padding: 2px; border-radius: 6px; cursor: pointer; }
-      .zh-priority-template-row textarea { min-height: 54px; resize: vertical; font-family: inherit; }
-      .zh-priority-template-remove { align-self: end; white-space: nowrap; background: #fff3f3 !important; border-color: #e0acac !important; color: #a30000 !important; }
-      .zh-priority-template-remove:hover { background: #ffe2e2 !important; }
-      .zh-priority-modal button { cursor: pointer; border-radius: 5px; }
-      .zh-priority-modal footer button { border: 1px solid #ccc; background: #fff; color: #333; padding: 7px 14px; font-size: 12.5px; }
-      .zh-priority-modal footer button:hover { background: #f0f0f0; }
+      .zh-priority-modal-backdrop { color-scheme: light; position: fixed; inset: 0; z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(17,20,26,.55); }
+      .zh-priority-modal { color-scheme: light; width: min(1040px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden; background: #fff; color: #222; border-radius: 10px; box-shadow: 0 18px 50px rgba(0,0,0,.35); }
+      .zh-priority-modal header, .zh-priority-modal footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 13px 18px; background: #f4f5f7; flex: 0 0 auto; }
+      .zh-priority-modal header { border-radius: 10px 10px 0 0; border-bottom: 1px solid #e2e4e8; }
+      .zh-priority-modal footer { border-top: 1px solid #e2e4e8; border-radius: 0 0 10px 10px; flex-wrap: wrap; }
+      .zh-priority-modal h2 { margin: 0; font-size: 16px; color: #222; }
+      .zh-priority-modal-body { flex: 1 1 auto; overflow: auto; background: #f6f7f9; }
+      .zh-priority-modal-tools { display: flex; align-items: center; gap: 10px; padding: 11px 18px; background: #fff; border-bottom: 1px solid #e7e9ed; position: sticky; top: 0; z-index: 2; }
+      .zh-priority-modal-tools input[type="search"] { flex: 1 1 auto; min-width: 0; padding: 7px 10px; border: 1px solid #cbd0d6; border-radius: 7px; font-size: 12.5px; }
+      .zh-priority-modal-tools input[type="search"]:focus { outline: none; border-color: #3976bb; box-shadow: 0 0 0 2px rgba(57,118,187,.15); }
+      .zh-priority-modal-tools .zh-priority-add { flex: 0 0 auto; border: 1px solid #3976bb; background: #fff; color: #2a5c96; border-radius: 7px; padding: 7px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+      .zh-priority-modal-tools .zh-priority-add:hover { background: #eaf1fb; }
+      .zh-priority-groups { padding: 14px 18px 18px; display: grid; gap: 16px; }
+      .zh-priority-group-section { display: grid; gap: 8px; }
+      .zh-priority-group-title { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #8a909a; }
+      .zh-priority-group-title[draggable="true"] { cursor: grab; }
+      .zh-priority-group-title[draggable="true"]:active { cursor: grabbing; }
+      .zh-priority-group-handle { color: #b3b8c0; font-size: 13px; }
+      .zh-priority-group-count { background: #e7e9ed; color: #5a6069; border-radius: 999px; padding: 1px 7px; font-size: 10.5px; letter-spacing: 0; }
+      .zh-priority-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; align-items: start; }
+      .zh-priority-tile { border: 1px solid #e3e5e9; border-left-width: 4px; border-left-style: solid; border-left-color: #3976bb; border-radius: 9px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04); overflow: hidden; }
+      .zh-priority-tile-head { display: flex; align-items: center; gap: 8px; padding: 9px 10px 5px; }
+      .zh-priority-tile-drag { flex: 0 0 auto; cursor: grab; color: #b3b8c0; font-size: 14px; line-height: 1; user-select: none; }
+      .zh-priority-tile-drag:active { cursor: grabbing; }
+      .zh-priority-tile.zh-priority-dragging { opacity: .45; }
+      .zh-priority-tile.zh-priority-drop-target { outline: 2px dashed #3976bb; outline-offset: -2px; }
+      .zh-priority-tile-color { flex: 0 0 auto; width: 26px; height: 26px; padding: 1px; border: 1px solid #d4d8de; border-radius: 6px; background: #fff; cursor: pointer; }
+      .zh-priority-tile-main { flex: 1 1 auto; min-width: 0; }
+      .zh-priority-tile-title { font-weight: 600; }
+      .zh-priority-tile-main input, .zh-priority-tile-meta input, .zh-priority-tile-meta select { width: 100%; box-sizing: border-box; border: 1px solid transparent; background: transparent; border-radius: 5px; padding: 3px 5px; font-size: 12.5px; color: #222; }
+      .zh-priority-tile-main input:hover, .zh-priority-tile-meta input:hover, .zh-priority-tile-meta select:hover { border-color: #dfe2e7; }
+      .zh-priority-tile-main input:focus, .zh-priority-tile-meta input:focus, .zh-priority-tile-meta select:focus { outline: none; border-color: #3976bb; background: #fff; box-shadow: 0 0 0 2px rgba(57,118,187,.14); }
+      .zh-priority-tile-meta { display: flex; align-items: center; gap: 6px; padding: 0 10px 9px; }
+      .zh-priority-tile-group { flex: 1 1 auto; min-width: 0; font-size: 11.5px; color: #7a808a; cursor: pointer; }
+      .zh-priority-tile-actions { flex: 0 0 auto; display: flex; align-items: center; gap: 3px; }
+      .zh-priority-tile-actions button { border: 1px solid #d4d8de; background: #fff; color: #4a5058; border-radius: 6px; width: 26px; height: 26px; padding: 0; font-size: 12px; line-height: 1; cursor: pointer; }
+      .zh-priority-tile-actions button:hover { background: #eef0f3; }
+      .zh-priority-tile-actions .zh-priority-tile-toggle { width: auto; padding: 0 8px; font-size: 11px; }
+      .zh-priority-tile-actions .zh-priority-tile-remove { color: #a30000; border-color: #e6bcbc; }
+      .zh-priority-tile-actions .zh-priority-tile-remove:hover { background: #ffecec; }
+      .zh-priority-tile-fields { display: none; padding: 10px; border-top: 1px dashed #e7e9ed; background: #fbfbfc; }
+      .zh-priority-tile.is-open .zh-priority-tile-fields { display: grid; }
+      .zh-priority-tile-fields-grid { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 9px; }
+      .zh-priority-tile-fields-grid .zh-priority-field-wide { grid-column: 1 / -1; }
+      .zh-priority-field { display: grid; gap: 3px; min-width: 0; }
+      .zh-priority-field label { color: #7a808a; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+      .zh-priority-field input, .zh-priority-field textarea { width: 100%; box-sizing: border-box; font-size: 12.5px; padding: 6px 8px; border: 1px solid #cbd0d6; border-radius: 6px; background: #fff; color: #222; }
+      .zh-priority-field input:focus, .zh-priority-field textarea:focus { outline: none; border-color: #3976bb; box-shadow: 0 0 0 2px rgba(57,118,187,.15); }
+      .zh-priority-field textarea { min-height: 48px; resize: vertical; font-family: inherit; }
+      .zh-priority-empty { padding: 28px; text-align: center; color: #8a909a; font-size: 12.5px; }
+      .zh-priority-modal button { cursor: pointer; border-radius: 6px; }
+      .zh-priority-modal header button { border: 1px solid #c9ccd2; background: #fff; color: #333; padding: 6px 12px; font-size: 12.5px; }
+      .zh-priority-modal header button:hover { background: #eef0f3; }
+      .zh-priority-modal footer button { border: 1px solid #c9ccd2; background: #fff; color: #333; padding: 7px 14px; font-size: 12.5px; }
+      .zh-priority-modal footer button:hover { background: #eef0f3; }
       .zh-priority-modal footer .zh-priority-template-save { border-color: #2f6a2f; background: #e9f7e9; color: #1e5c1e; font-weight: 700; }
       .zh-priority-modal footer .zh-priority-template-save:hover { background: #dcf1dc; }
-      @media (max-width: 980px) {
-        #zh-priority-template-toolbar.zh-priority-template-side { float: none; width: auto; max-width: none; margin: 10px 12px; }
-        .zh-priority-template-row-head, .zh-priority-template-fields { grid-template-columns: 1fr; }
+      @media (max-width: 820px) {
+        .zh-priority-side-layout { display: block !important; }
+        .zh-priority-side-layout > #zh-priority-template-toolbar { margin: 0 0 12px; }
+        .zh-priority-tiles { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+      }
+      @media (max-width: 560px) {
+        .zh-priority-tile-fields-grid { grid-template-columns: 1fr; }
       }
     `);
   }
 
-  function createPriorityTemplateField(name, label, value, multiline = false) {
+  function createPriorityTemplateField(name, label, value, multiline = false, wide = false) {
     const wrapper = document.createElement("div");
-    wrapper.className = "zh-priority-template-field";
+    wrapper.className = wide ? "zh-priority-field zh-priority-field-wide" : "zh-priority-field";
 
     const labelElement = document.createElement("label");
     labelElement.textContent = label;
@@ -4460,57 +4929,217 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return wrapper;
   }
 
-  function createPriorityTemplateEditorRow(template) {
-    const row = document.createElement("div");
-    row.className = "zh-priority-template-row";
+  function commitPriorityTemplateTiles(list) {
+    priorityTemplateConfig = normalizePriorityTemplateConfig({
+      groups: getPriorityGroups(),
+      templates: readPriorityTemplateEditorRows(list)
+    });
+    renderPriorityTemplateEditorRows(list);
+  }
+
+  function findPriorityTileById(list, id) {
+    return [...list.querySelectorAll(".zh-priority-tile")]
+      .find((tile) => tile.dataset.templateId === id) || null;
+  }
+
+  function movePriorityTileToGroup(tile, groupName) {
+    const select = tile.querySelector('select[name="group"]');
+    if (!select) return;
+
+    if (![...select.options].some((option) => option.value === groupName)) {
+      const option = document.createElement("option");
+      option.value = groupName;
+      option.textContent = groupName || "Ohne Gruppe";
+      select.insertBefore(option, select.lastElementChild);
+    }
+
+    select.value = groupName;
+  }
+
+  function createPriorityTemplateTile(template, list) {
+    const tile = document.createElement("div");
+    tile.className = "zh-priority-tile";
+    tile.dataset.templateId = template.id || "";
+    tile.style.borderLeftColor = template.color || "#3976bb";
+    if (priorityTemplateOpenIds.has(template.id)) tile.classList.add("is-open");
 
     const head = document.createElement("div");
-    head.className = "zh-priority-template-row-head";
+    head.className = "zh-priority-tile-head";
 
-    head.appendChild(createPriorityTemplateField("title", "Buttonname", template.title || ""));
+    const dragHandle = document.createElement("span");
+    dragHandle.className = "zh-priority-tile-drag";
+    dragHandle.textContent = "⠿";
+    dragHandle.title = "Zum Sortieren ziehen";
+    dragHandle.draggable = true;
+    dragHandle.addEventListener("dragstart", (event) => {
+      event.dataTransfer.setData("text/plain", `tile:${tile.dataset.templateId}`);
+      event.dataTransfer.effectAllowed = "move";
+      try {
+        event.dataTransfer.setDragImage(tile, 24, 24);
+      } catch (error) {
+        // setDragImage is not supported everywhere; the default image is fine.
+      }
+      tile.classList.add("zh-priority-dragging");
+    });
+    dragHandle.addEventListener("dragend", () => tile.classList.remove("zh-priority-dragging"));
 
-    const colorField = createPriorityTemplateField("color", "Farbe", template.color || "#3976bb");
-    const colorInput = colorField.querySelector("input");
+    const colorInput = document.createElement("input");
     colorInput.type = "color";
-    colorInput.value = template.color || "#3976bb";
-    head.appendChild(colorField);
+    colorInput.name = "color";
+    colorInput.className = "zh-priority-tile-color";
+    colorInput.value = /^#[0-9a-f]{6}$/i.test(template.color) ? template.color : "#3976bb";
+    colorInput.title = "Farbe";
+    colorInput.addEventListener("input", () => {
+      tile.style.borderLeftColor = colorInput.value;
+    });
+
+    const main = document.createElement("div");
+    main.className = "zh-priority-tile-main";
+
+    const titleInput = document.createElement("input");
+    titleInput.name = "title";
+    titleInput.className = "zh-priority-tile-title";
+    titleInput.value = template.title || "";
+    titleInput.placeholder = "Buttonname";
+    main.appendChild(titleInput);
+
+    const toggleButton = document.createElement("button");
+    toggleButton.type = "button";
+    toggleButton.className = "zh-priority-tile-toggle";
+    toggleButton.textContent = "Felder";
+    toggleButton.title = "Felder ein-/ausblenden";
+    toggleButton.addEventListener("click", () => {
+      const open = tile.classList.toggle("is-open");
+      if (open) priorityTemplateOpenIds.add(tile.dataset.templateId);
+      else priorityTemplateOpenIds.delete(tile.dataset.templateId);
+    });
+
+    head.append(dragHandle, colorInput, main, toggleButton);
+
+    const meta = document.createElement("div");
+    meta.className = "zh-priority-tile-meta";
+
+    const groupSelect = document.createElement("select");
+    groupSelect.name = "group";
+    groupSelect.className = "zh-priority-tile-group";
+    groupSelect.title = "Gruppe";
+
+    const knownGroups = getPriorityGroups();
+    const groupNames = [...new Set([template.group, ...knownGroups].filter(Boolean))];
+    [["", "Ohne Gruppe"], ...groupNames.map((name) => [name, name])].forEach(([value, label]) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      groupSelect.appendChild(option);
+    });
+
+    const newGroupOption = document.createElement("option");
+    newGroupOption.value = "__new";
+    newGroupOption.textContent = "＋ Neue Gruppe…";
+    groupSelect.appendChild(newGroupOption);
+
+    groupSelect.value = template.group || "";
+    groupSelect.addEventListener("change", () => {
+      if (groupSelect.value !== "__new") {
+        commitPriorityTemplateTiles(list);
+        return;
+      }
+
+      const name = window.prompt("Name der neuen Gruppe:", "");
+      if (!name || !name.trim()) {
+        groupSelect.value = template.group || "";
+        return;
+      }
+
+      const groupName = name.trim();
+      if (![...groupSelect.options].some((option) => option.value === groupName)) {
+        const option = document.createElement("option");
+        option.value = groupName;
+        option.textContent = groupName;
+        groupSelect.insertBefore(option, newGroupOption);
+      }
+      groupSelect.value = groupName;
+      commitPriorityTemplateTiles(list);
+    });
+
+    const actions = document.createElement("div");
+    actions.className = "zh-priority-tile-actions";
 
     const removeButton = document.createElement("button");
     removeButton.type = "button";
-    removeButton.className = "zh-priority-template-remove";
-    removeButton.textContent = "Entfernen";
-    removeButton.addEventListener("click", () => row.remove());
-    head.appendChild(removeButton);
-    row.appendChild(head);
+    removeButton.className = "zh-priority-tile-remove";
+    removeButton.textContent = "✕";
+    removeButton.title = "Vorlage entfernen";
+    removeButton.addEventListener("click", () => {
+      priorityTemplateOpenIds.delete(tile.dataset.templateId);
+      tile.remove();
+      commitPriorityTemplateTiles(list);
+    });
+
+    actions.append(removeButton);
+    meta.append(groupSelect, actions);
+
+    tile.addEventListener("dragover", (event) => {
+      if (!event.dataTransfer?.types?.includes("text/plain")) return;
+      event.preventDefault();
+      tile.classList.add("zh-priority-drop-target");
+    });
+    tile.addEventListener("dragleave", () => tile.classList.remove("zh-priority-drop-target"));
+    tile.addEventListener("drop", (event) => {
+      const data = event.dataTransfer.getData("text/plain") || "";
+      if (!data.startsWith("tile:")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      tile.classList.remove("zh-priority-drop-target");
+
+      const dragged = findPriorityTileById(list, data.slice(5));
+      if (!dragged || dragged === tile) return;
+
+      const container = tile.parentElement;
+      movePriorityTileToGroup(dragged, container?.dataset.group || "");
+
+      const rect = tile.getBoundingClientRect();
+      if (event.clientY > rect.top + rect.height / 2) {
+        container.insertBefore(dragged, tile.nextElementSibling);
+      } else {
+        container.insertBefore(dragged, tile);
+      }
+      commitPriorityTemplateTiles(list);
+    });
 
     const fields = document.createElement("div");
-    fields.className = "zh-priority-template-fields";
-    fields.append(
+    fields.className = "zh-priority-tile-fields";
+
+    const grid = document.createElement("div");
+    grid.className = "zh-priority-tile-fields-grid";
+    grid.append(
       createPriorityTemplateField("type", "Typ", template.fields?.type),
       createPriorityTemplateField("queue", "Queue", template.fields?.queue),
       createPriorityTemplateField("service", "Service", template.fields?.service),
       createPriorityTemplateField("owner", "Besitzer", template.fields?.owner),
       createPriorityTemplateField("category", "Kategorie", template.fields?.category),
-      createPriorityTemplateField("subject", "Betreff", template.fields?.subject)
+      createPriorityTemplateField("subject", "Betreff", template.fields?.subject),
+      createPriorityTemplateField("body", "Text", template.fields?.body, true, true)
     );
-    row.appendChild(fields);
+    fields.appendChild(grid);
 
-    row.appendChild(createPriorityTemplateField("body", "Text", template.fields?.body, true));
-
-    return row;
+    tile.append(head, meta, fields);
+    return tile;
   }
 
   function readPriorityTemplateEditorRows(list) {
-    const rows = [...list.querySelectorAll(".zh-priority-template-row")];
+    const rows = [...list.querySelectorAll(".zh-priority-tile")];
 
     return rows.map((row, index) => {
       const getValue = (name) => row.querySelector(`[name="${name}"]`)?.value?.trim() || "";
       const title = getValue("title") || `Vorlage ${index + 1}`;
+      const id = row.dataset.templateId || `priority-template-${index + 1}-${normalizeCategoryId(title) || Date.now()}`;
 
       return {
-        id: `priority-template-${index + 1}-${normalizeCategoryId(title) || Date.now()}`,
+        id,
         title,
         color: getValue("color") || "#3976bb",
+        group: getValue("group"),
         fields: {
           type: getValue("type"),
           queue: getValue("queue"),
@@ -4524,9 +5153,137 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     });
   }
 
+  function applyPriorityTemplateFilter(list) {
+    const filter = priorityTemplateFilter.trim().toLowerCase();
+    let totalVisible = 0;
+
+    list.querySelectorAll(".zh-priority-group-section").forEach((section) => {
+      let visibleCount = 0;
+
+      section.querySelectorAll(".zh-priority-tile").forEach((tile) => {
+        const title = (tile.querySelector('[name="title"]')?.value || "").toLowerCase();
+        const group = (tile.querySelector('[name="group"]')?.value || "").toLowerCase();
+        const match = !filter || title.includes(filter) || group.includes(filter);
+        tile.style.display = match ? "" : "none";
+        if (match) visibleCount += 1;
+      });
+
+      section.style.display = visibleCount ? "" : "none";
+      const countSpan = section.querySelector(".zh-priority-group-count");
+      if (countSpan) countSpan.textContent = String(visibleCount);
+      totalVisible += visibleCount;
+    });
+
+    const empty = list.querySelector(".zh-priority-empty");
+    if (empty) empty.style.display = totalVisible ? "none" : "";
+  }
+
   function renderPriorityTemplateEditorRows(list) {
     list.innerHTML = "";
-    getPriorityTemplates().forEach((template) => list.appendChild(createPriorityTemplateEditorRow(template)));
+
+    const templates = getPriorityTemplates();
+
+    const empty = document.createElement("div");
+    empty.className = "zh-priority-empty";
+    empty.textContent = templates.length ? "Keine Vorlage passt zum Filter." : "Noch keine Vorlagen vorhanden.";
+    empty.style.display = "none";
+    list.appendChild(empty);
+
+    const byGroup = new Map();
+    templates.forEach((template) => {
+      const groupName = template.group || "";
+      if (!byGroup.has(groupName)) byGroup.set(groupName, []);
+      byGroup.get(groupName).push(template);
+    });
+
+    const orderedGroups = orderPriorityGroups(byGroup);
+    const hasGroups = orderedGroups.some((name) => name !== "");
+
+    orderedGroups.forEach((groupName) => {
+      const groupTemplates = byGroup.get(groupName) || [];
+      if (!groupTemplates.length) return;
+
+      const section = document.createElement("div");
+      section.className = "zh-priority-group-section";
+
+      if (hasGroups) {
+        const heading = document.createElement("div");
+        heading.className = "zh-priority-group-title";
+        heading.draggable = Boolean(groupName);
+        if (groupName) heading.title = "Gruppe zum Sortieren ziehen";
+
+        const handle = document.createElement("span");
+        handle.className = "zh-priority-group-handle";
+        handle.textContent = groupName ? "⠿" : "";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = groupName || "Ohne Gruppe";
+
+        const countSpan = document.createElement("span");
+        countSpan.className = "zh-priority-group-count";
+        countSpan.textContent = String(groupTemplates.length);
+
+        heading.append(handle, nameSpan, countSpan);
+        heading.addEventListener("dragstart", (event) => {
+          if (!groupName) return;
+          event.dataTransfer.setData("text/plain", `group:${groupName}`);
+          event.dataTransfer.effectAllowed = "move";
+        });
+        section.appendChild(heading);
+      }
+
+      const tiles = document.createElement("div");
+      tiles.className = "zh-priority-tiles";
+      tiles.dataset.group = groupName;
+      groupTemplates.forEach((template) => tiles.appendChild(createPriorityTemplateTile(template, list)));
+      section.appendChild(tiles);
+
+      section.addEventListener("dragover", (event) => {
+        if (!event.dataTransfer?.types?.includes("text/plain")) return;
+        event.preventDefault();
+      });
+      section.addEventListener("drop", (event) => {
+        const data = event.dataTransfer.getData("text/plain") || "";
+        if (!data.startsWith("group:")) return;
+        event.preventDefault();
+
+        const draggedGroup = data.slice(6);
+        if (!draggedGroup || draggedGroup === groupName) return;
+
+        const order = getPriorityGroups().filter((name) => name && name !== draggedGroup);
+        const targetIndex = order.indexOf(groupName);
+        if (targetIndex < 0) order.push(draggedGroup);
+        else order.splice(targetIndex, 0, draggedGroup);
+
+        priorityTemplateConfig = normalizePriorityTemplateConfig({
+          groups: order,
+          templates: readPriorityTemplateEditorRows(list)
+        });
+        renderPriorityTemplateEditorRows(list);
+      });
+
+      tiles.addEventListener("dragover", (event) => {
+        if (!event.dataTransfer?.types?.includes("text/plain")) return;
+        event.preventDefault();
+      });
+      tiles.addEventListener("drop", (event) => {
+        const data = event.dataTransfer.getData("text/plain") || "";
+        if (!data.startsWith("tile:")) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const dragged = findPriorityTileById(list, data.slice(5));
+        if (!dragged) return;
+
+        movePriorityTileToGroup(dragged, groupName);
+        tiles.appendChild(dragged);
+        commitPriorityTemplateTiles(list);
+      });
+
+      list.appendChild(section);
+    });
+
+    applyPriorityTemplateFilter(list);
   }
 
   function closePriorityTemplateManager() {
@@ -4556,23 +5313,45 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const body = document.createElement("div");
     body.className = "zh-priority-modal-body";
+
+    const tools = document.createElement("div");
+    tools.className = "zh-priority-modal-tools";
+
+    const filterInput = document.createElement("input");
+    filterInput.type = "search";
+    filterInput.placeholder = "Vorlagen filtern (Name oder Gruppe)…";
+    filterInput.value = priorityTemplateFilter;
+    filterInput.addEventListener("input", () => {
+      priorityTemplateFilter = filterInput.value;
+      applyPriorityTemplateFilter(list);
+    });
+    tools.appendChild(filterInput);
+
+    const addButton = document.createElement("button");
+    addButton.type = "button";
+    addButton.className = "zh-priority-add";
+    addButton.textContent = "+ Vorlage";
+    addButton.addEventListener("click", () => {
+      const templates = readPriorityTemplateEditorRows(list);
+      templates.push({
+        title: "Neue Vorlage",
+        color: "#3976bb",
+        group: "",
+        fields: { type: "", queue: "", service: "", owner: "", category: "", subject: "", body: "" }
+      });
+      priorityTemplateConfig = normalizePriorityTemplateConfig({ groups: getPriorityGroups(), templates });
+      renderPriorityTemplateEditorRows(list);
+    });
+    tools.appendChild(addButton);
+    body.appendChild(tools);
+
     const list = document.createElement("div");
-    list.className = "zh-priority-template-list";
+    list.className = "zh-priority-groups";
     body.appendChild(list);
     modal.appendChild(body);
     renderPriorityTemplateEditorRows(list);
 
     const footer = document.createElement("footer");
-    const addButton = document.createElement("button");
-    addButton.type = "button";
-    addButton.textContent = "Vorlage hinzufügen";
-    addButton.addEventListener("click", () => {
-      list.appendChild(createPriorityTemplateEditorRow({
-        title: "Neue Vorlage",
-        color: "#3976bb",
-        fields: { type: "", queue: "", service: "", owner: "", category: "", subject: "", body: "" }
-      }));
-    });
 
     const resetButton = document.createElement("button");
     resetButton.type = "button";
@@ -4587,7 +5366,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     exportButton.textContent = "Exportieren";
     exportButton.title = "Vorlagen als Datei speichern, um sie zu teilen";
     exportButton.addEventListener("click", () => {
-      priorityTemplateConfig = normalizePriorityTemplateConfig({ templates: readPriorityTemplateEditorRows(list) });
+      priorityTemplateConfig = normalizePriorityTemplateConfig({ groups: getPriorityGroups(), templates: readPriorityTemplateEditorRows(list) });
       downloadJsonFile("znuny-helper-vorlagen.json", priorityTemplateConfig);
     });
 
@@ -4612,13 +5391,13 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     saveButton.className = "zh-priority-template-save";
     saveButton.textContent = "Speichern";
     saveButton.addEventListener("click", () => {
-      priorityTemplateConfig = normalizePriorityTemplateConfig({ templates: readPriorityTemplateEditorRows(list) });
+      priorityTemplateConfig = normalizePriorityTemplateConfig({ groups: getPriorityGroups(), templates: readPriorityTemplateEditorRows(list) });
       savePriorityTemplateConfig();
       closePriorityTemplateManager();
       enablePriorityTemplates();
     });
 
-    footer.append(addButton, resetButton, exportButton, importButton, saveButton);
+    footer.append(resetButton, exportButton, importButton, saveButton);
     modal.appendChild(footer);
 
     backdrop.addEventListener("click", (event) => {
@@ -4628,76 +5407,144 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     document.body.appendChild(backdrop);
   }
 
-  function getPriorityToolbarTarget() {
-    const settingsWidget = [...document.querySelectorAll(".WidgetSimple")]
+  function getPriorityToolbarTarget(doc = document) {
+    const settingsWidget = [...doc.querySelectorAll(".WidgetSimple")]
       .find((widget) => /ticket-einstellungen/i.test(normalizeText(getElementText(widget.querySelector(".Header") || widget))));
-    const settingsContent = settingsWidget?.querySelector(".Content");
-    if (settingsContent) {
-      return { mode: "prepend-side", element: settingsContent };
+
+    if (settingsWidget) {
+      const settingsContent = settingsWidget.querySelector(".Content");
+      if (settingsContent) {
+        return { mode: "prepend-side", element: settingsContent };
+      }
+      return { mode: "before", element: settingsWidget };
     }
 
-    const firstWidget = [...document.querySelectorAll(".WidgetSimple, fieldset")]
+    const firstWidget = [...doc.querySelectorAll(".WidgetSimple, fieldset")]
       .find((element) => /ticket-einstellungen|artikel hinzuf/i.test(normalizeText(getElementText(element))));
     if (firstWidget?.parentElement) {
       return { mode: "before", element: firstWidget };
     }
 
-    return { mode: "prepend", element: document.querySelector("form") || document.body };
+    return { mode: "prepend", element: doc.querySelector("form") || doc.body };
   }
 
-  function enablePriorityTemplates() {
-    if (window.top !== window.self || !isPriorityTemplatePage()) return;
+  function enablePriorityTemplates(doc = document) {
+    if (doc === document && window.top !== window.self) return;
 
-    addPriorityTemplateStyles();
-    document.getElementById("zh-priority-template-toolbar")?.remove();
+    const href = doc.defaultView?.location?.href || window.location.href;
+    if (!isPriorityTemplatePage(href)) return;
 
-    const toolbar = document.createElement("div");
-    toolbar.id = "zh-priority-template-toolbar";
+    addPriorityTemplateStyles(doc);
 
-    const target = getPriorityToolbarTarget();
-    if (target.mode === "prepend-side") {
-      toolbar.classList.add("zh-priority-template-side");
-    }
+    const target = getPriorityToolbarTarget(doc);
 
-    const label = document.createElement("strong");
-    label.textContent = "Vorlagen:";
-    toolbar.appendChild(label);
-
-    getPriorityTemplates().forEach((template) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "zh-priority-template-button";
-      button.textContent = template.title;
-      button.style.background = template.color || "#3976bb";
-      button.title = "Felder mit dieser Vorlage befüllen";
-      button.addEventListener("click", () => applyPriorityTemplate(template));
-      toolbar.appendChild(button);
+    const templates = getPriorityTemplates();
+    const signature = JSON.stringify({
+      mode: target.mode,
+      templates: templates.map((template) => [template.id, template.title, template.color, template.group])
     });
 
-    const saveCurrentButton = document.createElement("button");
+    const existing = doc.getElementById("zh-priority-template-toolbar");
+    if (existing && existing.dataset.zhSignature === signature) return;
+    if (existing) {
+      existing.parentElement?.classList.remove("zh-priority-side-layout");
+      existing.remove();
+    }
+
+    const toolbar = doc.createElement("div");
+    toolbar.id = "zh-priority-template-toolbar";
+    toolbar.dataset.zhSignature = signature;
+    if (target.mode === "prepend-side") {
+      toolbar.classList.add("zh-priority-template-side");
+      target.element.classList.add("zh-priority-side-layout");
+    }
+
+    const byGroup = new Map();
+    templates.forEach((template) => {
+      const groupName = template.group || "";
+      if (!byGroup.has(groupName)) byGroup.set(groupName, []);
+      byGroup.get(groupName).push(template);
+    });
+
+    const orderedGroups = orderPriorityGroups(byGroup);
+    const hasGroups = orderedGroups.some((name) => name !== "");
+
+    const head = doc.createElement("div");
+    head.className = "zh-priority-toolbar-head";
+
+    const headTitle = doc.createElement("strong");
+    headTitle.textContent = "Vorlagen";
+    head.appendChild(headTitle);
+
+    const configButton = doc.createElement("button");
+    configButton.type = "button";
+    configButton.className = "zh-priority-toolbar-edit";
+    configButton.textContent = "Bearbeiten";
+    configButton.title = "Vorlagen verwalten";
+    configButton.addEventListener("click", openPriorityTemplateManager);
+    head.appendChild(configButton);
+    toolbar.appendChild(head);
+
+    const groupsWrap = doc.createElement("div");
+    groupsWrap.className = "zh-priority-toolbar-groups";
+
+    orderedGroups.forEach((groupName) => {
+      const groupTemplates = byGroup.get(groupName) || [];
+      if (!groupTemplates.length) return;
+
+      const section = doc.createElement("div");
+      section.className = "zh-priority-toolbar-group";
+
+      if (hasGroups) {
+        const groupLabel = doc.createElement("div");
+        groupLabel.className = "zh-priority-toolbar-group-label";
+        groupLabel.textContent = groupName || "Ohne Gruppe";
+        section.appendChild(groupLabel);
+      }
+
+      const buttons = doc.createElement("div");
+      buttons.className = "zh-priority-toolbar-group-buttons";
+      groupTemplates.forEach((template) => {
+        const button = doc.createElement("button");
+        button.type = "button";
+        button.className = "zh-priority-template-button";
+        button.textContent = template.title;
+        button.style.background = template.color || "#3976bb";
+        button.title = "Felder mit dieser Vorlage befüllen";
+        button.addEventListener("click", () => applyPriorityTemplate(template, doc));
+        buttons.appendChild(button);
+      });
+
+      section.appendChild(buttons);
+      groupsWrap.appendChild(section);
+    });
+
+    toolbar.appendChild(groupsWrap);
+
+    const actions = doc.createElement("div");
+    actions.className = "zh-priority-toolbar-actions";
+
+    const saveCurrentButton = doc.createElement("button");
     saveCurrentButton.type = "button";
     saveCurrentButton.className = "zh-priority-template-save-current";
     saveCurrentButton.textContent = "Als Vorlage speichern";
     saveCurrentButton.title = "Aktuell ausgefüllte Felder als neue Vorlage speichern";
-    saveCurrentButton.addEventListener("click", saveCurrentFieldsAsPriorityTemplate);
-    toolbar.appendChild(saveCurrentButton);
+    saveCurrentButton.addEventListener("click", () => saveCurrentFieldsAsPriorityTemplate(doc));
+    actions.appendChild(saveCurrentButton);
+    toolbar.appendChild(actions);
 
-    const configButton = document.createElement("button");
-    configButton.type = "button";
-    configButton.className = "zh-priority-template-config";
-    configButton.textContent = "Vorlagen bearbeiten";
-    configButton.addEventListener("click", openPriorityTemplateManager);
-    toolbar.appendChild(configButton);
-    if (isPriorityTicketPage()) schedulePriorityExternalCustomerBottomNotice();
+    if (doc === document && isPriorityTicketPage(href)) schedulePriorityExternalCustomerBottomNotice();
 
-    if (target.mode === "prepend-side") target.element.prepend(toolbar);
-    else if (target.mode === "after") target.element.after(toolbar);
+    if (target.mode === "after") target.element.after(toolbar);
     else if (target.mode === "before") target.element.before(toolbar);
     else target.element.prepend(toolbar);
   }
 
   function disablePriorityTemplates() {
     closePriorityTemplateManager();
+    document.querySelectorAll(".zh-priority-side-layout").forEach((element) => {
+      element.classList.remove("zh-priority-side-layout");
+    });
     document.getElementById("zh-priority-template-toolbar")?.remove();
     removeStyle("zh-priority-template-style");
   }
@@ -5169,16 +6016,19 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       .zh-age-hot { color: #b00000 !important; font-weight: bold; }
       .zh-age-old { color: #6f2dbd !important; font-weight: bold; }
       .zh-category-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 999998; display: flex; align-items: center; justify-content: center; }
-      .zh-category-modal { width: min(980px, 92vw); max-height: 86vh; overflow: auto; background: #fff; border: 1px solid #777; border-radius: 4px; box-shadow: 0 8px 30px rgba(0,0,0,.35); color: #111; }
-      .zh-category-modal header { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #ddd; background: #f1f1f1; }
+      .zh-category-modal { width: min(920px, 94vw); max-height: 88vh; overflow: auto; background: #fff; border: 1px solid #777; border-radius: 4px; box-shadow: 0 8px 30px rgba(0,0,0,.35); color: #111; }
+      .zh-category-modal header { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-bottom: 1px solid #ddd; background: #f1f1f1; }
       .zh-category-modal h2 { margin: 0; font-size: 15px; }
-      .zh-category-modal-body { padding: 12px; }
+      .zh-category-modal-body { padding: 10px; }
       .zh-category-editor-hint { font-size: 11px; color: #555; margin-bottom: 8px; padding: 6px 8px; background: #eef4ff; border: 1px solid #cfe0ff; border-radius: 4px; }
-      .zh-category-editor-row { display: grid; grid-template-columns: 30px 1fr 90px 70px 1.5fr 130px; gap: 6px; align-items: start; margin-bottom: 7px; }
+      .zh-category-editor-row { display: grid; grid-template-columns: 26px minmax(150px, 1.4fr) 96px 56px auto; grid-template-areas: "order title short color actions" "keywords keywords keywords keywords keywords"; gap: 6px 8px; align-items: center; margin-bottom: 6px; padding: 7px 9px; border: 1px solid #e4e4e4; border-radius: 6px; background: #fff; }
+      .zh-category-editor-order { grid-area: order; text-align: center; color: #888; font-size: 12px; }
       .zh-category-editor-row input, .zh-category-editor-row textarea { width: 100%; box-sizing: border-box; font-size: 12px; }
-      .zh-category-editor-row textarea { min-height: 48px; resize: vertical; }
-      .zh-category-editor-head { font-weight: 700; font-size: 11px; color: #333; }
-      .zh-category-editor-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+      .zh-category-editor-row [name="title"] { grid-area: title; }
+      .zh-category-editor-row [name="short"] { grid-area: short; }
+      .zh-category-editor-row [name="color"] { grid-area: color; height: 30px; padding: 2px; }
+      .zh-category-editor-row [name="keywords"] { grid-area: keywords; min-height: 30px; max-height: 140px; resize: vertical; }
+      .zh-category-editor-actions { grid-area: actions; display: flex; gap: 4px; flex-wrap: nowrap; }
       .zh-category-modal button { font-size: 11px; padding: 3px 7px; border: 1px solid #999; border-radius: 3px; background: #eee; cursor: pointer; }
       .zh-category-modal footer { display: flex; justify-content: space-between; gap: 8px; padding: 10px 12px; border-top: 1px solid #ddd; background: #f7f7f7; }
     `);
@@ -5381,12 +6231,19 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     document.querySelectorAll(".zh-category-modal-backdrop").forEach((element) => element.remove());
   }
 
+  function autoSizeCategoryKeywords(textarea) {
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, 30), 140)}px`;
+  }
+
   function createCategoryEditorRow(group, keywords) {
     const row = document.createElement("div");
     row.className = "zh-category-editor-row";
     row.dataset.categoryId = group.id;
 
     const order = document.createElement("div");
+    order.className = "zh-category-editor-order";
     order.textContent = String(group.order);
 
     const title = document.createElement("input");
@@ -5410,6 +6267,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     keywordBox.value = (keywords[group.id] || []).join(", ");
     keywordBox.placeholder = "Keywords, getrennt mit Komma oder Zeile";
     keywordBox.disabled = group.id === "";
+    keywordBox.addEventListener("input", () => autoSizeCategoryKeywords(keywordBox));
 
     const actions = document.createElement("div");
     actions.className = "zh-category-editor-actions";
@@ -5475,18 +6333,13 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     hint.textContent = "Die Reihenfolge (Hoch/Runter) bestimmt auch die Priorität bei der automatischen Erkennung: Passt der Text auf mehrere Kategorien, gewinnt die weiter oben stehende.";
     list.appendChild(hint);
 
-    const header = document.createElement("div");
-    header.className = "zh-category-editor-row zh-category-editor-head";
-    ["#", "Titel", "Kurz", "Farbe", "Keywords für Auto-Erkennung", "Aktion"].forEach((text) => {
-      const cell = document.createElement("div");
-      cell.textContent = text;
-      header.appendChild(cell);
-    });
-    list.appendChild(header);
-
     const groups = getCategoryGroups();
     const keywords = getCategoryKeywords();
-    groups.forEach((group) => list.appendChild(createCategoryEditorRow(group, keywords)));
+    groups.forEach((group) => {
+      const row = createCategoryEditorRow(group, keywords);
+      list.appendChild(row);
+      autoSizeCategoryKeywords(row.querySelector('[name="keywords"]'));
+    });
   }
 
   function openCategoryManager() {
@@ -5730,6 +6583,276 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       });
   }
 
+  let quickReplyPollTimer = null;
+
+  function closeQuickReplyDrawer() {
+    if (quickReplyPollTimer) {
+      window.clearInterval(quickReplyPollTimer);
+      quickReplyPollTimer = null;
+    }
+    document.getElementById("zh-quick-reply-drawer")?.remove();
+  }
+
+  function getQuickReplyIframeHref(iframe) {
+    try {
+      return iframe.contentWindow?.location?.href || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function addQuickReplyStyles() {
+    addStyle("zh-quick-reply-style", `
+      #zh-quick-reply-drawer {
+        position: fixed;
+        right: 16px;
+        bottom: 0;
+        width: min(960px, 94vw);
+        height: min(720px, 88vh);
+        background: #fff;
+        border-radius: 10px 10px 0 0;
+        box-shadow: 0 10px 40px rgba(0,0,0,.35);
+        z-index: 999998;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,.15);
+        border-bottom: none;
+      }
+      .zh-quick-reply-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 12px;
+        background: #f2f2f2;
+        border-bottom: 1px solid rgba(0,0,0,.1);
+        font-size: 13px;
+        color: #222;
+      }
+      .zh-quick-reply-close {
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border: 1px solid #999;
+        border-radius: 999px;
+        background: #eee;
+        color: #111;
+        cursor: pointer;
+      }
+      .zh-quick-reply-close:hover { background: #fff; }
+      .zh-quick-reply-frame {
+        flex: 1;
+        width: 100%;
+        border: 0;
+        background: #fff;
+      }
+    `);
+  }
+
+  function isRealQuickReplyHref(href) {
+    return Boolean(href) && href !== "about:blank";
+  }
+
+  function findSubmitControlInDocument(doc) {
+    const candidates = [...doc.querySelectorAll('button, input[type="submit"], input[type="button"]')]
+      .filter(isVisibleFormControl);
+    return candidates.find(isTransmitSubmitControl) || null;
+  }
+
+  function bindQuickReplyKeyboardShortcut(doc) {
+    if (!doc || doc.__zhQuickReplyShortcutBound) return;
+
+    try {
+      doc.__zhQuickReplyShortcutBound = true;
+      doc.addEventListener("keydown", (event) => {
+        if (!settings.keyboardShortcuts) return;
+        if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
+
+        const control = findSubmitControlInDocument(doc);
+        if (!control) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        control.click();
+      }, true);
+
+      doc.querySelectorAll("iframe").forEach((nestedFrame) => {
+        try {
+          if (nestedFrame.contentDocument) bindQuickReplyKeyboardShortcut(nestedFrame.contentDocument);
+        } catch (error) {
+          // Cross-origin nested frame; nothing to bind there.
+        }
+      });
+    } catch (error) {
+      // Cross-origin document access can fail; nothing to bind in that case.
+    }
+  }
+
+  function bindQuickReplyCancelLink(doc) {
+    doc.querySelectorAll(".CancelClosePopup").forEach((link) => {
+      if (link.dataset.zhQuickReplyCancelBound === "1") return;
+      link.dataset.zhQuickReplyCancelBound = "1";
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeQuickReplyDrawer();
+      });
+    });
+  }
+
+  function getQuickReplyTitle(url) {
+    if (/Action=AgentTicketOwner\b/i.test(url)) return "Besitzer ändern";
+    if (/Action=AgentTicketNote\b/i.test(url)) return "Notiz hinzufügen";
+    if (/Action=AgentTicketClose\b/i.test(url)) return "Ticket schließen";
+    if (/Action=AgentTicketMerge\b/i.test(url)) return "Tickets zusammenfassen";
+    if (/Action=AgentLinkObject\b/i.test(url)) return "Verknüpfen";
+    return "Schnellantwort";
+  }
+
+  function openQuickReplyDrawer(url) {
+    if (window.top !== window.self) return;
+
+    closeQuickReplyDrawer();
+    addQuickReplyStyles();
+
+    const drawer = document.createElement("div");
+    drawer.id = "zh-quick-reply-drawer";
+
+    const header = document.createElement("div");
+    header.className = "zh-quick-reply-header";
+
+    const title = document.createElement("strong");
+    title.textContent = getQuickReplyTitle(url);
+    header.appendChild(title);
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "zh-quick-reply-close";
+    closeButton.textContent = "Schliessen";
+    closeButton.title = "Fenster schliessen, ohne zu übermitteln";
+    closeButton.addEventListener("click", closeQuickReplyDrawer);
+    header.appendChild(closeButton);
+
+    drawer.appendChild(header);
+
+    const iframe = document.createElement("iframe");
+    iframe.className = "zh-quick-reply-frame";
+    drawer.appendChild(iframe);
+
+    document.body.appendChild(drawer);
+
+    let actionPageSeen = false;
+
+    const applyQuickReplyDocumentFeatures = () => {
+      let doc = null;
+      try {
+        doc = iframe.contentDocument;
+      } catch (error) {
+        return;
+      }
+      if (!doc) return;
+
+      bindQuickReplyKeyboardShortcut(doc);
+      if (settings.pendingDateButtons) enablePendingDateQuickButtons(doc);
+      if (settings.priorityTemplates) enablePriorityTemplates(doc);
+      bindQuickReplyCancelLink(doc);
+      expandArticleWidget(doc);
+    };
+
+    const refreshQuickReplyPendingDates = () => {
+      if (!settings.pendingDateButtons) return;
+
+      let doc = null;
+      try {
+        doc = iframe.contentDocument;
+      } catch (error) {
+        return;
+      }
+      if (!doc) return;
+
+      bindQuickReplyKeyboardShortcut(doc);
+      enablePendingDateQuickButtons(doc);
+    };
+
+    const retryDocumentFeatures = () => {
+      applyQuickReplyDocumentFeatures();
+      [150, 600, 1400].forEach((delay) => window.setTimeout(applyQuickReplyDocumentFeatures, delay));
+
+      try {
+        const doc = iframe.contentDocument;
+        if (doc && !doc.__zhQuickReplyChangeBound) {
+          doc.__zhQuickReplyChangeBound = true;
+          // Reacts when the agent switches "Nächster Status" to a pending
+          // state after the form has already loaded (e.g. the date fields
+          // only appear once "warten auf ..." is selected).
+          doc.addEventListener("change", applyQuickReplyDocumentFeatures, true);
+        }
+      } catch (error) {
+        // Cross-origin document access can fail; nothing to bind in that case.
+      }
+    };
+
+    const finishQuickReply = () => {
+      closeQuickReplyDrawer();
+      window.location.reload();
+    };
+
+    // Both a "load" listener and a poll watch for the iframe leaving the
+    // tracked action (successful submit or a redirect back to the ticket);
+    // the poll is a fallback in case a JS-driven redirect skips a "load" event.
+    iframe.addEventListener("load", () => {
+      const href = getQuickReplyIframeHref(iframe);
+      if (!isRealQuickReplyHref(href)) return;
+
+      if (QUICK_REPLY_ACTION_PATTERN.test(href)) {
+        actionPageSeen = true;
+        retryDocumentFeatures();
+        return;
+      }
+
+      if (actionPageSeen) finishQuickReply();
+    });
+
+    quickReplyPollTimer = window.setInterval(() => {
+      if (!actionPageSeen) return;
+
+      const href = getQuickReplyIframeHref(iframe);
+      if (!isRealQuickReplyHref(href)) return;
+      if (QUICK_REPLY_ACTION_PATTERN.test(href)) {
+        refreshQuickReplyPendingDates();
+        return;
+      }
+
+      finishQuickReply();
+    }, 700);
+
+    iframe.src = url;
+  }
+
+  function handleOpenQuickReplyEvent(event) {
+    if (!settings.quickReply) return;
+    const url = event.detail?.url;
+    if (!url) return;
+    openQuickReplyDrawer(url);
+  }
+
+  function enableQuickReply() {
+    if (window.top !== window.self) return;
+    if (window.__znunyHelperQuickReplyBound === "1") return;
+    window.__znunyHelperQuickReplyBound = "1";
+    window.addEventListener("znuny-helper-open-quick-reply", handleOpenQuickReplyEvent);
+  }
+
+  function disableQuickReply() {
+    closeQuickReplyDrawer();
+    if (window.__znunyHelperQuickReplyBound === "1") {
+      window.removeEventListener("znuny-helper-open-quick-reply", handleOpenQuickReplyEvent);
+      delete window.__znunyHelperQuickReplyBound;
+    }
+    removeStyle("zh-quick-reply-style");
+  }
+
   function runEnabledFeatures() {
     suppressMutationScanUntil = Date.now() + 500;
     dispatchPageSettings();
@@ -5743,11 +6866,17 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (settings.ticketArticleSearch) enableTicketArticleSearch();
     else disableTicketArticleSearch();
 
+    if (settings.ticketNumberCopy) enableTicketNumberCopy();
+    else disableTicketNumberCopy();
+
     if (settings.ebHelper) enableEbHelper();
     else disableEbHelper();
 
     if (settings.priorityTemplates) enablePriorityTemplates();
     else disablePriorityTemplates();
+
+    if (settings.quickReply) enableQuickReply();
+    else disableQuickReply();
 
     if (settings.ticketCategories) applyTicketCategories();
     else disableTicketCategories();
@@ -5757,8 +6886,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (settings.ticketListInfiniteScroll) enableTicketListInfiniteScroll();
     else disableTicketListInfiniteScroll();
 
-    enableCloseActionTabAfterSubmit();
-    enableCloseComposeTabAfterMailSubmit();
+    enableCloseTabAfterSubmit();
+    enableActionPopupCancelFallback();
 
     if (settings.attachmentReminder) enableAttachmentReminder();
     else disableAttachmentReminder();
@@ -5767,6 +6896,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     else disablePendingDateQuickButtons();
 
     enableSubmitShortcut();
+    expandArticleWidget();
     enableLogoPongEasterEgg();
   }
 
@@ -6071,6 +7201,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   async function init() {
     const storedSettings = await syncGet("local", { [SETTINGS_KEY]: DEFAULT_SETTINGS });
     settings = { ...DEFAULT_SETTINGS, ...(storedSettings[SETTINGS_KEY] || {}) };
+    consumeAutoCloseFlag();
 
     const storedTicketState = await syncGet("local", { [TICKET_STATE_KEY]: ticketState });
     ticketState = {

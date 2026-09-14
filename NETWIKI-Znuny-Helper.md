@@ -6,7 +6,7 @@ Der **Znuny Helper** ist eine Browser-Erweiterung für unser Znuny-/OTRS-Tickets
 
 Ziel ist es, die tägliche Arbeit im Ticketsystem schneller und übersichtlicher zu machen: Anhänge können direkt als Vorschau geöffnet werden, Suchfunktionen werden erweitert, Ticketlisten können lokal kategorisiert werden und ServiceDesk-Prozesse wie Empfangsbestätigungen werden unterstützt.
 
-Die Erweiterung steht für Google Chrome, Microsoft Edge und Firefox (ab Version 128) zur Verfügung.
+Die Erweiterung steht für Google Chrome, Microsoft Edge und Firefox (ab Version 140) zur Verfügung.
 
 ## Zielgruppe
 
@@ -21,8 +21,9 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 
 | Punkt | Beschreibung |
 | --- | --- |
+| Aktuelle Version | 1.4.0 (Stand: 14.09.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
-| Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 128) |
+| Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` |
 | Speicherung | Browserspeicher der Erweiterung |
 | Externe Server | Nur für EB Helper: lokale EB-Seite `https://digi-eb.staff.hsrw/new` |
@@ -72,19 +73,23 @@ Nach der Installation erscheint in der Browserleiste das Addon-Symbol **Znuny He
 
 Die Einstellungen werden im Browser gespeichert. Änderungen im Popup gelten direkt nach dem Speichern bzw. nach erneutem Laden der betroffenen Znuny-Seite.
 
+Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Prioritäts-Vorlagen**, **Ton bei neuem Ticket** und **Schnellantwort** sind nach der Installation alle Funktionen standardmäßig aktiv. Diese Funktionen ändern das gewohnte Verhalten deutlich genug, dass sie erst bewusst im Popup eingeschaltet werden müssen.
+
 ## Funktionen im Überblick
 
 | Bereich | Funktion | Zweck |
 | --- | --- | --- |
-| Navigation | Anhang-Vorschau | PDFs und Bilder direkt im Ticket anzeigen |
+| Navigation | Anhang-Vorschau | PDF, Bilder, Text/Log, E-Mails, DOCX und Tabellen direkt im Ticket anzeigen |
 | Navigation | Popups als Tabs | Znuny-Aktionen übersichtlicher in Tabs öffnen |
+| Navigation | Schnellantwort | Antworten, Besitzer ändern, Notiz, Schließen, Verknüpfen und Zusammenfassen direkt als kleines Fenster über dem Ticket statt in einem neuen Tab |
 | Navigation | Suchergebnisse im neuen Tab | Suchergebnis-Seiten optional in neuem Tab öffnen |
 | Suchen | Ticketnummer-Suche | Globale Suche um ein direktes Ticketnummer-Feld erweitern |
 | Suchen | Ticketinhalt-Suche | Innerhalb eines geöffneten Tickets suchen |
+| Suchen | Case-Nummer kopieren | Die Case-/Ticketnummer oben links im geöffneten Ticket per Klick kopieren |
 | Ticketlisten | Ticket-Kategorien | Tickets lokal gruppieren, markieren und notieren |
 | Ticketlisten | Infinite Scroll | Weitere Ticketlistenseiten beim Scrollen automatisch laden |
 | ServiceDesk | EB Helper | Empfangsbestätigungen aus Hardware-Tickets vorbereiten |
-| ServiceDesk | Prioritäts-Vorlagen | Prioritätsseiten mit anpassbaren Schnellbuttons vorbefüllen |
+| ServiceDesk | Prioritäts-Vorlagen | Prioritäts-, Besitzer- und Neues-Telefon-Ticket-Seiten mit anpassbaren Schnellbuttons vorbefüllen |
 | Antwort | Anhang-Erinnerung | Hinweis, wenn der Text einen Anhang erwähnt, aber keiner angehängt ist |
 | Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status |
 | Tastenkürzel | Strg+Enter zum Senden | Aktuelles Formular übermitteln, Tab schließt danach automatisch |
@@ -92,17 +97,24 @@ Die Einstellungen werden im Browser gespeichert. Änderungen im Popup gelten dir
 
 ## Anhang-Vorschau
 
-Die Anhang-Vorschau ergänzt erkannte Anhänge im Ticket um einen Button **Vorschau**. Damit können PDF- und Bilddateien direkt als Overlay im Browser angezeigt werden.
+Die Anhang-Vorschau ergänzt erkannte Anhänge im Ticket um einen Button **Vorschau**. Damit lassen sich viele gängige Dateitypen direkt als Overlay im Browser ansehen, ohne sie herunterzuladen oder die Ticketansicht zu verlassen.
 
-Das ist besonders hilfreich, wenn ein Anhang nur kurz geprüft werden muss, ohne ihn herunterzuladen oder die aktuelle Ticketansicht zu verlassen.
+Unterstützt werden:
 
-Unterstützt werden vor allem:
+- **PDF-Dateien** – Anzeige im eingebetteten PDF-Viewer des Browsers.
+- **Bilder** (PNG, JPG/JPEG, GIF, WebP, BMP, SVG, AVIF).
+- **Textdateien** (TXT, LOG) – als reiner Text, bei sehr großen Dateien wird nur der Anfang angezeigt.
+- **E-Mails** (EML) – Absender, Empfänger, Betreff und Datum werden aufbereitet dargestellt, darunter der E-Mail-Text.
+- **Word-Dokumente** (DOCX) – Inhalt wird in lesbares HTML umgewandelt; Hinweise der Konvertierung (z. B. nicht unterstützte Formatierungen) werden bei Bedarf eingeblendet.
+- **Tabellen** (XLSX, XLSM, XLSB, XLS, ODS) – Anzeige als statische Tabelle (begrenzt auf die ersten 1000 Zeilen und 80 Spalten je Tabellenblatt).
 
-- PDF-Dateien
-- Bilddateien
-- Anhänge, die Znuny über typische Attachment-Links bereitstellt
+> Alte DOC-Dateien (Word 97–2003) werden nicht direkt unterstützt; hier bleibt nur der normale Download-Link. Für alle anderen, nicht erkannten Dateitypen gilt dasselbe.
 
-Wenn eine Vorschau nicht möglich ist, bleibt der normale Download-Link weiterhin nutzbar.
+Alle Vorschauen laufen vollständig lokal im Browser (u. a. über die eingebundenen Bibliotheken Mammoth.js für DOCX und SheetJS für Tabellen) – die Anhänge werden dabei an keinen externen Server außer Znuny selbst übertragen.
+
+Die Vorschau-Fenster für DOCX und Tabellen laufen in einem abgesicherten ("sandboxed") Rahmen ohne Skriptausführung. Die PDF-Vorschau nutzt bewusst keine solche Rahmen-Sandbox, da der eingebaute PDF-Betrachter von Chrome und Edge sich innerhalb eines sandboxed Rahmens grundsätzlich nicht aktiviert – die PDF-Darstellung übernimmt stattdessen direkt der eingebaute PDF-Betrachter des Browsers, der bereits eigenständig und getrennt vom übrigen Seiteninhalt läuft. Der übliche Vorschauweg erzwingt dabei zusätzlich den PDF-Dateityp, unabhängig davon, was der Server angibt. Nur im selteneren Fall, dass ein Anhang nicht sicher als PDF bestätigt werden kann, zeigt das Addon statt einer automatischen Vorschau lediglich einen Download-Link an.
+
+Zusätzlich werden Bilder, die bereits direkt im Ticketartikel angezeigt werden (z. B. eingebettete Bilder aus HTML-Mails), anklickbar: beim Überfahren mit der Maus erscheint ein Rahmen, ein Klick öffnet das Bild vergrößert. Sehr kleine Bilder (unter 24×24 Pixel, meist Spacer oder Tracking-Pixel) bleiben davon ausgenommen.
 
 ## Popups als Tabs
 
@@ -113,6 +125,16 @@ Vorteile:
 - bessere Übersicht
 - einfacheres Wechseln zwischen Ticket und Aktion
 - weniger Probleme mit blockierten oder verdeckten Popup-Fenstern
+
+## Schnellantwort
+
+Standardmäßig öffnen "Antworten" und "Allen antworten" (Artikel), "Besitzer" (Personen), "Notiz" (Kommunikation) sowie "Schließen", "Verknüpfen" und "Zusammenfassen" die echte Znuny-Seite der jeweiligen Aktion (inklusive Editor, Signatur und aller Pflichtfelder) – je nach Einstellung **Popups als Tabs** entweder als Popup-Fenster oder als neuer Tab.
+
+Ist **Schnellantwort** aktiviert, öffnet sich diese Seite stattdessen als kleines Fenster direkt über dem aktuellen Ticket, ganz ohne Tab- oder Fensterwechsel. Es handelt sich weiterhin um die echte Znuny-Seite, nur eingebettet statt in einem eigenen Tab oder Popup – alle Felder, der Editor und die Validierung funktionieren wie gewohnt, einschließlich Prioritäts-Vorlagen und Warten-Schnellauswahl, sofern die jeweilige Seite entsprechende Felder anzeigt. Das Fenster zeigt dabei je nach Aktion die passende Überschrift (z. B. "Schnellantwort", "Besitzer ändern", "Notiz hinzufügen", "Ticket schließen").
+
+Nach dem Absenden schließt sich das Fenster automatisch und das Ticket wird aktualisiert, damit die Änderung sofort sichtbar ist. Über den Knopf **Schließen** oben rechts im Fenster lässt sich das jederzeit verwerfen, ohne etwas zu übermitteln.
+
+> **Wichtig:** Die Funktion ist standardmäßig deaktiviert, weil sie das gewohnte Verhalten grundlegend ändert. Sie betrifft "Antworten", "Allen antworten", "Besitzer", "Notiz", "Schließen", "Verknüpfen" und "Zusammenfassen"; Weiterleiten, Umleiten und andere Aktionen öffnen weiterhin wie bisher. Die zugrunde liegenden Znuny-Aktionsnamen für Schließen/Verknüpfen/Zusammenfassen sind unsere beste Einschätzung der Standard-Bezeichnungen – trifft eine davon an dieser Installation nicht zu, öffnet der jeweilige Link einfach weiterhin wie gewohnt.
 
 ## Suchergebnisse im neuen Tab
 
@@ -158,6 +180,10 @@ Durchsucht werden:
 Die Suche ist nicht auf Groß-/Kleinschreibung festgelegt. Treffer werden markiert, und bei mehreren Treffern kann durch die Treffer navigiert werden.
 
 Hinweis: Ticketinhalte, die Znuny noch nicht geladen hat, müssen ggf. erst geöffnet oder nachgeladen werden.
+
+## Case-Nummer kopieren
+
+Im geöffneten Ticket wird die Case-/Ticketnummer oben links in der Überschrift anklickbar. Ein Klick kopiert die Nummer in die Zwischenablage und bestätigt dies kurz (grüne Hervorhebung, Tooltip „Kopiert!"). Erkannt wird die erste Ziffernfolge der Überschrift, sodass sowohl die reine Ticketnummer als auch eine „Case …"-Schreibweise erfasst wird. Die Funktion lässt sich im Popup unter **Suchen** abschalten.
 
 ## Ticket-Kategorien
 
@@ -230,7 +256,7 @@ Hinweis: Da automatisch weitere Znuny-Seiten abgerufen werden, kann die Funktion
 
 ## Prioritäts-Vorlagen
 
-Die Funktion **Prioritäts-Vorlagen** ergänzt Prioritätsseiten um anpassbare Schnellbuttons. Ein Klick füllt Felder wie Priorität, Betreff oder Text automatisch mit einer hinterlegten Vorlage.
+Die Funktion **Prioritäts-Vorlagen** ergänzt Prioritäts- und Besitzer-Aktionsseiten sowie das Formular **Neues Telefon-Ticket** um anpassbare Schnellbuttons. Ein Klick füllt Felder wie Typ, Queue, Service, Besitzer, Kategorie, Betreff oder Text automatisch mit einer hinterlegten Vorlage.
 
 Über den Knopf **Als Vorlage speichern** lässt sich der aktuell ausgefüllte Zustand der Seite (Typ, Queue, Service, Besitzer, Kategorie, Betreff, Text) direkt als neue Vorlage übernehmen, ohne die Felder von Hand in die Vorlagenverwaltung abtippen zu müssen.
 
@@ -238,7 +264,8 @@ Die Funktion **Prioritäts-Vorlagen** ergänzt Prioritätsseiten um anpassbare S
 
 - Vorlagen anlegen, umbenennen und löschen
 - Feldwerte je Vorlage anpassen
-- die Reihenfolge der Schnellbuttons ändern
+- Vorlagen einer **Gruppe** zuordnen; die Schnellbuttons werden dann nach diesen Gruppen sortiert angeordnet (Gruppen alphabetisch, Vorlagen ohne Gruppe zuletzt)
+- die Reihenfolge der Schnellbuttons mit **Hoch/Runter** ändern
 - Vorlagen als Datei exportieren, um sie mit Kolleginnen und Kollegen zu teilen
 - Vorlagen aus einer Datei importieren
 
@@ -268,7 +295,9 @@ Das Kürzel funktioniert nur, wenn auf der aktuellen Seite ein passender "Überm
 
 ## Ton bei neuem Ticket
 
-Ist diese Funktion aktiv, spielt das Addon einen kurzen Sound ab, sobald ein neues Ticket bei einem selbst gesperrt wird. Dazu gleicht das Addon im Hintergrund regelmäßig (etwa einmal pro Minute) die eigene Ansicht "Gesperrte Tickets" ab und merkt sich lokal, welche Ticketnummern schon bekannt sind.
+Ist diese Funktion aktiv, spielt das Addon einen kurzen Sound ab, sobald ein neues Ticket bei einem selbst gesperrt wird, und aktualisiert dabei automatisch die gerade sichtbare Ticketliste – das neue Ticket erscheint sofort, ohne dass Znunys eigenes Aktualisierungsintervall der Übersichten abgewartet werden muss. Dazu gleicht das Addon im Hintergrund regelmäßig (etwa einmal pro Minute) die eigene Ansicht "Gesperrte Tickets" ab und merkt sich lokal, welche Ticketnummern schon bekannt sind.
+
+> Die automatische Aktualisierung betrifft nur Ticketlisten-/Übersichtsseiten. Ist gerade ein Ticket, eine Antwort oder ein anderes Formular geöffnet, wird ausschließlich der Sound abgespielt – die Seite bleibt unangetastet.
 
 Im Addon-Popup lässt sich unter **Benachrichtigung**:
 
@@ -276,7 +305,7 @@ Im Addon-Popup lässt sich unter **Benachrichtigung**:
 - ein eigener Sound per Datei-Upload hinzufügen,
 - ein selbst hinzugefügter Sound wieder entfernen.
 
-Fünf Sounds sind bereits eingebaut (ICQ, iPhone, Minecraft Huhn 1, Minecraft Huhn 2, WhatsApp).
+Acht Sounds sind bereits eingebaut: drei dezente Standardtöne (Sanfter Ping, Zwei-Ton-Chime, Weicher Klick – Sanfter Ping ist voreingestellt) sowie ICQ, iPhone, Minecraft Huhn 1, Minecraft Huhn 2 und WhatsApp.
 
 > Direkt nach der Installation bzw. dem ersten Aktivieren merkt sich das Addon nur den aktuellen Stand der gesperrten Tickets. Für bereits vorher gesperrte Tickets wird noch kein Ton abgespielt, erst für neu hinzukommende.
 
@@ -299,26 +328,11 @@ Falls der Text nicht automatisch erkannt wird, kann ein Hardwaretext manuell ein
 
 Die endgültige Prüfung und Korrektur der Gerätezeilen erfolgt auf der EB-Seite.
 
-## Bug- und Vorschlagsmeldung
+## Fehlermeldungen und Verbesserungsvorschläge
 
-Im Addon-Popup gibt es unten den Link **Bug/Vorschlag melden**.
+Das Addon hat bewusst **keinen öffentlichen Meldeweg** im Popup: Da es über die Store-Direktlinks von überall installiert werden kann, würde ein offen sichtbarer Bug-Link (z. B. eine interne Mailadresse) auch Meldungen von außerhalb der Hochschule anziehen. Rückmeldungen laufen daher über die üblichen internen Wege.
 
-Dieser öffnet eine E-Mail an:
-
-`it-support@hochschule-rhein-waal.de`
-
-Der Betreff lautet:
-
-`Bug / Vorschlag Znuny Addon`
-
-Die Mailvorlage enthält Felder für:
-
-- Beschreibung
-- Schritte zum Reproduzieren
-- Screenshots
-- Browser
-
-Bitte bei Fehlern möglichst immer angeben:
+Für eine hilfreiche Fehlermeldung bitte notieren:
 
 - verwendeter Browser
 - betroffene Znuny-Seite
@@ -348,6 +362,7 @@ Ausnahme: Beim EB Helper werden erkannte Hardwaredaten an die lokale EB-Seite ü
 - Nach Addon-Updates sollte die Erweiterung neu geladen und die Znuny-Seite aktualisiert werden.
 - Wenn Znuny seine HTML-Struktur ändert, können einzelne Funktionen Anpassungen benötigen.
 - Manuell geladene Firefox-Erweiterungen sind nur temporär aktiv (siehe Installation); für Dauerbetrieb wird die Store-Version benötigt.
+- "Ton bei neuem Ticket" funktioniert nur, solange ein Znuny-Tab in einem Browser mit installierter Erweiterung geöffnet ist; bei komplett geschlossenem Browser gibt es keine Benachrichtigung.
 
 ## Deaktivieren einzelner Funktionen
 
@@ -358,10 +373,14 @@ Empfehlung bei Problemen:
 1. Betroffene Funktion im Popup deaktivieren.
 2. Znuny-Seite neu laden.
 3. Prüfen, ob das Problem weiterhin besteht.
-4. Bug/Vorschlag über das Popup melden.
+4. Problem intern melden.
 
 ## Zuständigkeit und Pflege
 
-Das Addon ist als Arbeitserleichterung für das Znuny-Ticketsystem gedacht. Fehler, Verbesserungsvorschläge und neue Funktionsideen können über den Bug-/Vorschlagslink im Addon-Popup gemeldet werden.
+Das Addon ist als Arbeitserleichterung für das Znuny-Ticketsystem gedacht. Fehler, Verbesserungsvorschläge und neue Funktionsideen können intern gemeldet werden.
 
 Vor größeren Änderungen sollte geprüft werden, ob die Änderung für mehrere Nutzerinnen und Nutzer sinnvoll ist und ob sie die normale Znuny-Bedienung nicht beeinträchtigt.
+
+## Belohnung fürs Bis-hierhin-Lesen
+
+Wer die Doku tatsächlich komplett durchgelesen hat, verdient eine kleine Belohnung: Im Znuny halte die Maus für 3 Sekunden über das eigene Profilsymbol oben links (die Kreis-Initialen), ohne zu klicken – dort versteckt sich **Logo Pong**, ein kleines Minispiel mit dem HSRW-Logo als Schläger. Viel Spaß!
