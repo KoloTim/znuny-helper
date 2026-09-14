@@ -25,6 +25,8 @@
     { id: "soft-ping", name: "Sanfter Ping", file: "sounds/soft-ping.wav" },
     { id: "two-tone-chime", name: "Zwei-Ton-Chime", file: "sounds/two-tone-chime.wav" },
     { id: "soft-click", name: "Weicher Klick", file: "sounds/soft-click.wav" },
+    { id: "subtle-ping", name: "Dezenter Ping", file: "sounds/subtle-ping.mp3" },
+    { id: "message-notification", name: "Neue Nachricht", file: "sounds/message-notification.mp3" },
     { id: "icq", name: "ICQ", file: "sounds/icq.mp3" },
     { id: "iphone", name: "iPhone", file: "sounds/iphone.mp3" },
     { id: "minecraft-chicken-1", name: "Minecraft Huhn 1", file: "sounds/minecraft-chicken-1.mp3" },

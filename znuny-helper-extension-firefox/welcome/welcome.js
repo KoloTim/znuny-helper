@@ -14,6 +14,7 @@
         "Neu: Die Tage der Warten-Schnellauswahl sind jetzt im Popup frei einstellbar (z. B. 1, 3, 7, 14). Der erste Wert wird automatisch vorbelegt.",
         "Das Popup ist übersichtlicher: klarere Beschreibungen und sinnvoll gruppierte Optionen.",
         "Infinite Scroll blendet die überflüssigen Seitenzahlen oben rechts in der Ticketliste aus.",
+        "Neu: Zwei zusätzliche Benachrichtigungstöne zur Auswahl (Dezenter Ping, Neue Nachricht) – damit sind zehn Sounds eingebaut.",
         "Die Anhang-Erinnerung wurde entfernt."
       ]
     },

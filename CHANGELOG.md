@@ -6,6 +6,7 @@ Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format 
 
 ### Added
 - **Warten-Schnellauswahl konfigurierbar:** Die Tage der Schnellknöpfe (bisher fest +3/+7/+14) lassen sich im Popup unter „Antworten und Warten → Tage der Schnellknöpfe" frei einstellen (kommagetrennt, z. B. `1, 3, 7, 14`, maximal acht Werte). Der erste Wert wird beim Erscheinen des Datumsfelds automatisch gesetzt; die Knöpfe werden bei geänderter Einstellung sofort neu aufgebaut.
+- **Zwei zusätzliche Benachrichtigungstöne:** Für „Ton bei neuem Ticket" stehen jetzt zwei weitere Sounds zur Auswahl – **Dezenter Ping** und **Neue Nachricht**. Damit sind zehn Sounds eingebaut (drei dezente Standardtöne, die zwei neuen Benachrichtigungstöne sowie ICQ, iPhone, Minecraft Huhn 1, Minecraft Huhn 2 und WhatsApp).
 
 ### Changed
 - **Popup übersichtlicher und verständlicher:** Die Funktionsbeschreibungen wurden überarbeitet und die Optionen in klarer benannte Gruppen sortiert (Im geöffneten Ticket, Antworten und Warten, Navigation und Listen, Suche, Ticketlisten, Vorlagen und ServiceDesk, Bedienung, Benachrichtigung).
