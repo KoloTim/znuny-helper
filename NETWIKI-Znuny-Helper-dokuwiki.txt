@@ -20,7 +20,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 ===== Technische Grundlage =====
 
 ^ Punkt ^ Beschreibung ^
-| Aktuelle Version | 1.4.0 (Stand: 14.09.2026) |
+| Aktuelle Version | 1.5.0 (Stand: 14.09.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | ''%%https://otrs.staff.hsrw/otrs/index.pl*%%'' |
@@ -87,11 +87,10 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Prioritäts-Vorlagen**
 | Suchen | Ticketinhalt-Suche | Innerhalb eines geöffneten Tickets suchen |
 | Suchen | Case-Nummer kopieren | Die Case-/Ticketnummer oben links im geöffneten Ticket per Klick kopieren |
 | Ticketlisten | Ticket-Kategorien | Tickets lokal gruppieren, markieren und notieren |
-| Ticketlisten | Infinite Scroll | Weitere Ticketlistenseiten beim Scrollen automatisch laden |
+| Ticketlisten | Infinite Scroll | Weitere Ticketlistenseiten beim Scrollen automatisch laden (blendet die Seitenzahlen oben rechts aus) |
 | ServiceDesk | EB Helper | Empfangsbestätigungen aus Hardware-Tickets vorbereiten |
 | ServiceDesk | Prioritäts-Vorlagen | Prioritäts-, Besitzer- und Neues-Telefon-Ticket-Seiten mit anpassbaren Schnellbuttons vorbefüllen |
-| Antwort | Anhang-Erinnerung | Hinweis, wenn der Text einen Anhang erwähnt, aber keiner angehängt ist |
-| Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status |
+| Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status (Tage im Popup einstellbar) |
 | Tastenkürzel | Strg+Enter zum Senden | Aktuelles Formular übermitteln, Tab schließt danach automatisch |
 | Benachrichtigung | Ton bei neuem Ticket | Sound abspielen, sobald ein neues Ticket bei einem selbst gesperrt wird |
 
@@ -260,7 +259,7 @@ Lokale Notizen sind nicht für andere Personen sichtbar und ersetzen keine inter
 
 Wenn **Infinite Scroll** aktiv ist, lädt das Addon in Ticketlisten automatisch weitere Ergebnisse nach, sobald man nach unten scrollt.
 
-Das spart Klicks auf weitere Seiten und macht längere Listen flüssiger nutzbar.
+Das spart Klicks auf weitere Seiten und macht längere Listen flüssiger nutzbar. Da die Seitenzahlen oben rechts damit überflüssig werden, blendet das Addon sie aus, solange Infinite Scroll aktiv ist; beim Abschalten erscheinen sie wieder.
 
 <note>
 Da automatisch weitere Znuny-Seiten abgerufen werden, kann die Funktion bei sehr großen Listen etwas mehr Browser- und Netzwerklast erzeugen.
@@ -283,12 +282,6 @@ Die Funktion **Prioritäts-Vorlagen** ergänzt Prioritäts- und Besitzer-Aktions
 
 Zusätzlich zeigt das Addon auf Prioritätsseiten einen Warnhinweis an, wenn ein Ticket einer erkennbar externen Kundenadresse zugeordnet ist oder im Titel als extern markiert wurde. Das soll daran erinnern, die Ticketdaten vor dem Übermitteln zu prüfen.
 
-===== Anhang-Erinnerung =====
-
-Auf der Antwortseite zeigt das Addon einen Hinweis **Anhang vergessen?** an, wenn der Text Wörter wie "anbei" oder "Anhang" enthält, aber keine Datei angehängt wurde.
-
-Der Hinweis ist rein informativ und blockiert das Senden nicht.
-
 ===== Warten-Schnellauswahl =====
 
 Wo immer beim Setzen eines "Warten"-Status ein Datum verlangt wird, ergänzt das Addon Schnellknöpfe für das Wartedatum:
@@ -296,6 +289,8 @@ Wo immer beim Setzen eines "Warten"-Status ein Datum verlangt wird, ergänzt das
   * +3 Tage (Standard, wird beim Erscheinen des Datumsfelds automatisch vorbelegt)
   * +7 Tage
   * +14 Tage
+
+Die Tage lassen sich im Popup unter **Antworten und Warten → Tage der Schnellknöpfe** frei einstellen (kommagetrennt, z. B. ''1, 3, 7, 14''). Der erste Wert wird beim Erscheinen des Datumsfelds automatisch gesetzt.
 
 Ein Klick auf einen anderen Knopf überschreibt die Vorbelegung jederzeit.
 

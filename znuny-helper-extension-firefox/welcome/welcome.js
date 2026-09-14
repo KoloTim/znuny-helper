@@ -9,6 +9,15 @@
 
   const releases = [
     {
+      version: "1.5.0",
+      items: [
+        "Neu: Die Tage der Warten-Schnellauswahl sind jetzt im Popup frei einstellbar (z. B. 1, 3, 7, 14). Der erste Wert wird automatisch vorbelegt.",
+        "Das Popup ist übersichtlicher: klarere Beschreibungen und sinnvoll gruppierte Optionen.",
+        "Infinite Scroll blendet die überflüssigen Seitenzahlen oben rechts in der Ticketliste aus.",
+        "Die Anhang-Erinnerung wurde entfernt."
+      ]
+    },
+    {
       version: "1.4.0",
       items: [
         "Neu: Die Case-/Ticketnummer oben links im geöffneten Ticket lässt sich per Klick kopieren (mit kurzer Bestätigung). Abschaltbar im Popup unter \"Suchen\"."

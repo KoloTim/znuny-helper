@@ -14,8 +14,8 @@
     priorityTemplates: false,
     ticketCategories: true,
     ticketListInfiniteScroll: true,
-    attachmentReminder: true,
     pendingDateButtons: true,
+    pendingDatePresets: [3, 7, 14],
     keyboardShortcuts: true,
     assignedTicketSound: false,
     quickReply: false
@@ -41,6 +41,7 @@
   const customSoundList = document.getElementById("customSoundList");
   const soundAdd = document.getElementById("soundAdd");
   const soundFileInput = document.getElementById("soundFileInput");
+  const pendingPresetsInput = document.getElementById("pendingPresetsInput");
 
   let ticketSoundConfig = { customSounds: [], selectedId: BUILTIN_TICKET_SOUNDS[0].id };
 
@@ -60,23 +61,52 @@
     return new Promise((resolve) => api.storage.local.set(value, resolve));
   }
 
+  const BOOLEAN_SETTING_KEYS = Object.keys(DEFAULT_SETTINGS)
+    .filter((key) => typeof DEFAULT_SETTINGS[key] === "boolean");
+
+  function parsePendingPresets(value) {
+    const seen = new Set();
+    const presets = [];
+
+    String(value || "").split(/[,;\s]+/).forEach((entry) => {
+      const days = Math.trunc(Number(entry));
+      if (!Number.isFinite(days) || days <= 0 || days > 3650 || seen.has(days)) return;
+      seen.add(days);
+      presets.push(days);
+    });
+
+    return presets.length ? presets.slice(0, 8) : DEFAULT_SETTINGS.pendingDatePresets.slice();
+  }
+
   function readForm() {
-    return Object.fromEntries(
-      Object.keys(DEFAULT_SETTINGS).map((key) => [key, Boolean(form.elements[key]?.checked)])
-    );
+    const settings = {};
+
+    BOOLEAN_SETTING_KEYS.forEach((key) => {
+      settings[key] = Boolean(form.elements[key]?.checked);
+    });
+
+    settings.pendingDatePresets = parsePendingPresets(pendingPresetsInput.value);
+    return settings;
   }
 
   function writeForm(settings) {
     Object.entries(settings).forEach(([key, value]) => {
+      if (key === "pendingDatePresets") return;
       if (form.elements[key]) {
         form.elements[key].checked = Boolean(value);
       }
     });
+
+    const presets = Array.isArray(settings.pendingDatePresets) && settings.pendingDatePresets.length
+      ? settings.pendingDatePresets
+      : DEFAULT_SETTINGS.pendingDatePresets;
+    pendingPresetsInput.value = presets.join(", ");
   }
 
   async function save() {
     const nextSettings = readForm();
     await storageSet({ [SETTINGS_KEY]: nextSettings });
+    writeForm(nextSettings);
     status.textContent = "Gespeichert";
     window.setTimeout(() => {
       status.textContent = "Bereit";
@@ -195,10 +225,20 @@
     });
   }
 
+  function updatePendingPresetState() {
+    const enabled = Boolean(form.elements.pendingDateButtons?.checked);
+    pendingPresetsInput.disabled = !enabled;
+    pendingPresetsInput.closest(".field-settings")?.classList.toggle("is-disabled", !enabled);
+  }
+
   async function init() {
     const stored = await storageGet({ [SETTINGS_KEY]: DEFAULT_SETTINGS });
     writeForm({ ...DEFAULT_SETTINGS, ...(stored[SETTINGS_KEY] || {}) });
-    form.addEventListener("change", save);
+    updatePendingPresetState();
+    form.addEventListener("change", () => {
+      updatePendingPresetState();
+      save();
+    });
 
     const storedSound = await storageGet({ [TICKET_SOUND_CONFIG_KEY]: ticketSoundConfig });
     ticketSoundConfig = normalizeTicketSoundConfig(storedSound[TICKET_SOUND_CONFIG_KEY]);

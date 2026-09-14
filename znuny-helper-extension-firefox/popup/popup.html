@@ -9,62 +9,26 @@
     <main class="shell">
       <header>
         <h1>Znuny Helper</h1>
-        <p>Hilfreiche Funktionen für das Znuny-Ticketsystem.</p>
+        <p>Zusatzfunktionen für das Znuny-Ticketsystem. Jede Funktion lässt sich hier einzeln ein- und ausschalten.</p>
       </header>
 
       <form id="settingsForm" class="settings">
         <fieldset class="settings-group">
-          <legend>Navigation</legend>
+          <legend>Im geöffneten Ticket</legend>
 
           <label class="toggle">
             <input type="checkbox" name="attachmentPreview">
             <span>
-              <strong>Anhang-Vorschau</strong>
-              <small>PDFs und Bilder direkt im Ticket als Vorschau öffnen.</small>
-            </span>
-          </label>
-
-          <label class="toggle">
-            <input type="checkbox" name="popupTabs">
-            <span>
-              <strong>Popups als Tabs</strong>
-              <small>Antworten und Aktionen übersichtlich in neuen Tabs öffnen.</small>
-            </span>
-          </label>
-
-          <label class="toggle">
-            <input type="checkbox" name="quickReply">
-            <span>
-              <strong>Schnellantwort</strong>
-              <small>Antworten, Besitzer ändern, Notiz, Schließen, Verknüpfen und Zusammenfassen öffnen als kleines Fenster direkt im Ticket statt in einem neuen Tab.</small>
-            </span>
-          </label>
-
-          <label class="toggle">
-            <input type="checkbox" name="searchResultsPopup">
-            <span>
-              <strong>Suchergebnisse im neuen Tab</strong>
-              <small>Suchläufe in einem neuen Tab öffnen, damit die aktuelle Seite erhalten bleibt.</small>
-            </span>
-          </label>
-        </fieldset>
-
-        <fieldset class="settings-group">
-          <legend>Suchen</legend>
-
-          <label class="toggle">
-            <input type="checkbox" name="ticketNumberSearch">
-            <span>
-              <strong>Ticketnummer-Suche</strong>
-              <small>Die globale Suche um ein direktes Ticketnummer-Feld erweitern.</small>
+              <strong>Anhänge und Bilder ansehen</strong>
+              <small>PDF, Bilder, E-Mails, Word- und Excel-Dateien direkt im Ticket öffnen – ohne Download. Bereits angezeigte Bilder lassen sich zusätzlich per Klick vergrößern.</small>
             </span>
           </label>
 
           <label class="toggle">
             <input type="checkbox" name="ticketArticleSearch">
             <span>
-              <strong>Ticketinhalt-Suche</strong>
-              <small>Im geöffneten Ticket Betreffzeilen und Artikeltexte durchsuchen.</small>
+              <strong>Im Ticket suchen</strong>
+              <small>Suchfeld oben im Ticket: durchsucht Betreffzeilen und Artikeltexte und springt durch die Treffer.</small>
             </span>
           </label>
 
@@ -72,19 +36,19 @@
             <input type="checkbox" name="ticketNumberCopy">
             <span>
               <strong>Case-Nummer kopieren</strong>
-              <small>Die Case-/Ticketnummer oben links im geöffneten Ticket per Klick kopieren.</small>
+              <small>Ein Klick auf die Case-/Ticketnummer oben links im Ticket kopiert sie in die Zwischenablage.</small>
             </span>
           </label>
         </fieldset>
 
         <fieldset class="settings-group">
-          <legend>Antwort</legend>
+          <legend>Antworten und Warten</legend>
 
           <label class="toggle">
-            <input type="checkbox" name="attachmentReminder">
+            <input type="checkbox" name="quickReply">
             <span>
-              <strong>Anhang-Erinnerung</strong>
-              <small>Hinweis anzeigen, wenn der Text einen Anhang erwähnt, aber keiner angehängt ist.</small>
+              <strong>Schnellantwort</strong>
+              <small>Antworten, Besitzer ändern, Notiz, Schließen, Verknüpfen und Zusammenfassen öffnen als Fenster direkt über dem Ticket statt in einem neuen Tab.</small>
             </span>
           </label>
 
@@ -92,19 +56,53 @@
             <input type="checkbox" name="pendingDateButtons">
             <span>
               <strong>Warten-Schnellauswahl</strong>
-              <small>Schnellknöpfe (+3/+7/+14 Tage) für das Wartedatum bei "Warten"-Status.</small>
+              <small>Bei Status „Warten" Schnellknöpfe anzeigen, die das Wartedatum in einem Schritt setzen.</small>
+            </span>
+          </label>
+
+          <div class="field-settings">
+            <label for="pendingPresetsInput">Tage der Schnellknöpfe</label>
+            <input type="text" id="pendingPresetsInput" placeholder="3, 7, 14" autocomplete="off" inputmode="numeric">
+            <small>Kommagetrennt, z. B. „1, 3, 7, 14". Der erste Wert wird beim Öffnen automatisch gesetzt (Standard).</small>
+          </div>
+        </fieldset>
+
+        <fieldset class="settings-group">
+          <legend>Navigation und Listen</legend>
+
+          <label class="toggle">
+            <input type="checkbox" name="popupTabs">
+            <span>
+              <strong>Aktionen in Tabs</strong>
+              <small>Znuny-Aktionen in neuen Tabs statt in kleinen Popup-Fenstern öffnen.</small>
+            </span>
+          </label>
+
+          <label class="toggle">
+            <input type="checkbox" name="searchResultsPopup">
+            <span>
+              <strong>Suchergebnisse in neuem Tab</strong>
+              <small>Ticket-Links aus Suchergebnissen in einem neuen Tab öffnen, damit die Ergebnisliste erhalten bleibt.</small>
+            </span>
+          </label>
+
+          <label class="toggle">
+            <input type="checkbox" name="ticketListInfiniteScroll">
+            <span>
+              <strong>Infinite Scroll in Ticketlisten</strong>
+              <small>Weitere Seiten beim Scrollen automatisch anhängen. Die Seitenzahlen oben rechts werden dabei ausgeblendet, da sie nicht mehr benötigt werden.</small>
             </span>
           </label>
         </fieldset>
 
         <fieldset class="settings-group">
-          <legend>Tastenkürzel</legend>
+          <legend>Suche</legend>
 
           <label class="toggle">
-            <input type="checkbox" name="keyboardShortcuts">
+            <input type="checkbox" name="ticketNumberSearch">
             <span>
-              <strong>Strg+Enter zum Senden</strong>
-              <small>Übermittelt das aktuelle Formular (Antwort, Notiz, Schließen, ...); der Tab schließt danach wie gewohnt automatisch.</small>
+              <strong>Ticketnummer-Suche</strong>
+              <small>Die globale Suche um ein Feld für die Ticketnummer samt Zeitraum-Schnellauswahl erweitern.</small>
             </span>
           </label>
         </fieldset>
@@ -116,21 +114,21 @@
             <input type="checkbox" name="ticketCategories">
             <span>
               <strong>Ticket-Kategorien</strong>
-              <small>Ticketlisten lokal gruppieren, markieren und mit Notizen ergänzen.</small>
-            </span>
-          </label>
-
-          <label class="toggle">
-            <input type="checkbox" name="ticketListInfiniteScroll">
-            <span>
-              <strong>Infinite Scroll</strong>
-              <small>Weitere Tickets beim Scrollen automatisch an die Liste anhängen.</small>
+              <small>Tickets in Listen lokal gruppieren, farbig markieren und mit Notizen versehen.</small>
             </span>
           </label>
         </fieldset>
 
         <fieldset class="settings-group">
-          <legend>ServiceDesk</legend>
+          <legend>Vorlagen und ServiceDesk</legend>
+
+          <label class="toggle">
+            <input type="checkbox" name="priorityTemplates">
+            <span>
+              <strong>Prioritäts-Vorlagen</strong>
+              <small>Priorität, Besitzer und Telefon-Ticket mit anpassbaren Schnellvorlagen vorbefüllen.</small>
+            </span>
+          </label>
 
           <label class="toggle">
             <input type="checkbox" name="ebHelper">
@@ -139,12 +137,16 @@
               <small>Empfangsbestätigungen aus passenden Hardware-Tickets vorbereiten.</small>
             </span>
           </label>
+        </fieldset>
+
+        <fieldset class="settings-group">
+          <legend>Bedienung</legend>
 
           <label class="toggle">
-            <input type="checkbox" name="priorityTemplates">
+            <input type="checkbox" name="keyboardShortcuts">
             <span>
-              <strong>Prioritäts-Vorlagen</strong>
-              <small>Prioritätsseiten mit anpassbaren Schnellbuttons vorbefüllen.</small>
+              <strong>Strg+Enter zum Senden</strong>
+              <small>Übermittelt das aktuelle Formular; der Tab schließt danach wie gewohnt automatisch.</small>
             </span>
           </label>
         </fieldset>

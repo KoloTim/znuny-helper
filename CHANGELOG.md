@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.5.0] – 2026-09-14
+
+### Added
+- **Warten-Schnellauswahl konfigurierbar:** Die Tage der Schnellknöpfe (bisher fest +3/+7/+14) lassen sich im Popup unter „Antworten und Warten → Tage der Schnellknöpfe" frei einstellen (kommagetrennt, z. B. `1, 3, 7, 14`, maximal acht Werte). Der erste Wert wird beim Erscheinen des Datumsfelds automatisch gesetzt; die Knöpfe werden bei geänderter Einstellung sofort neu aufgebaut.
+
+### Changed
+- **Popup übersichtlicher und verständlicher:** Die Funktionsbeschreibungen wurden überarbeitet und die Optionen in klarer benannte Gruppen sortiert (Im geöffneten Ticket, Antworten und Warten, Navigation und Listen, Suche, Ticketlisten, Vorlagen und ServiceDesk, Bedienung, Benachrichtigung).
+- **Infinite Scroll blendet die Seitenzahlen aus:** Solange Infinite Scroll aktiv ist, werden die überflüssigen Seitenzahlen oben rechts in der Ticketliste ausgeblendet (rein per CSS, die Paginierung bleibt im DOM erhalten); beim Abschalten erscheinen sie wieder.
+
+### Removed
+- **Anhang-Erinnerung entfernt:** Der Hinweis „Anhang vergessen?" auf der Antwortseite wurde samt zugehöriger Einstellung und Code entfernt.
+
 ## [1.4.0] – 2026-09-14
 
 ### Added

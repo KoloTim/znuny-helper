@@ -30,11 +30,11 @@
     searchResultsPopup: false,
     ticketArticleSearch: true,
     ticketNumberCopy: true,
+    pendingDatePresets: [3, 7, 14],
     ebHelper: false,
     priorityTemplates: false,
     ticketCategories: true,
     ticketListInfiniteScroll: true,
-    attachmentReminder: true,
     pendingDateButtons: true,
     keyboardShortcuts: true,
     assignedTicketSound: false,
@@ -678,7 +678,7 @@
   function findSubmitShortcutControl() {
     const candidates = [...document.querySelectorAll('button, input[type="submit"], input[type="button"]')]
       .filter(isVisibleFormControl)
-      .filter((control) => !control.closest("#zh-priority-template-toolbar, .zh-priority-modal, .zh-category-modal-backdrop, .zh-note-popup, #zh-attachment-reminder, .zh-pending-date-row"));
+      .filter((control) => !control.closest("#zh-priority-template-toolbar, .zh-priority-modal, .zh-category-modal-backdrop, .zh-note-popup, .zh-pending-date-row"));
 
     return candidates.find(isTransmitSubmitControl) || null;
   }
@@ -721,141 +721,6 @@
     });
   }
 
-  const ATTACHMENT_MENTION_PATTERN = /\b(anbei|im\s+anhang|als\s+anhang|anhang\s+beigef(?:ue|ü)gt|angeh(?:ae|ä)ngt|beigef(?:ue|ü)gt|attached|attachment)\b/i;
-  const ATTACHMENT_NO_ROWS_PATTERN = /^(keine\s+anh(?:ae|ä)nge|no\s+attachments?|anhang|anh(?:ae|ä)nge)$/i;
-  let attachmentReminderState = { bound: false, timer: null };
-
-  function isOutgoingMessagePage() {
-    return isComposeTicketPage();
-  }
-
-  function getComposeBodyText() {
-    const iframe = document.querySelector(".cke_wysiwyg_frame, iframe[title*='Rich' i], iframe");
-    try {
-      const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
-      if (iframeDoc?.body) return iframeDoc.body.innerText || "";
-    } catch (error) {
-      // Cross-document access can fail; fall through to other strategies.
-    }
-
-    const editable = document.querySelector(".cke_editable[contenteditable='true'], [contenteditable='true']");
-    if (editable) return editable.innerText || "";
-
-    const textarea = [...document.querySelectorAll("textarea")]
-      .find((control) => /richtext|body|article|text/i.test(`${control.name || ""} ${control.id || ""}`));
-
-    return textarea?.value || "";
-  }
-
-  function findAttachmentListContainers() {
-    return [...document.querySelectorAll('[id*="attachment" i], [class*="attachment" i]')]
-      .filter((element) => ["TABLE", "TBODY", "UL", "OL"].includes(element.tagName));
-  }
-
-  function countComposeAttachmentRows() {
-    const containers = findAttachmentListContainers();
-
-    for (const container of containers) {
-      const rows = [...container.querySelectorAll("tr, li")].filter((row) => {
-        const text = normalizeText(getElementText(row)).toLowerCase();
-        return text && !ATTACHMENT_NO_ROWS_PATTERN.test(text);
-      });
-
-      if (rows.length) return rows.length;
-    }
-
-    return 0;
-  }
-
-  function countPendingFileUploads() {
-    return [...document.querySelectorAll('input[type="file"]')]
-      .reduce((total, input) => total + (input.files?.length || 0), 0);
-  }
-
-  function hasAttachmentWidget() {
-    return Boolean(document.querySelector('[id*="attachment" i], [class*="attachment" i], input[type="file"]'));
-  }
-
-  function hasComposeAttachment() {
-    return countComposeAttachmentRows() > 0 || countPendingFileUploads() > 0;
-  }
-
-  function getAttachmentReminderTarget() {
-    const widget = [...document.querySelectorAll(".WidgetSimple, fieldset")]
-      .find((element) => /artikel hinzuf|nachricht/i.test(normalizeText(getElementText(element.querySelector(".Header") || element))));
-
-    if (widget) return { mode: "before", element: widget };
-
-    return { mode: "prepend", element: document.querySelector("form") || document.body };
-  }
-
-  function ensureAttachmentReminderBanner() {
-    let banner = document.getElementById("zh-attachment-reminder");
-    if (banner) return banner;
-
-    const target = getAttachmentReminderTarget();
-    if (!target?.element) return null;
-
-    banner = document.createElement("div");
-    banner.id = "zh-attachment-reminder";
-    banner.hidden = true;
-    banner.innerHTML = "<strong>Anhang vergessen?</strong> Der Text erwähnt einen Anhang, aber es wurde noch keine Datei angehängt.";
-
-    if (target.mode === "before") target.element.before(banner);
-    else target.element.prepend(banner);
-
-    return banner;
-  }
-
-  function addAttachmentReminderStyles() {
-    addStyle("zh-attachment-reminder-style", `
-      #zh-attachment-reminder { margin: 8px 0; padding: 8px 12px; border: 1px solid #e0a800; border-radius: 4px; background: #fff8e1; color: #6b4e00; font-size: 12.5px; }
-      #zh-attachment-reminder strong { margin-right: 4px; }
-    `);
-  }
-
-  function updateAttachmentReminder() {
-    if (!settings.attachmentReminder || !isOutgoingMessagePage()) {
-      disableAttachmentReminder();
-      return;
-    }
-
-    const banner = ensureAttachmentReminderBanner();
-    if (!banner) return;
-
-    const shouldWarn = hasAttachmentWidget() &&
-      !hasComposeAttachment() &&
-      ATTACHMENT_MENTION_PATTERN.test(getComposeBodyText());
-
-    banner.hidden = !shouldWarn;
-  }
-
-  function enableAttachmentReminder() {
-    if (!settings.attachmentReminder || !isOutgoingMessagePage()) {
-      disableAttachmentReminder();
-      return;
-    }
-
-    addAttachmentReminderStyles();
-    updateAttachmentReminder();
-
-    if (!attachmentReminderState.bound) {
-      attachmentReminderState.bound = true;
-      attachmentReminderState.timer = window.setInterval(updateAttachmentReminder, 1000);
-    }
-  }
-
-  function disableAttachmentReminder() {
-    document.getElementById("zh-attachment-reminder")?.remove();
-    removeStyle("zh-attachment-reminder-style");
-
-    if (attachmentReminderState.timer) {
-      window.clearInterval(attachmentReminderState.timer);
-    }
-
-    attachmentReminderState = { bound: false, timer: null };
-  }
-
   function findArticleWidget(doc = document) {
     const byId = doc.getElementById("WidgetArticle");
     if (byId) return byId;
@@ -885,7 +750,27 @@
     }
   }
 
-  const PENDING_DATE_PRESETS = [3, 7, 14];
+  const DEFAULT_PENDING_DATE_PRESETS = [3, 7, 14];
+
+  function normalizePendingDatePresets(value) {
+    const raw = Array.isArray(value) ? value : String(value ?? "").split(/[,;\s]+/);
+    const seen = new Set();
+    const presets = [];
+
+    raw.forEach((entry) => {
+      const days = Math.trunc(Number(entry));
+      if (!Number.isFinite(days) || days <= 0 || days > 3650) return;
+      if (seen.has(days)) return;
+      seen.add(days);
+      presets.push(days);
+    });
+
+    return presets.length ? presets.slice(0, 8) : DEFAULT_PENDING_DATE_PRESETS.slice();
+  }
+
+  function getPendingDatePresets() {
+    return normalizePendingDatePresets(settings.pendingDatePresets);
+  }
 
   function selectNearestDateNumber(select, target) {
     if (!select?.options?.length) return false;
@@ -917,7 +802,7 @@
 
   function findPendingDateGroups(doc = document) {
     const selects = [...doc.querySelectorAll("select")]
-      .filter((select) => !select.closest("#zh-search-primary-fields, .zh-priority-modal, #zh-priority-template-toolbar, #zh-attachment-reminder"));
+      .filter((select) => !select.closest("#zh-search-primary-fields, .zh-priority-modal, #zh-priority-template-toolbar"));
 
     const byPrefix = new Map();
 
@@ -975,12 +860,15 @@
   }
 
   function ensurePendingDateButtons(group, doc = document) {
-    if (group.Year.dataset.zhPendingButtonsBound === "1") return;
+    const presets = getPendingDatePresets();
+    const signature = presets.join(",");
+    if (group.Year.dataset.zhPendingButtonsBound === signature) return;
 
     const container = findPendingDateContainer(group);
     if (!container) return;
 
-    group.Year.dataset.zhPendingButtonsBound = "1";
+    container.querySelector(".zh-pending-date-row")?.remove();
+    group.Year.dataset.zhPendingButtonsBound = signature;
 
     const row = doc.createElement("div");
     row.className = "zh-pending-date-row";
@@ -990,10 +878,11 @@
     label.textContent = "Warten bis:";
     row.appendChild(label);
 
-    PENDING_DATE_PRESETS.forEach((days) => {
+    presets.forEach((days, index) => {
+      const unit = days === 1 ? "Tag" : "Tage";
       const button = doc.createElement("button");
       button.type = "button";
-      button.textContent = days === 3 ? "+3 Tage (Standard)" : `+${days} Tage`;
+      button.textContent = index === 0 ? `+${days} ${unit} (Standard)` : `+${days} ${unit}`;
       button.addEventListener("click", (event) => {
         stopEvent(event);
         setPendingDateOffset(group, days);
@@ -1002,7 +891,7 @@
     });
 
     container.appendChild(row);
-    setPendingDateOffset(group, 3);
+    setPendingDateOffset(group, presets[0]);
   }
 
   function addPendingDateStyles(doc = document) {
@@ -5796,7 +5685,13 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     addStyle("zh-infinite-scroll-style", `
       #zh-infinite-scroll-status { padding: 10px 12px; color: #555; font-size: 12px; text-align: center; background: #f4f4f4; border-top: 1px solid #ddd; }
       #zh-infinite-scroll-status:empty { display: none; }
+      html.zh-infinite-scroll-active .OverviewActions .Pagination,
+      html.zh-infinite-scroll-active span.Pagination { display: none !important; }
     `);
+  }
+
+  function setInfiniteScrollPaginationHidden(hidden) {
+    document.documentElement.classList.toggle("zh-infinite-scroll-active", Boolean(hidden));
   }
 
   function setInfiniteScrollStatus(text, table) {
@@ -5907,6 +5802,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const currentUrl = normalizeListUrl(window.location.href);
 
     addInfiniteScrollStyles();
+    setInfiniteScrollPaginationHidden(true);
 
     if (infiniteScrollState.enabledUrl !== currentUrl) {
       const nextUrl = findNextTicketListUrl();
@@ -5944,6 +5840,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   function disableTicketListInfiniteScroll() {
     document.getElementById("zh-infinite-scroll-status")?.remove();
     removeStyle("zh-infinite-scroll-style");
+    setInfiniteScrollPaginationHidden(false);
     infiniteScrollState.nextUrl = "";
     infiniteScrollState.done = true;
     infiniteScrollState.hasLoadedPage = false;
@@ -6888,9 +6785,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     enableCloseTabAfterSubmit();
     enableActionPopupCancelFallback();
-
-    if (settings.attachmentReminder) enableAttachmentReminder();
-    else disableAttachmentReminder();
 
     if (settings.pendingDateButtons) enablePendingDateQuickButtons();
     else disablePendingDateQuickButtons();
