@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.5.1] – 2026-09-17
+
+### Added
+- **Prioritäts-Vorlagen mit Priorität und Auswirkung:** Zusätzlich zu Typ, Queue, Service, Besitzer, Kategorie, Betreff und Text lassen sich je Vorlage jetzt auch **Priorität** und **Auswirkung** vorgeben. Beim Anlegen einer Vorlage aus dem aktuellen Formular werden beide Felder mit übernommen. Die Priorität wird nach der Auswirkung gesetzt, damit sie bei Setups mit automatischer Prioritätsberechnung gewinnt.
+
+### Changed
+- **Prioritäts-Vorlagen sind jetzt standardmäßig aktiv.** Wer sie nicht möchte, schaltet sie im Popup unter „Vorlagen und ServiceDesk" ab.
+- **Infinite Scroll lässt die Seitenzahlen wieder sichtbar** (kein Ausblenden mehr) und lädt beim Scrollen weiter zusätzliche Seiten nach. So bleibt die normale Paginierung als zuverlässiger Fallback nutzbar.
+
+### Fixed
+- **DOCX-Vorschau in Firefox:** Die Vorschau brach mit „Vorschau konnte nicht geladen werden: Can't read the data of 'the loaded zip file'. Is it in a supported JavaScript type (String, Blob, ArrayBuffer, etc) ?" ab. Ursache: In Firefox-Content-Scripts kann der `ArrayBuffer` aus `blob.arrayBuffer()` aus der Seiten-Realm stammen, wodurch die interne Typprüfung (`instanceof`) von JSZip (in Mammoth) fehlschlug. Die Bytes werden jetzt in einen frisch im Content-Script-Kontext angelegten `ArrayBuffer` kopiert; schlägt auch das fehl, wird JSZip das Blob selbst übergeben (Erkennung über `Object.prototype.toString` + FileReader).
+- **Infinite Scroll übersprang in einigen Ticketlisten Seiten:** Beim Auswerten einer nachgeladenen Seite wurde die aktuelle Seite fälschlich aus der Adresse des offenen Tabs statt aus der geladenen Seite selbst bestimmt (bzw. aus dem Text „Seite: 1 2 3 4 5", der immer mit der 1 beginnt). Dadurch wurde statt der nächsten numerischen Seite der „>>"-Sprung gewählt und Seiten übersprungen. Jetzt wird die `Page`-Angabe der jeweils geladenen Seite verwendet; „Weiter"/„>>" und `rel`-Attribute dienen nur noch als Fallback.
+
 ## [1.5.0] – 2026-09-14
 
 ### Added

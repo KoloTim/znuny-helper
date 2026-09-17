@@ -11,7 +11,7 @@
     ticketArticleSearch: true,
     ticketNumberCopy: true,
     ebHelper: false,
-    priorityTemplates: false,
+    priorityTemplates: true,
     ticketCategories: true,
     ticketListInfiniteScroll: true,
     pendingDateButtons: true,

@@ -21,7 +21,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 
 | Punkt | Beschreibung |
 | --- | --- |
-| Aktuelle Version | 1.5.0 (Stand: 14.09.2026) |
+| Aktuelle Version | 1.5.1 (Stand: 17.09.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` |
@@ -73,7 +73,7 @@ Nach der Installation erscheint in der Browserleiste das Addon-Symbol **Znuny He
 
 Die Einstellungen werden im Browser gespeichert. Änderungen im Popup gelten direkt nach dem Speichern bzw. nach erneutem Laden der betroffenen Znuny-Seite.
 
-Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Prioritäts-Vorlagen**, **Ton bei neuem Ticket** und **Schnellantwort** sind nach der Installation alle Funktionen standardmäßig aktiv. Diese Funktionen ändern das gewohnte Verhalten deutlich genug, dass sie erst bewusst im Popup eingeschaltet werden müssen.
+Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Ton bei neuem Ticket** und **Schnellantwort** sind nach der Installation alle Funktionen standardmäßig aktiv. Diese Funktionen ändern das gewohnte Verhalten deutlich genug, dass sie erst bewusst im Popup eingeschaltet werden müssen.
 
 ## Funktionen im Überblick
 
@@ -87,9 +87,9 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Prioritäts-Vorlagen**
 | Suchen | Ticketinhalt-Suche | Innerhalb eines geöffneten Tickets suchen |
 | Suchen | Case-Nummer kopieren | Die Case-/Ticketnummer oben links im geöffneten Ticket per Klick kopieren |
 | Ticketlisten | Ticket-Kategorien | Tickets lokal gruppieren, markieren und notieren |
-| Ticketlisten | Infinite Scroll | Weitere Ticketlistenseiten beim Scrollen automatisch laden (blendet die Seitenzahlen oben rechts aus) |
+| Ticketlisten | Infinite Scroll | Weitere Ticketlistenseiten beim Scrollen automatisch laden (die Seitenzahlen bleiben als Fallback sichtbar) |
 | ServiceDesk | EB Helper | Empfangsbestätigungen aus Hardware-Tickets vorbereiten |
-| ServiceDesk | Prioritäts-Vorlagen | Prioritäts-, Besitzer- und Neues-Telefon-Ticket-Seiten mit anpassbaren Schnellbuttons vorbefüllen |
+| ServiceDesk | Prioritäts-Vorlagen | Prioritäts-, Besitzer- und Neues-Telefon-Ticket-Seiten mit anpassbaren Schnellbuttons vorbefüllen (inkl. Priorität und Auswirkung) |
 | Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status (Tage im Popup einstellbar) |
 | Tastenkürzel | Strg+Enter zum Senden | Aktuelles Formular übermitteln, Tab schließt danach automatisch |
 | Benachrichtigung | Ton bei neuem Ticket | Sound abspielen, sobald ein neues Ticket bei einem selbst gesperrt wird |
@@ -249,15 +249,15 @@ Zu Tickets können lokale Notizen ergänzt werden. Diese Notizen werden im Brows
 
 Wenn **Infinite Scroll** aktiv ist, lädt das Addon in Ticketlisten automatisch weitere Ergebnisse nach, sobald man nach unten scrollt.
 
-Das spart Klicks auf weitere Seiten und macht längere Listen flüssiger nutzbar. Da die Seitenzahlen oben rechts damit überflüssig werden, blendet das Addon sie aus, solange Infinite Scroll aktiv ist; beim Abschalten erscheinen sie wieder.
+Das spart Klicks auf weitere Seiten und macht längere Listen flüssiger nutzbar. Die Seitenzahlen bleiben dabei sichtbar, sodass man bei Bedarf auch manuell weiterblättern kann.
 
 Hinweis: Da automatisch weitere Znuny-Seiten abgerufen werden, kann die Funktion bei sehr großen Listen etwas mehr Browser- und Netzwerklast erzeugen.
 
 ## Prioritäts-Vorlagen
 
-Die Funktion **Prioritäts-Vorlagen** ergänzt Prioritäts- und Besitzer-Aktionsseiten sowie das Formular **Neues Telefon-Ticket** um anpassbare Schnellbuttons. Ein Klick füllt Felder wie Typ, Queue, Service, Besitzer, Kategorie, Betreff oder Text automatisch mit einer hinterlegten Vorlage.
+Die Funktion **Prioritäts-Vorlagen** ist standardmäßig aktiv und ergänzt Prioritäts- und Besitzer-Aktionsseiten sowie das Formular **Neues Telefon-Ticket** um anpassbare Schnellbuttons. Ein Klick füllt Felder wie Typ, Queue, Service, Besitzer, Priorität, Auswirkung, Kategorie, Betreff oder Text automatisch mit einer hinterlegten Vorlage.
 
-Über den Knopf **Als Vorlage speichern** lässt sich der aktuell ausgefüllte Zustand der Seite (Typ, Queue, Service, Besitzer, Kategorie, Betreff, Text) direkt als neue Vorlage übernehmen, ohne die Felder von Hand in die Vorlagenverwaltung abtippen zu müssen.
+Über den Knopf **Als Vorlage speichern** lässt sich der aktuell ausgefüllte Zustand der Seite (Typ, Queue, Service, Besitzer, Priorität, Auswirkung, Kategorie, Betreff, Text) direkt als neue Vorlage übernehmen, ohne die Felder von Hand in die Vorlagenverwaltung abtippen zu müssen.
 
 Über die Vorlagenverwaltung können Nutzerinnen und Nutzer außerdem:
 

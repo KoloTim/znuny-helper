@@ -32,7 +32,7 @@
     ticketNumberCopy: true,
     pendingDatePresets: [3, 7, 14],
     ebHelper: false,
-    priorityTemplates: false,
+    priorityTemplates: true,
     ticketCategories: true,
     ticketListInfiniteScroll: true,
     pendingDateButtons: true,
@@ -300,6 +300,8 @@
         queue: String(template.fields?.queue || "").trim(),
         service: String(template.fields?.service || "").trim(),
         owner: String(template.fields?.owner || "").trim(),
+        priority: String(template.fields?.priority || "").trim(),
+        impact: String(template.fields?.impact || "").trim(),
         category: String(template.fields?.category || "").trim(),
         subject: String(template.fields?.subject || "").trim(),
         body: String(template.fields?.body || "").trim()
@@ -1342,9 +1344,23 @@
       throw new Error("Mammoth ist nicht geladen");
     }
 
-    const result = await mammothApi.convertToHtml({
-      arrayBuffer: await blob.arrayBuffer()
-    });
+    // Mammoth hands the data to JSZip, whose internal `instanceof` checks fail
+    // for objects that belong to another realm. In Firefox content scripts the
+    // data from blob.arrayBuffer() can come from the page realm, which triggers
+    // "Can't read the data of 'the loaded zip file'". Copying the bytes into a
+    // freshly allocated buffer guarantees a same-realm ArrayBuffer; if that
+    // still fails, fall back to the Blob itself, which JSZip detects via
+    // Object.prototype.toString and reads with a content-script FileReader.
+    let result;
+    try {
+      const raw = new Uint8Array(await blob.arrayBuffer());
+      const sameRealm = new Uint8Array(raw.length);
+      sameRealm.set(raw);
+      result = await mammothApi.convertToHtml({ arrayBuffer: sameRealm.buffer });
+    } catch (error) {
+      if (!/Can't read the data of/i.test(String(error?.message || ""))) throw error;
+      result = await mammothApi.convertToHtml({ arrayBuffer: blob });
+    }
 
     const wrap = document.createElement("div");
     wrap.className = "zh-preview-docx";
@@ -4256,10 +4272,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return [...new Set(queries.filter(Boolean))];
   }
 
-  function setPriorityAutocompleteField(labels, ids, value) {
+  function setPriorityAutocompleteField(labels, ids, value, doc = document) {
     if (!value) return false;
 
-    const control = findPriorityControl(labels, ids);
+    const control = findPriorityControl(labels, ids, doc);
     if (!control) return false;
 
     const changed = setControlValue(control, value, { blur: true });
@@ -4270,9 +4286,20 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       view: window
     }));
     control.blur?.();
-    closePriorityAutocompleteDropdowns();
+    closePriorityAutocompleteDropdowns(doc);
 
     return changed;
+  }
+
+  function setPriorityField(ids, value, labels = [], doc = document) {
+    if (!value) return false;
+    if (setPrioritySelectField(ids, value, labels, doc)) return true;
+
+    // Fallback for setups that render the field as an autocomplete/plain input.
+    if (setPriorityAutocompleteField(labels.length ? labels : [].concat(ids), ids, value, doc)) return true;
+
+    console.warn("Znuny Helper: Vorlagenfeld nicht gefunden:", [].concat(ids).join(", "));
+    return false;
   }
 
   function setPriorityPlainField(labels, ids, value, doc = document) {
@@ -4461,6 +4488,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       setPrioritySelectField(["NewQueueID", "Dest"], fields.queue, ["An Queue", "Queue"], doc);
       setPrioritySelectField(["ServiceID"], fields.service, [], doc);
       setPrioritySelectField(["NewOwnerID", "NewUserID", "OwnerID"], fields.owner, ["Besitzer", "Owner"], doc);
+      // Impact before priority: some Znuny setups derive the priority from the
+      // impact/service, so the explicitly configured priority should win.
+      setPriorityField(["ImpactID", "DynamicField_Auswirkung", "DynamicField_Impact"], fields.impact, ["Auswirkung", "Impact"], doc);
+      setPriorityField(["PriorityID", "DynamicField_Priorität", "DynamicField_Prioritaet"], fields.priority, ["Priorität", "Priority"], doc);
       setPrioritySelectField(["DynamicField_Kategorie"], fields.category, [], doc);
       setPriorityPlainField(["Betreff"], ["Subject"], fields.subject, doc);
       setPriorityRichText(fields.body, {}, doc);
@@ -4487,13 +4518,51 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     }, 1300);
   }
 
+  function isSelectControl(control) {
+    return Boolean(control && control.tagName === "SELECT");
+  }
+
+  function findSelectByLabel(labels, doc = document) {
+    const wanted = labels.map((label) => cleanFieldLabel(label)).filter(Boolean);
+    if (!wanted.length) return null;
+
+    for (const labelElement of doc.querySelectorAll("label")) {
+      const text = cleanFieldLabel(getElementText(labelElement));
+      if (!wanted.some((label) => text === label || text.endsWith(label))) continue;
+
+      const forId = labelElement.getAttribute("for");
+      const candidates = [
+        forId ? doc.getElementById(forId) : null,
+        ...labelElement.querySelectorAll("select")
+      ];
+      const select = candidates.find((candidate) =>
+        isSelectControl(candidate) &&
+        (isVisibleFormControl(candidate) || isModernizedSelectWidgetVisible(candidate))
+      );
+      if (select) return select;
+    }
+
+    return null;
+  }
+
   function findPrioritySelectControl(ids, labels = [], doc = document) {
     for (const id of [].concat(ids)) {
-      const select = doc.getElementById(id);
-      if (select && (isVisibleFormControl(select) || isModernizedSelectWidgetVisible(select))) return select;
+      const candidates = [
+        doc.getElementById(id),
+        doc.querySelector(`[name="${id}"]`),
+        ...doc.querySelectorAll(`[id^="${id}_"], [id$="_${id}"], [name^="${id}_"], [name$="_${id}"]`)
+      ];
+      const select = candidates.find((candidate) =>
+        isSelectControl(candidate) &&
+        (isVisibleFormControl(candidate) || isModernizedSelectWidgetVisible(candidate))
+      );
+      if (select) return select;
     }
 
     if (labels.length) {
+      const byLabel = findSelectByLabel(labels, doc);
+      if (byLabel) return byLabel;
+
       const row = findPriorityFieldRow(labels, doc);
       const select = row?.querySelector("select");
       if (select && (isVisibleFormControl(select) || isModernizedSelectWidgetVisible(select))) return select;
@@ -4504,8 +4573,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function getPrioritySelectFieldText(ids, labels = [], doc = document) {
     const select = findPrioritySelectControl(ids, labels, doc);
-    if (!select) return "";
-    return getSelectOptionText(select.selectedOptions?.[0]);
+    if (select) return getSelectOptionText(select.selectedOptions?.[0]);
+
+    // Some setups render the field as a plain/autocomplete input instead of a
+    // select; read its value as a fallback.
+    const control = findPriorityControl(labels, ids, doc);
+    return control ? String(control.value || "").trim() : "";
   }
 
   function getPriorityPlainFieldValue(labels, ids, doc = document) {
@@ -4544,6 +4617,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       queue: getPrioritySelectFieldText(["NewQueueID", "Dest"], ["An Queue", "Queue"], doc),
       service: getPrioritySelectFieldText(["ServiceID"], [], doc),
       owner: getPrioritySelectFieldText(["NewOwnerID", "NewUserID", "OwnerID"], ["Besitzer", "Owner"], doc),
+      priority: getPrioritySelectFieldText(["PriorityID", "DynamicField_Priorität", "DynamicField_Prioritaet"], ["Priorität", "Priority"], doc),
+      impact: getPrioritySelectFieldText(["ImpactID", "DynamicField_Auswirkung", "DynamicField_Impact"], ["Auswirkung", "Impact"], doc),
       category: getPrioritySelectFieldText(["DynamicField_Kategorie"], [], doc),
       subject: getPriorityPlainFieldValue(["Betreff"], ["Subject"], doc),
       body: getPriorityRichTextValue(doc)
@@ -5008,6 +5083,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       createPriorityTemplateField("queue", "Queue", template.fields?.queue),
       createPriorityTemplateField("service", "Service", template.fields?.service),
       createPriorityTemplateField("owner", "Besitzer", template.fields?.owner),
+      createPriorityTemplateField("priority", "Priorität", template.fields?.priority),
+      createPriorityTemplateField("impact", "Auswirkung", template.fields?.impact),
       createPriorityTemplateField("category", "Kategorie", template.fields?.category),
       createPriorityTemplateField("subject", "Betreff", template.fields?.subject),
       createPriorityTemplateField("body", "Text", template.fields?.body, true, true)
@@ -5036,6 +5113,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           queue: getValue("queue"),
           service: getValue("service"),
           owner: getValue("owner"),
+          priority: getValue("priority"),
+          impact: getValue("impact"),
           category: getValue("category"),
           subject: getValue("subject"),
           body: getValue("body")
@@ -5228,7 +5307,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         title: "Neue Vorlage",
         color: "#3976bb",
         group: "",
-        fields: { type: "", queue: "", service: "", owner: "", category: "", subject: "", body: "" }
+        fields: { type: "", queue: "", service: "", owner: "", priority: "", impact: "", category: "", subject: "", body: "" }
       });
       priorityTemplateConfig = normalizePriorityTemplateConfig({ groups: getPriorityGroups(), templates });
       renderPriorityTemplateEditorRows(list);
@@ -5619,9 +5698,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     document.addEventListener("click", handleSearchResultTicketClick, true);
   }
 
-  function normalizeListUrl(url) {
+  function normalizeListUrl(url, base = window.location.href) {
     try {
-      const parsed = new URL(url, window.location.href);
+      const parsed = new URL(url, base);
       parsed.hash = "";
       return parsed.href;
     } catch (error) {
@@ -5629,34 +5708,72 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     }
   }
 
-  function findNextTicketListUrl(doc = document) {
+  function getPageNumberFromUrl(url) {
+    const decoded = String(url || "").replace(/%3B/gi, ";").replace(/%3D/gi, "=");
+    const match = decoded.match(/[?;&]Page=(\d+)/i);
+    return match ? Number(match[1]) : 0;
+  }
+
+  function getPaginationPageNumber(doc, baseUrl) {
+    // The URL of the document being analysed is the most reliable current-page
+    // source: pager links always carry their page ("...;Page=3"). The visible
+    // "Seite: 1 2 3 4 5 >>" text is NOT usable for this - it always starts at
+    // the first page of the block, even while a later page is displayed.
+    const fromUrl = getPageNumberFromUrl(baseUrl);
+    if (fromUrl > 0) return fromUrl;
+
+    const pager = doc.querySelector(".Pagination, .OverviewActions");
+    return Number((getElementText(pager || doc.body)).match(/(?:Seite|Page):\s*(\d+)/i)?.[1] || 0);
+  }
+
+  function findNextTicketListUrl(doc = document, baseUrl = window.location.href) {
     const links = [...doc.querySelectorAll("a[href]")]
       .map((link) => ({
         link,
         text: normalizeText(link.innerText || link.textContent || ""),
-        href: normalizeListUrl(link.getAttribute("href") || link.href)
+        title: normalizeText(link.getAttribute("title") || link.getAttribute("aria-label") || ""),
+        rel: (link.getAttribute("rel") || "").toLowerCase(),
+        href: normalizeListUrl(link.getAttribute("href") || link.href, baseUrl)
       }))
       .filter((item) => item.href)
       .filter((item) => /Action=AgentTicket|Action=AgentSearch|Action=AgentDashboard/i.test(item.href));
 
     const explicitNext = links.find((item) =>
-      /^(>|›|weiter|next)$/i.test(item.text) ||
-      /^(>>|»)$/.test(item.text)
+      item.rel.includes("next") ||
+      /^(>|›|»|≫|>>)$/.test(item.text) ||
+      /^(weiter|next|nächste|naechste|nächster|vor)$/i.test(item.text) ||
+      /^(weiter|next|nächste|naechste)/i.test(item.title)
     );
 
-    if (explicitNext) return explicitNext.href;
+    const currentPage = getPaginationPageNumber(doc, baseUrl);
 
-    const currentPage = Number(getElementText(doc.body).match(/Seite:\s*(\d+)/i)?.[1] || 0);
     const numericLinks = links
-      .map((item) => ({ ...item, page: Number(item.text.match(/^\d+$/)?.[0] || 0) }))
+      .map((item) => {
+        const pageFromText = Number(item.text.match(/^\d+$/)?.[0] || 0);
+        return { ...item, page: pageFromText || getPageNumberFromUrl(item.href) };
+      })
       .filter((item) => item.page > 0)
       .sort((left, right) => left.page - right.page);
 
     if (currentPage > 0) {
-      return numericLinks.find((item) => item.page === currentPage + 1)?.href || "";
+      const target = numericLinks.find((item) => item.page === currentPage + 1);
+      if (target) return target.href;
+
+      if (explicitNext) return explicitNext.href;
+
+      return numericLinks.find((item) => item.page > currentPage)?.href || "";
     }
 
+    if (explicitNext) return explicitNext.href;
+
     return numericLinks[0]?.href || "";
+  }
+
+  function resolveNextTicketListUrl(currentUrl = normalizeListUrl(window.location.href)) {
+    const nextUrl = findNextTicketListUrl(document, currentUrl);
+    // A pager control can point back at the current page (e.g. a JS pager);
+    // that is not a next page.
+    return nextUrl && normalizeListUrl(nextUrl) !== currentUrl ? nextUrl : "";
   }
 
   function getExistingTicketIds(table, indexes) {
@@ -5687,13 +5804,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     addStyle("zh-infinite-scroll-style", `
       #zh-infinite-scroll-status { padding: 10px 12px; color: #555; font-size: 12px; text-align: center; background: #f4f4f4; border-top: 1px solid #ddd; }
       #zh-infinite-scroll-status:empty { display: none; }
-      html.zh-infinite-scroll-active .OverviewActions .Pagination,
-      html.zh-infinite-scroll-active span.Pagination { display: none !important; }
     `);
-  }
-
-  function setInfiniteScrollPaginationHidden(hidden) {
-    document.documentElement.classList.toggle("zh-infinite-scroll-active", Boolean(hidden));
   }
 
   function setInfiniteScrollStatus(text, table) {
@@ -5734,6 +5845,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
       if (!nextTable || !nextBody) {
         infiniteScrollState.done = true;
+        infiniteScrollState.nextUrl = "";
         setInfiniteScrollStatus("Weitere Tickets konnten nicht automatisch geladen werden.", table);
         return;
       }
@@ -5752,7 +5864,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       });
 
       const loadedUrl = infiniteScrollState.nextUrl;
-      const followingUrl = findNextTicketListUrl(nextDoc);
+      const followingUrl = findNextTicketListUrl(nextDoc, loadedUrl);
       infiniteScrollState.nextUrl =
         followingUrl && normalizeListUrl(followingUrl) !== normalizeListUrl(loadedUrl) ? followingUrl : "";
       infiniteScrollState.done = !infiniteScrollState.nextUrl;
@@ -5771,6 +5883,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
       if (infiniteScrollState.failCount >= INFINITE_SCROLL_MAX_FAILURES) {
         infiniteScrollState.done = true;
+        infiniteScrollState.nextUrl = "";
         setInfiniteScrollStatus("Weitere Tickets konnten nicht geladen werden. Bitte Seite neu laden.", table);
       } else {
         infiniteScrollState.nextRetryAt = Date.now() + INFINITE_SCROLL_RETRY_DELAY_MS;
@@ -5804,10 +5917,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const currentUrl = normalizeListUrl(window.location.href);
 
     addInfiniteScrollStyles();
-    setInfiniteScrollPaginationHidden(true);
 
     if (infiniteScrollState.enabledUrl !== currentUrl) {
-      const nextUrl = findNextTicketListUrl();
+      const nextUrl = resolveNextTicketListUrl(currentUrl);
       infiniteScrollState = {
         enabledUrl: currentUrl,
         nextUrl,
@@ -5823,7 +5935,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       // Only recover nextUrl from the live DOM before any page has loaded (pagination
       // can render late). Afterward the live pager is stale and re-checking it here
       // would keep resetting an already-exhausted or in-flight state.
-      const nextUrl = findNextTicketListUrl();
+      const nextUrl = resolveNextTicketListUrl(currentUrl);
       if (nextUrl) {
         infiniteScrollState.nextUrl = nextUrl;
         infiniteScrollState.done = false;
@@ -5833,6 +5945,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (!infiniteScrollState.bound) {
       infiniteScrollState.bound = true;
       window.addEventListener("scroll", maybeLoadNextTicketListPage, { passive: true });
+      // Some views scroll an inner container rather than the window; scroll
+      // events don't bubble but can be observed during the capture phase.
+      document.addEventListener("scroll", maybeLoadNextTicketListPage, { passive: true, capture: true });
       window.addEventListener("resize", maybeLoadNextTicketListPage);
     }
 
@@ -5842,7 +5957,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   function disableTicketListInfiniteScroll() {
     document.getElementById("zh-infinite-scroll-status")?.remove();
     removeStyle("zh-infinite-scroll-style");
-    setInfiniteScrollPaginationHidden(false);
     infiniteScrollState.nextUrl = "";
     infiniteScrollState.done = true;
     infiniteScrollState.hasLoadedPage = false;

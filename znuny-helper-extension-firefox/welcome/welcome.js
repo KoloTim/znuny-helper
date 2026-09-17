@@ -9,6 +9,16 @@
 
   const releases = [
     {
+      version: "1.5.1",
+      items: [
+        "Neu: Vorlagen können jetzt auch Priorität und Auswirkung vorgeben (und aus dem aktuellen Formular übernehmen).",
+        "Die Prioritäts-Vorlagen sind jetzt standardmäßig aktiv.",
+        "Behoben: Die DOCX-Vorschau in Firefox zeigte \"Can't read the data of 'the loaded zip file'\".",
+        "Behoben: Infinite Scroll konnte in Ticketlisten Seiten überspringen. Die Folgeseite wird jetzt aus der geladenen Seite selbst bestimmt.",
+        "Infinite Scroll lässt die Seitenzahlen wieder sichtbar (als Fallback nutzbar)."
+      ]
+    },
+    {
       version: "1.5.0",
       items: [
         "Neu: Die Tage der Warten-Schnellauswahl sind jetzt im Popup frei einstellbar (z. B. 1, 3, 7, 14). Der erste Wert wird automatisch vorbelegt.",
