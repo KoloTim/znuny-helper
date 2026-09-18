@@ -15,7 +15,7 @@
         "Neu: Typ, Service, Priorität und Auswirkung sind im Vorlagen-Editor jetzt Dropdowns.",
         "Die Prioritäts-Vorlagen sind jetzt standardmäßig aktiv.",
         "Behoben: DOCX- und XLSX-Vorschau in Firefox (Realm-Problem beim Einlesen der Datei).",
-        "Behoben: Infinite Scroll konnte in Ticketlisten Seiten überspringen. Die Folgeseite wird jetzt aus der geladenen Seite selbst bestimmt.",
+        "Behoben: Infinite Scroll lud nach der zweiten Seite nicht weiter bzw. übersprang Seiten. Es blättert jetzt zuverlässig Seite für Seite, bis keine neuen Tickets mehr kommen.",
         "Infinite Scroll lässt die Seitenzahlen wieder sichtbar (als Fallback nutzbar)."
       ]
     },

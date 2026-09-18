@@ -163,6 +163,7 @@
     done: false,
     bound: false,
     hasLoadedPage: false,
+    currentPage: 0,
     failCount: 0,
     nextRetryAt: 0
   };
@@ -5854,6 +5855,28 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return Number((getElementText(pager || doc.body)).match(/(?:Seite|Page):\s*(\d+)/i)?.[1] || 0);
   }
 
+  function setUrlPageNumber(url, page) {
+    const decoded = String(url || "").replace(/%3B/gi, ";").replace(/%3D/gi, "=");
+    if (/[?;&]Page=\d+/i.test(decoded)) {
+      return decoded.replace(/([?;&])Page=\d+/i, `$1Page=${page}`);
+    }
+
+    const [beforeHash, hash = ""] = decoded.split("#");
+    const separator = beforeHash.includes("?") ? ";" : "?";
+    return `${beforeHash}${separator}Page=${page}${hash ? `#${hash}` : ""}`;
+  }
+
+  function hasMoreTicketListPages(doc = document) {
+    const pager = doc.querySelector(".Pagination, .OverviewActions");
+    if (!pager) return false;
+
+    const text = getElementText(pager);
+    if (/>>|›|»|weiter|next/i.test(text)) return true;
+
+    const currentPage = getPaginationPageNumber(doc, window.location.href) || 1;
+    return [...text.matchAll(/\b(\d+)\b/g)].some((match) => Number(match[1]) > currentPage);
+  }
+
   function findNextTicketListUrl(doc = document, baseUrl = window.location.href) {
     const links = [...doc.querySelectorAll("a[href]")]
       .map((link) => ({
@@ -5981,18 +6004,40 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       const indexes = getIndexes(table);
       const nextIndexes = getIndexes(nextTable);
       const existingIds = getExistingTicketIds(table, indexes);
+      let addedCount = 0;
 
       [...nextBody.querySelectorAll("tr")].forEach((row) => {
         const ticketId = getTicketId(row, nextIndexes);
-        if (ticketId && existingIds.has(ticketId)) return;
+        if (!ticketId || existingIds.has(ticketId)) return;
 
         const clone = document.importNode(row, true);
         tbody.appendChild(clone);
-        if (ticketId) existingIds.add(ticketId);
+        existingIds.add(ticketId);
+        addedCount += 1;
       });
 
       const loadedUrl = infiniteScrollState.nextUrl;
-      const followingUrl = findNextTicketListUrl(nextDoc, loadedUrl);
+      const loadedPage = getPageNumberFromUrl(loadedUrl) || infiniteScrollState.currentPage || 1;
+
+      // No new tickets on this page means we have reached the end (or the
+      // server keeps returning an already-seen page). Stop instead of looping.
+      if (addedCount === 0) {
+        infiniteScrollState.nextUrl = "";
+        infiniteScrollState.done = true;
+        setInfiniteScrollStatus("Alle Tickets geladen.", table);
+        return;
+      }
+
+      // Step to the next page by its Page number. This is far more reliable
+      // than re-parsing the pager of every fetched page; the detected link is
+      // only used when it points exactly at that next page.
+      const nextPage = loadedPage + 1;
+      let followingUrl = findNextTicketListUrl(nextDoc, loadedUrl);
+      if (!followingUrl || getPageNumberFromUrl(followingUrl) !== nextPage) {
+        followingUrl = setUrlPageNumber(loadedUrl, nextPage);
+      }
+
+      infiniteScrollState.currentPage = nextPage;
       infiniteScrollState.nextUrl =
         followingUrl && normalizeListUrl(followingUrl) !== normalizeListUrl(loadedUrl) ? followingUrl : "";
       infiniteScrollState.done = !infiniteScrollState.nextUrl;
@@ -6047,7 +6092,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     addInfiniteScrollStyles();
 
     if (infiniteScrollState.enabledUrl !== currentUrl) {
-      const nextUrl = resolveNextTicketListUrl(currentUrl);
+      const startPage = getPageNumberFromUrl(currentUrl) || 1;
+      let nextUrl = resolveNextTicketListUrl(currentUrl);
+      if (!nextUrl && hasMoreTicketListPages(document)) {
+        nextUrl = setUrlPageNumber(currentUrl, startPage + 1);
+      }
       infiniteScrollState = {
         enabledUrl: currentUrl,
         nextUrl,
@@ -6055,6 +6104,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         done: !nextUrl,
         bound: infiniteScrollState.bound,
         hasLoadedPage: false,
+        currentPage: startPage,
         failCount: 0,
         nextRetryAt: 0
       };
@@ -6063,8 +6113,13 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       // Only recover nextUrl from the live DOM before any page has loaded (pagination
       // can render late). Afterward the live pager is stale and re-checking it here
       // would keep resetting an already-exhausted or in-flight state.
-      const nextUrl = resolveNextTicketListUrl(currentUrl);
+      const startPage = infiniteScrollState.currentPage || getPageNumberFromUrl(currentUrl) || 1;
+      let nextUrl = resolveNextTicketListUrl(currentUrl);
+      if (!nextUrl && hasMoreTicketListPages(document)) {
+        nextUrl = setUrlPageNumber(currentUrl, startPage + 1);
+      }
       if (nextUrl) {
+        infiniteScrollState.currentPage = startPage;
         infiniteScrollState.nextUrl = nextUrl;
         infiniteScrollState.done = false;
       }
@@ -6088,6 +6143,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     infiniteScrollState.nextUrl = "";
     infiniteScrollState.done = true;
     infiniteScrollState.hasLoadedPage = false;
+    infiniteScrollState.currentPage = 0;
     infiniteScrollState.failCount = 0;
     infiniteScrollState.nextRetryAt = 0;
   }
