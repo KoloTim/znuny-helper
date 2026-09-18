@@ -12,6 +12,7 @@
       version: "1.5.1",
       items: [
         "Neu: Vorlagen können jetzt auch Priorität und Auswirkung vorgeben (und aus dem aktuellen Formular übernehmen).",
+        "Neu: Typ, Service, Priorität und Auswirkung sind im Vorlagen-Editor jetzt Dropdowns.",
         "Die Prioritäts-Vorlagen sind jetzt standardmäßig aktiv.",
         "Behoben: DOCX- und XLSX-Vorschau in Firefox (Realm-Problem beim Einlesen der Datei).",
         "Behoben: Infinite Scroll konnte in Ticketlisten Seiten überspringen. Die Folgeseite wird jetzt aus der geladenen Seite selbst bestimmt.",

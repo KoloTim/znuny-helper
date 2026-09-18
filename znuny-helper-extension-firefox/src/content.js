@@ -71,6 +71,15 @@
     }
   ];
 
+  // Dropdown options for the template editor. Values outside these lists are
+  // still accepted and preserved when editing an existing template.
+  const PRIORITY_TEMPLATE_FIELD_OPTIONS = {
+    type: ["Incident", "Problem", "ServiceRequest", "Unclassified"],
+    service: ["Gruppen", "Person", "Standort/Organisation"],
+    priority: ["high", "critical", "low", "normal"],
+    impact: ["Arbeit eingeschränkt", "Arbeit uneingeschränkt", "Arbeit unmöglich"]
+  };
+
   // Order below doubles as auto-detection priority (checked top to bottom, first keyword
   // match wins) - see getCategoryGroups()/autoDetectCategory(). Keep the most urgent /
   // most specific categories first so they win over broader ones on overlapping keywords.
@@ -4339,7 +4348,21 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function setPriorityField(ids, value, labels = [], doc = document) {
     if (!value) return false;
-    if (setPrioritySelectField(ids, value, labels, doc)) return true;
+
+    const select = findPrioritySelectControl(ids, labels, doc);
+    if (select) {
+      if (applySelectTemplateValue(select, value, doc)) return true;
+
+      // A select was found but the configured value matches none of its
+      // options. Do not fall through to the input path (that would clear the
+      // select) - log the available options so the template can be corrected.
+      console.warn(
+        "Znuny Helper: Wert", JSON.stringify(value), "nicht in Feld",
+        select.id || select.name || "(select)", "- Optionen:",
+        [...(select.options || [])].map((option) => getSelectOptionText(option))
+      );
+      return false;
+    }
 
     // Fallback for setups that render the field as an autocomplete/plain input.
     if (setPriorityAutocompleteField(labels.length ? labels : [].concat(ids), ids, value, doc)) return true;
@@ -4428,10 +4451,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return Boolean(inputContainer && isVisibleFormControl(inputContainer));
   }
 
-  function setPrioritySelectField(ids, value, labels = [], doc = document) {
-    const select = findPrioritySelectControl(ids, labels, doc);
+  function applySelectTemplateValue(select, value, doc = document) {
     const option = findSelectOptionByTemplateValue(select, value);
-    if (!select || !option) return false;
+    if (!option) return false;
 
     const changed = select.value !== option.value || !option.selected;
     [...select.options].forEach((item) => {
@@ -4445,6 +4467,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       select.dispatchEvent(new Event("change", { bubbles: true }));
     }
     return true;
+  }
+
+  function setPrioritySelectField(ids, value, labels = [], doc = document) {
+    const select = findPrioritySelectControl(ids, labels, doc);
+    if (!select) return false;
+    return applySelectTemplateValue(select, value, doc);
   }
 
   function escapeHtml(value) {
@@ -4568,24 +4596,43 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return Boolean(control && control.tagName === "SELECT");
   }
 
+  function isVisibleSelect(candidate) {
+    return isSelectControl(candidate) &&
+      (isVisibleFormControl(candidate) || isModernizedSelectWidgetVisible(candidate));
+  }
+
   function findSelectByLabel(labels, doc = document) {
     const wanted = labels.map((label) => cleanFieldLabel(label)).filter(Boolean);
     if (!wanted.length) return null;
 
-    for (const labelElement of doc.querySelectorAll("label")) {
+    for (const labelElement of doc.querySelectorAll("label, dt, th, .ControlLabel")) {
       const text = cleanFieldLabel(getElementText(labelElement));
       if (!wanted.some((label) => text === label || text.endsWith(label))) continue;
 
       const forId = labelElement.getAttribute("for");
-      const candidates = [
+      const direct = [
         forId ? doc.getElementById(forId) : null,
         ...labelElement.querySelectorAll("select")
-      ];
-      const select = candidates.find((candidate) =>
+      ].find(isVisibleSelect);
+      if (direct) return direct;
+
+      // Znuny often wraps the label and the control in a .Field/row container
+      // without a matching "for" attribute; search that container.
+      const container = labelElement.closest(".Field") ||
+        labelElement.closest("tr, li, .Row, .WidgetSimple") ||
+        labelElement.parentElement;
+      const selects = [...(container?.querySelectorAll("select") || [])];
+      const inContainer = selects.find(isVisibleSelect);
+      if (inContainer) return inContainer;
+
+      // The field may be a hidden select driven by JavaScript (no modernized
+      // InputField wrapper) - the label match is authoritative here.
+      const usable = selects.find((candidate) =>
         isSelectControl(candidate) &&
-        (isVisibleFormControl(candidate) || isModernizedSelectWidgetVisible(candidate))
+        !candidate.disabled &&
+        !/search/i.test(`${candidate.id} ${candidate.name}`)
       );
-      if (select) return select;
+      if (usable) return usable;
     }
 
     return null;
@@ -4593,16 +4640,17 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function findPrioritySelectControl(ids, labels = [], doc = document) {
     for (const id of [].concat(ids)) {
-      const candidates = [
+      // Exact id/name match is authoritative even if the select is hidden -
+      // the value still has to be set on it.
+      const exact = [
         doc.getElementById(id),
-        doc.querySelector(`[name="${id}"]`),
-        ...doc.querySelectorAll(`[id^="${id}_"], [id$="_${id}"], [name^="${id}_"], [name$="_${id}"]`)
-      ];
-      const select = candidates.find((candidate) =>
-        isSelectControl(candidate) &&
-        (isVisibleFormControl(candidate) || isModernizedSelectWidgetVisible(candidate))
-      );
-      if (select) return select;
+        doc.querySelector(`[name="${id}"]`)
+      ].find((candidate) => isSelectControl(candidate) && !candidate.disabled);
+      if (exact) return exact;
+
+      const fuzzy = [...doc.querySelectorAll(`[id^="${id}_"], [id$="_${id}"], [name^="${id}_"], [name$="_${id}"]`)]
+        .find(isVisibleSelect);
+      if (fuzzy) return fuzzy;
     }
 
     if (labels.length) {
@@ -4903,8 +4951,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       .zh-priority-tile-fields-grid .zh-priority-field-wide { grid-column: 1 / -1; }
       .zh-priority-field { display: grid; gap: 3px; min-width: 0; }
       .zh-priority-field label { color: #7a808a; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-      .zh-priority-field input, .zh-priority-field textarea { width: 100%; box-sizing: border-box; font-size: 12.5px; padding: 6px 8px; border: 1px solid #cbd0d6; border-radius: 6px; background: #fff; color: #222; }
-      .zh-priority-field input:focus, .zh-priority-field textarea:focus { outline: none; border-color: #3976bb; box-shadow: 0 0 0 2px rgba(57,118,187,.15); }
+      .zh-priority-field input, .zh-priority-field textarea, .zh-priority-field select { width: 100%; box-sizing: border-box; font-size: 12.5px; padding: 6px 8px; border: 1px solid #cbd0d6; border-radius: 6px; background: #fff; color: #222; }
+      .zh-priority-field input:focus, .zh-priority-field textarea:focus, .zh-priority-field select:focus { outline: none; border-color: #3976bb; box-shadow: 0 0 0 2px rgba(57,118,187,.15); }
       .zh-priority-field textarea { min-height: 48px; resize: vertical; font-family: inherit; }
       .zh-priority-empty { padding: 28px; text-align: center; color: #8a909a; font-size: 12.5px; }
       .zh-priority-modal button { cursor: pointer; border-radius: 6px; }
@@ -4937,6 +4985,40 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     input.name = name;
     input.value = value || "";
     wrapper.appendChild(input);
+
+    return wrapper;
+  }
+
+  function createPriorityTemplateSelect(name, label, value, options) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "zh-priority-field";
+
+    const labelElement = document.createElement("label");
+    labelElement.textContent = label;
+    wrapper.appendChild(labelElement);
+
+    const select = document.createElement("select");
+    select.name = name;
+    select.className = "zh-priority-field-select";
+
+    const current = String(value || "").trim();
+    const values = [...options];
+    if (current && !values.includes(current)) values.push(current);
+
+    const empty = document.createElement("option");
+    empty.value = "";
+    empty.textContent = "— nicht setzen —";
+    select.appendChild(empty);
+
+    values.forEach((optionValue) => {
+      const option = document.createElement("option");
+      option.value = optionValue;
+      option.textContent = optionValue;
+      select.appendChild(option);
+    });
+
+    select.value = current;
+    wrapper.appendChild(select);
 
     return wrapper;
   }
@@ -5125,12 +5207,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const grid = document.createElement("div");
     grid.className = "zh-priority-tile-fields-grid";
     grid.append(
-      createPriorityTemplateField("type", "Typ", template.fields?.type),
+      createPriorityTemplateSelect("type", "Typ", template.fields?.type, PRIORITY_TEMPLATE_FIELD_OPTIONS.type),
       createPriorityTemplateField("queue", "Queue", template.fields?.queue),
-      createPriorityTemplateField("service", "Service", template.fields?.service),
+      createPriorityTemplateSelect("service", "Service", template.fields?.service, PRIORITY_TEMPLATE_FIELD_OPTIONS.service),
       createPriorityTemplateField("owner", "Besitzer", template.fields?.owner),
-      createPriorityTemplateField("priority", "Priorität", template.fields?.priority),
-      createPriorityTemplateField("impact", "Auswirkung", template.fields?.impact),
+      createPriorityTemplateSelect("priority", "Priorität", template.fields?.priority, PRIORITY_TEMPLATE_FIELD_OPTIONS.priority),
+      createPriorityTemplateSelect("impact", "Auswirkung", template.fields?.impact, PRIORITY_TEMPLATE_FIELD_OPTIONS.impact),
       createPriorityTemplateField("category", "Kategorie", template.fields?.category),
       createPriorityTemplateField("subject", "Betreff", template.fields?.subject),
       createPriorityTemplateField("body", "Text", template.fields?.body, true, true)

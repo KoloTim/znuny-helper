@@ -6,6 +6,7 @@ Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format 
 
 ### Added
 - **Prioritäts-Vorlagen mit Priorität und Auswirkung:** Zusätzlich zu Typ, Queue, Service, Besitzer, Kategorie, Betreff und Text lassen sich je Vorlage jetzt auch **Priorität** und **Auswirkung** vorgeben. Beim Anlegen einer Vorlage aus dem aktuellen Formular werden beide Felder mit übernommen. Die Priorität wird nach der Auswirkung gesetzt, damit sie bei Setups mit automatischer Prioritätsberechnung gewinnt.
+- **Dropdowns im Vorlagen-Editor:** Typ, Service, Priorität und Auswirkung sind jetzt Auswahlfelder statt Freitext. Typ: Incident, Problem, ServiceRequest, Unclassified. Service: Gruppen, Person, Standort/Organisation. Priorität: high, critical, low, normal. Auswirkung: Arbeit eingeschränkt, Arbeit uneingeschränkt, Arbeit unmöglich. Bereits vorhandene, abweichende Werte bleiben erhalten und auswählbar.
 
 ### Changed
 - **Prioritäts-Vorlagen sind jetzt standardmäßig aktiv.** Wer sie nicht möchte, schaltet sie im Popup unter „Vorlagen und ServiceDesk" ab.
