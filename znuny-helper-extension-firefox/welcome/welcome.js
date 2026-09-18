@@ -17,6 +17,7 @@
         "Behoben: DOCX- und XLSX-Vorschau in Firefox (Realm-Problem beim Einlesen der Datei).",
         "Behoben: Infinite Scroll lud nach der zweiten Seite nicht weiter bzw. übersprang Seiten. Es blättert jetzt zuverlässig Seite für Seite, bis keine neuen Tickets mehr kommen.",
         "Behoben: Infinite Scroll auf der Suchseite (Ergebnis-Tabelle mit anderen Spaltennamen); auch große Trefferlisten (2000+) werden vollständig geladen.",
+        "Behoben: Infinite Scroll in der Queue-Ansicht, die über StartHit paginiert (Seite 2, 3, 4 …).",
         "Behoben: Infinite Scroll konnte in manchen Ansichten endlos Tickets anhängen. Es werden jetzt nur Zeilen mit eindeutiger Ticket-ID geladen und identische Seiten erkannt – eine Endlosschleife ist ausgeschlossen.",
         "Behoben: Nach dem Absenden wird ein eigens geöffneter Aktions-Tab automatisch geschlossen und der Fokus kehrt zum vorherigen Tab zurück (funktioniert auch bei Enter/Strg+Enter und unabhängig von „Popups als Tabs“).",
         "Infinite Scroll lässt die Seitenzahlen wieder sichtbar (als Fallback nutzbar)."

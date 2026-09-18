@@ -171,6 +171,7 @@
     seenFingerprints: new Set(),
     appendedTotal: 0,
     pageParamSupported: false,
+    startHitStep: 0,
     pollTimer: 0
   };
   let articleSearchState = {
@@ -5924,6 +5925,55 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return /[?;&]Page=\d+/i.test(decoded);
   }
 
+  // Some views (e.g. AgentTicketQueue) paginate by offset instead of page index:
+  // page 2 = "...;StartHit=36", page 3 = "...;StartHit=71", i.e. step = page size.
+  function getStartHitFromUrl(url) {
+    const decoded = String(url || "").replace(/%3B/gi, ";").replace(/%3D/gi, "=");
+    const match = decoded.match(/[?;&]StartHit=(\d+)/i);
+    return match ? Number(match[1]) : 0;
+  }
+
+  function replaceStartHit(url, value) {
+    const decoded = String(url || "").replace(/%3B/gi, ";").replace(/%3D/gi, "=");
+    if (/[?;&]StartHit=\d+/i.test(decoded)) {
+      return decoded.replace(/([?;&])StartHit=\d+/i, `$1StartHit=${value}`);
+    }
+
+    const [beforeHash, hash = ""] = decoded.split("#");
+    const separator = beforeHash.includes("?") ? ";" : "?";
+    return `${beforeHash}${separator}StartHit=${value}${hash ? `#${hash}` : ""}`;
+  }
+
+  function getPageNumberFromStartHit(startHit, step) {
+    if (!startHit || !step) return 0;
+    const base = startHit % step === 0 ? 0 : 1;
+    return Math.floor((startHit - base) / step) + 1;
+  }
+
+  function inferStartHitStep(doc, baseUrl = window.location.href) {
+    const hitsByPage = new Map();
+    doc.querySelectorAll(".Pagination a, .OverviewActions a").forEach((link) => {
+      const page = Number((link.textContent || "").trim());
+      const hit = getStartHitFromUrl(link.getAttribute("href") || link.getAttribute("data-href") || "");
+      if (page > 0 && hit > 0) hitsByPage.set(page, hit);
+    });
+
+    const pages = [...hitsByPage.keys()].sort((left, right) => left - right);
+    for (let i = 1; i < pages.length; i += 1) {
+      const diff = hitsByPage.get(pages[i]) - hitsByPage.get(pages[i - 1]);
+      if (diff > 0) return diff;
+    }
+
+    const range = getElementText(doc.querySelector(".Pagination, .OverviewActions") || doc.body)
+      .match(/\b(\d+)\s*[-–]\s*(\d+)\s+von\b/i);
+    if (range) {
+      const size = Number(range[2]) - Number(range[1]) + 1;
+      if (size > 0) return size;
+    }
+
+    return 0;
+  }
+
   function getPaginationPageNumber(doc, baseUrl) {
     // The URL of the document being analysed is the most reliable current-page
     // source: pager links always carry their page ("...;Page=3"). The visible
@@ -6132,8 +6182,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     }
 
     const loadUrl = infiniteScrollState.nextUrl;
-    const loadingPage = getPageNumberFromUrl(loadUrl) ||
-      (infiniteScrollState.currentPage ? infiniteScrollState.currentPage + 1 : 0);
+    // nextUrl always points at the page after the one currently displayed. Some
+    // lists (StartHit-based) have no page number in the URL, so fall back to the
+    // logical counter instead of parsing it out of the URL.
+    const expectedPage = (infiniteScrollState.currentPage || 1) + 1;
+    const loadingPage = getPageNumberFromUrl(loadUrl) || expectedPage;
 
     // Requesting a page we already loaded means the server is ignoring the page
     // parameter and would keep serving the same content - stop instead of looping.
@@ -6190,7 +6243,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       }
 
       const loadedUrl = loadUrl;
-      const loadedPage = getPageNumberFromUrl(loadedUrl) || infiniteScrollState.currentPage || loadingPage || 1;
+      const loadedPage = getPageNumberFromUrl(loadedUrl) || expectedPage;
       infiniteScrollState.loadedPages.add(loadedPage);
       infiniteScrollState.appendedTotal += addedCount;
 
@@ -6203,9 +6256,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         return;
       }
 
-      // Follow the real pager link first. Only derive "...;Page=N" when the list
-      // actually uses a Page parameter, so we never invent a page parameter for a
-      // view that does not support it and would keep returning the same page.
+      if (!infiniteScrollState.startHitStep) {
+        const inferredStep = inferStartHitStep(nextDoc, loadedUrl);
+        if (inferredStep > 0) infiniteScrollState.startHitStep = inferredStep;
+      }
+
+      // Follow the real pager link first. Only derive the next page when the list
+      // actually uses a matching pagination parameter, so we never invent one for
+      // a view that does not support it and would keep returning the same page.
       const nextPage = loadedPage + 1;
       let followingUrl = findNextTicketListUrl(nextDoc, loadedUrl, loadedPage);
       if (followingUrl && normalizeListUrl(followingUrl) === normalizeListUrl(loadedUrl)) followingUrl = "";
@@ -6213,8 +6271,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         const derived = setUrlPageNumber(loadedUrl, nextPage);
         if (normalizeListUrl(derived) !== normalizeListUrl(loadedUrl)) followingUrl = derived;
       }
+      if (!followingUrl && infiniteScrollState.startHitStep) {
+        const startHit = getStartHitFromUrl(loadedUrl);
+        if (startHit > 0) {
+          const derived = replaceStartHit(loadedUrl, startHit + infiniteScrollState.startHitStep);
+          if (normalizeListUrl(derived) !== normalizeListUrl(loadedUrl)) followingUrl = derived;
+        }
+      }
 
-      infiniteScrollState.currentPage = nextPage;
+      infiniteScrollState.currentPage = loadedPage;
       if (followingUrl && urlSupportsPageParam(followingUrl)) infiniteScrollState.pageParamSupported = true;
       infiniteScrollState.nextUrl = followingUrl;
       infiniteScrollState.done = !followingUrl;
@@ -6269,10 +6334,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     addInfiniteScrollStyles();
 
     if (infiniteScrollState.enabledUrl !== currentUrl) {
-      const startPage = getPageNumberFromUrl(currentUrl) || 1;
+      const startHitStep = inferStartHitStep(document, currentUrl);
+      const startPage = getPageNumberFromUrl(currentUrl) ||
+        getPageNumberFromStartHit(getStartHitFromUrl(currentUrl), startHitStep) || 1;
       let nextUrl = resolveNextTicketListUrl(currentUrl, startPage);
-      if (!nextUrl && hasMoreTicketListPages(document) && urlSupportsPageParam(currentUrl)) {
-        nextUrl = setUrlPageNumber(currentUrl, startPage + 1);
+      if (!nextUrl && hasMoreTicketListPages(document)) {
+        if (urlSupportsPageParam(currentUrl)) {
+          nextUrl = setUrlPageNumber(currentUrl, startPage + 1);
+        } else if (startHitStep && getStartHitFromUrl(currentUrl) > 0) {
+          nextUrl = replaceStartHit(currentUrl, getStartHitFromUrl(currentUrl) + startHitStep);
+        }
       }
       if (infiniteScrollState.pollTimer) window.clearInterval(infiniteScrollState.pollTimer);
       infiniteScrollState = {
@@ -6290,6 +6361,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         seenFingerprints: new Set(),
         appendedTotal: 0,
         pageParamSupported: urlSupportsPageParam(currentUrl) || urlSupportsPageParam(nextUrl),
+        startHitStep,
         pollTimer: 0
       };
       setInfiniteScrollStatus("");
@@ -6299,8 +6371,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       // would keep resetting an already-exhausted or in-flight state.
       const startPage = infiniteScrollState.currentPage || getPageNumberFromUrl(currentUrl) || 1;
       let nextUrl = resolveNextTicketListUrl(currentUrl, startPage);
-      if (!nextUrl && hasMoreTicketListPages(document) && urlSupportsPageParam(currentUrl)) {
-        nextUrl = setUrlPageNumber(currentUrl, startPage + 1);
+      if (!nextUrl && hasMoreTicketListPages(document)) {
+        if (urlSupportsPageParam(currentUrl)) {
+          nextUrl = setUrlPageNumber(currentUrl, startPage + 1);
+        } else if (infiniteScrollState.startHitStep && getStartHitFromUrl(currentUrl) > 0) {
+          nextUrl = replaceStartHit(currentUrl, getStartHitFromUrl(currentUrl) + infiniteScrollState.startHitStep);
+        }
       }
       if (nextUrl) {
         infiniteScrollState.currentPage = startPage;
