@@ -165,7 +165,13 @@
     hasLoadedPage: false,
     currentPage: 0,
     failCount: 0,
-    nextRetryAt: 0
+    nextRetryAt: 0,
+    seenIds: new Set(),
+    loadedPages: new Set(),
+    seenFingerprints: new Set(),
+    appendedTotal: 0,
+    pageParamSupported: false,
+    pollTimer: 0
   };
   let articleSearchState = {
     terms: [],
@@ -5700,7 +5706,19 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       Number(text.match(/(\d+)\s*m/)?.[1] || 0);
   }
 
+  function countTicketRowLinks(table) {
+    return table.querySelectorAll(
+      'a[href*="AgentTicketZoom"], a[href*="TicketID="], a[href*="TicketNumber="]'
+    ).length;
+  }
+
   function tableLooksLikeTicketList(table) {
+    // Strong, language-independent signal: several table rows link to the
+    // ticket zoom. This also matches the search results table, whose column
+    // names differ from the regular ticket list ("Ticket"/"Betreff"/"Von").
+    const bodyRows = table.querySelectorAll("tbody tr").length;
+    if (bodyRows >= 2 && countTicketRowLinks(table) >= 2) return true;
+
     const headers = [...table.querySelectorAll("th")].map((th) => getElementText(th).toUpperCase());
     if (!headers.length) {
       const text = getElementText(table).toUpperCase();
@@ -5719,8 +5737,17 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return score >= 2;
   }
 
+  function ticketTableScore(table) {
+    return table.querySelectorAll("tbody tr").length + countTicketRowLinks(table) * 3;
+  }
+
   function findTicketTable(doc = document) {
-    return [...doc.querySelectorAll("table")].find(tableLooksLikeTicketList);
+    const candidates = [...doc.querySelectorAll("table")].filter(tableLooksLikeTicketList);
+    if (!candidates.length) return null;
+    // A page can hold several small tables; the real list has the most rows /
+    // ticket links. Picking the best candidate avoids scrolling a widget table.
+    candidates.sort((left, right) => ticketTableScore(right) - ticketTableScore(left));
+    return candidates[0];
   }
 
   function getIndexes(table) {
@@ -5892,6 +5919,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return match ? Number(match[1]) : 0;
   }
 
+  function urlSupportsPageParam(url) {
+    const decoded = String(url || "").replace(/%3B/gi, ";").replace(/%3D/gi, "=");
+    return /[?;&]Page=\d+/i.test(decoded);
+  }
+
   function getPaginationPageNumber(doc, baseUrl) {
     // The URL of the document being analysed is the most reliable current-page
     // source: pager links always carry their page ("...;Page=3"). The visible
@@ -5926,17 +5958,51 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return [...text.matchAll(/\b(\d+)\b/g)].some((match) => Number(match[1]) > currentPage);
   }
 
-  function findNextTicketListUrl(doc = document, baseUrl = window.location.href) {
-    const links = [...doc.querySelectorAll("a[href]")]
-      .map((link) => ({
-        link,
-        text: normalizeText(link.innerText || link.textContent || ""),
-        title: normalizeText(link.getAttribute("title") || link.getAttribute("aria-label") || ""),
-        rel: (link.getAttribute("rel") || "").toLowerCase(),
-        href: normalizeListUrl(link.getAttribute("href") || link.href, baseUrl)
-      }))
-      .filter((item) => item.href)
-      .filter((item) => /Action=AgentTicket|Action=AgentSearch|Action=AgentDashboard/i.test(item.href));
+  function extractPaginationTarget(link, baseUrl) {
+    const rawHref = link.getAttribute("href") || "";
+    if (rawHref && !/^\s*(#|javascript:)/i.test(rawHref)) {
+      const url = normalizeListUrl(rawHref, baseUrl);
+      if (url) return url;
+    }
+
+    // JS pagers keep the target in onclick / data attributes instead of href.
+    const source = [
+      link.getAttribute("onclick") || "",
+      link.getAttribute("data-href") || "",
+      link.getAttribute("data-url") || "",
+      link.getAttribute("data-target") || ""
+    ].join(" ");
+    const candidate = source.match(/['"]\s*([^'"]*?(?:Action=|index\.pl)[^'"]*?)\s*['"]/i)?.[1];
+    if (candidate) {
+      const url = normalizeListUrl(candidate, baseUrl);
+      if (url) return url;
+    }
+
+    return "";
+  }
+
+  function findNextTicketListUrl(doc = document, baseUrl = window.location.href, currentPageOverride = 0) {
+    // Prefer the pager container so unrelated toolbar links are ignored. The
+    // search results and the regular list both render their pager inside
+    // ".OverviewActions" / ".Pagination".
+    const pagerContainers = [...doc.querySelectorAll(".Pagination, .OverviewActions")];
+    const scoped = pagerContainers.length > 0;
+    const scope = scoped ? pagerContainers : [doc];
+
+    const links = [];
+    scope.forEach((container) => {
+      container.querySelectorAll("a").forEach((link) => {
+        const href = extractPaginationTarget(link, baseUrl);
+        if (!href) return;
+        if (!scoped && !/Action=AgentTicket|Action=AgentSearch|Action=AgentDashboard/i.test(href)) return;
+        links.push({
+          href,
+          text: normalizeText(link.innerText || link.textContent || ""),
+          title: normalizeText(link.getAttribute("title") || link.getAttribute("aria-label") || ""),
+          rel: (link.getAttribute("rel") || "").toLowerCase()
+        });
+      });
+    });
 
     const explicitNext = links.find((item) =>
       item.rel.includes("next") ||
@@ -5945,7 +6011,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       /^(weiter|next|nächste|naechste)/i.test(item.title)
     );
 
-    const currentPage = getPaginationPageNumber(doc, baseUrl);
+    const currentPage = currentPageOverride > 0 ? currentPageOverride : getPaginationPageNumber(doc, baseUrl);
 
     const numericLinks = links
       .map((item) => {
@@ -5969,8 +6035,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return numericLinks[0]?.href || "";
   }
 
-  function resolveNextTicketListUrl(currentUrl = normalizeListUrl(window.location.href)) {
-    const nextUrl = findNextTicketListUrl(document, currentUrl);
+  function resolveNextTicketListUrl(currentUrl = normalizeListUrl(window.location.href), currentPage = 0) {
+    const nextUrl = findNextTicketListUrl(document, currentUrl, currentPage);
     // A pager control can point back at the current page (e.g. a JS pager);
     // that is not a next page.
     return nextUrl && normalizeListUrl(nextUrl) !== currentUrl ? nextUrl : "";
@@ -6020,6 +6086,19 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   const INFINITE_SCROLL_MAX_FAILURES = 3;
   const INFINITE_SCROLL_RETRY_DELAY_MS = 4000;
   const INFINITE_SCROLL_FETCH_TIMEOUT_MS = 20000;
+  const INFINITE_SCROLL_MAX_PAGES = 800;
+  const INFINITE_SCROLL_MAX_ROWS = 20000;
+  const INFINITE_SCROLL_POLL_MS = 1000;
+
+  function pageFingerprint(table) {
+    if (!table) return "";
+    const indexes = getIndexes(table);
+    const rows = [...table.querySelectorAll("tbody tr")];
+    const sample = rows
+      .slice(0, 6)
+      .map((row) => getTicketId(row, indexes) || normalizeText(getElementText(row)).slice(0, 120));
+    return `${rows.length}#${sample.join("|")}`;
+  }
 
   async function fetchTicketListPage(url) {
     if (typeof AbortController === "undefined") {
@@ -6042,14 +6121,34 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const tbody = table?.querySelector("tbody");
     if (!table || !tbody) return;
 
-    const loadingPage = getPageNumberFromUrl(infiniteScrollState.nextUrl) ||
+    // Absolute safety valve: never request more than a sane number of pages or
+    // append an unbounded number of rows.
+    if (infiniteScrollState.loadedPages.size >= INFINITE_SCROLL_MAX_PAGES ||
+        infiniteScrollState.appendedTotal >= INFINITE_SCROLL_MAX_ROWS) {
+      infiniteScrollState.done = true;
+      infiniteScrollState.nextUrl = "";
+      setInfiniteScrollStatus("Alle Tickets geladen.", table);
+      return;
+    }
+
+    const loadUrl = infiniteScrollState.nextUrl;
+    const loadingPage = getPageNumberFromUrl(loadUrl) ||
       (infiniteScrollState.currentPage ? infiniteScrollState.currentPage + 1 : 0);
+
+    // Requesting a page we already loaded means the server is ignoring the page
+    // parameter and would keep serving the same content - stop instead of looping.
+    if (loadingPage && infiniteScrollState.loadedPages.has(loadingPage)) {
+      infiniteScrollState.done = true;
+      infiniteScrollState.nextUrl = "";
+      setInfiniteScrollStatus("Alle Tickets geladen.", table);
+      return;
+    }
 
     infiniteScrollState.loading = true;
     setInfiniteScrollStatus(loadingPage ? `Weitere Tickets werden geladen … (Seite ${loadingPage})` : "Weitere Tickets werden geladen …", table);
 
     try {
-      const response = await fetchTicketListPage(infiniteScrollState.nextUrl);
+      const response = await fetchTicketListPage(loadUrl);
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -6065,28 +6164,35 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         return;
       }
 
+      const fingerprint = pageFingerprint(nextTable);
+      const fingerprintSeen = Boolean(fingerprint) && infiniteScrollState.seenFingerprints.has(fingerprint);
+      if (fingerprint) infiniteScrollState.seenFingerprints.add(fingerprint);
+
       const indexes = getIndexes(table);
       const nextIndexes = getIndexes(nextTable);
-      const existingIds = getExistingTicketIds(table, indexes);
-      // Fallback de-duplication for views whose table has no parseable ticket id:
-      // compare the row text so we still append rows without looping forever.
-      const existingKeys = new Set([...tbody.querySelectorAll("tr")].map((row) => getElementText(row).trim()));
+      const seenIds = infiniteScrollState.seenIds;
+      getExistingTicketIds(table, indexes).forEach((ticketId) => seenIds.add(ticketId));
+
       let addedCount = 0;
 
-      [...nextBody.querySelectorAll("tr")].forEach((row) => {
-        const ticketId = getTicketId(row, nextIndexes);
-        const key = ticketId || getElementText(row).trim();
-        if (!key || (ticketId && existingIds.has(ticketId)) || existingKeys.has(key)) return;
+      if (!fingerprintSeen) {
+        [...nextBody.querySelectorAll("tr")].forEach((row) => {
+          const ticketId = getTicketId(row, nextIndexes);
+          // Only append rows with a stable, unique ticket id. Rows without an id
+          // cannot be de-duplicated reliably and would be appended over and over.
+          if (!ticketId || seenIds.has(ticketId)) return;
 
-        const clone = document.importNode(row, true);
-        tbody.appendChild(clone);
-        if (ticketId) existingIds.add(ticketId);
-        existingKeys.add(key);
-        addedCount += 1;
-      });
+          const clone = document.importNode(row, true);
+          tbody.appendChild(clone);
+          seenIds.add(ticketId);
+          addedCount += 1;
+        });
+      }
 
-      const loadedUrl = infiniteScrollState.nextUrl;
-      const loadedPage = getPageNumberFromUrl(loadedUrl) || infiniteScrollState.currentPage || 1;
+      const loadedUrl = loadUrl;
+      const loadedPage = getPageNumberFromUrl(loadedUrl) || infiniteScrollState.currentPage || loadingPage || 1;
+      infiniteScrollState.loadedPages.add(loadedPage);
+      infiniteScrollState.appendedTotal += addedCount;
 
       // No new tickets on this page means we have reached the end (or the
       // server keeps returning an already-seen page). Stop instead of looping.
@@ -6097,19 +6203,21 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         return;
       }
 
-      // Step to the next page by its Page number. This is far more reliable
-      // than re-parsing the pager of every fetched page; the detected link is
-      // only used when it points exactly at that next page.
+      // Follow the real pager link first. Only derive "...;Page=N" when the list
+      // actually uses a Page parameter, so we never invent a page parameter for a
+      // view that does not support it and would keep returning the same page.
       const nextPage = loadedPage + 1;
-      let followingUrl = findNextTicketListUrl(nextDoc, loadedUrl);
-      if (!followingUrl || getPageNumberFromUrl(followingUrl) !== nextPage) {
-        followingUrl = setUrlPageNumber(loadedUrl, nextPage);
+      let followingUrl = findNextTicketListUrl(nextDoc, loadedUrl, loadedPage);
+      if (followingUrl && normalizeListUrl(followingUrl) === normalizeListUrl(loadedUrl)) followingUrl = "";
+      if (!followingUrl && infiniteScrollState.pageParamSupported && urlSupportsPageParam(loadedUrl)) {
+        const derived = setUrlPageNumber(loadedUrl, nextPage);
+        if (normalizeListUrl(derived) !== normalizeListUrl(loadedUrl)) followingUrl = derived;
       }
 
       infiniteScrollState.currentPage = nextPage;
-      infiniteScrollState.nextUrl =
-        followingUrl && normalizeListUrl(followingUrl) !== normalizeListUrl(loadedUrl) ? followingUrl : "";
-      infiniteScrollState.done = !infiniteScrollState.nextUrl;
+      if (followingUrl && urlSupportsPageParam(followingUrl)) infiniteScrollState.pageParamSupported = true;
+      infiniteScrollState.nextUrl = followingUrl;
+      infiniteScrollState.done = !followingUrl;
       infiniteScrollState.hasLoadedPage = true;
       infiniteScrollState.failCount = 0;
       infiniteScrollState.nextRetryAt = 0;
@@ -6162,10 +6270,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     if (infiniteScrollState.enabledUrl !== currentUrl) {
       const startPage = getPageNumberFromUrl(currentUrl) || 1;
-      let nextUrl = resolveNextTicketListUrl(currentUrl);
-      if (!nextUrl && hasMoreTicketListPages(document)) {
+      let nextUrl = resolveNextTicketListUrl(currentUrl, startPage);
+      if (!nextUrl && hasMoreTicketListPages(document) && urlSupportsPageParam(currentUrl)) {
         nextUrl = setUrlPageNumber(currentUrl, startPage + 1);
       }
+      if (infiniteScrollState.pollTimer) window.clearInterval(infiniteScrollState.pollTimer);
       infiniteScrollState = {
         enabledUrl: currentUrl,
         nextUrl,
@@ -6175,22 +6284,29 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         hasLoadedPage: false,
         currentPage: startPage,
         failCount: 0,
-        nextRetryAt: 0
+        nextRetryAt: 0,
+        seenIds: new Set(),
+        loadedPages: new Set([startPage]),
+        seenFingerprints: new Set(),
+        appendedTotal: 0,
+        pageParamSupported: urlSupportsPageParam(currentUrl) || urlSupportsPageParam(nextUrl),
+        pollTimer: 0
       };
       setInfiniteScrollStatus("");
-    } else if (!infiniteScrollState.nextUrl && !infiniteScrollState.hasLoadedPage && !infiniteScrollState.loading) {
+    } else if (!infiniteScrollState.nextUrl && !infiniteScrollState.hasLoadedPage && !infiniteScrollState.loading && !infiniteScrollState.done) {
       // Only recover nextUrl from the live DOM before any page has loaded (pagination
       // can render late). Afterward the live pager is stale and re-checking it here
       // would keep resetting an already-exhausted or in-flight state.
       const startPage = infiniteScrollState.currentPage || getPageNumberFromUrl(currentUrl) || 1;
-      let nextUrl = resolveNextTicketListUrl(currentUrl);
-      if (!nextUrl && hasMoreTicketListPages(document)) {
+      let nextUrl = resolveNextTicketListUrl(currentUrl, startPage);
+      if (!nextUrl && hasMoreTicketListPages(document) && urlSupportsPageParam(currentUrl)) {
         nextUrl = setUrlPageNumber(currentUrl, startPage + 1);
       }
       if (nextUrl) {
         infiniteScrollState.currentPage = startPage;
         infiniteScrollState.nextUrl = nextUrl;
         infiniteScrollState.done = false;
+        if (urlSupportsPageParam(nextUrl)) infiniteScrollState.pageParamSupported = true;
       }
     }
 
@@ -6203,18 +6319,29 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       window.addEventListener("resize", maybeLoadNextTicketListPage);
     }
 
+    // Keep loading as long as the user stays near the bottom. A plain scroll
+    // listener can miss the moment a short page grows, so poll as a fallback.
+    if (!infiniteScrollState.pollTimer) {
+      infiniteScrollState.pollTimer = window.setInterval(() => {
+        if (!settings.ticketListInfiniteScroll || infiniteScrollState.done) return;
+        maybeLoadNextTicketListPage();
+      }, INFINITE_SCROLL_POLL_MS);
+    }
+
     window.setTimeout(maybeLoadNextTicketListPage, 120);
   }
 
   function disableTicketListInfiniteScroll() {
     document.getElementById("zh-infinite-scroll-status")?.remove();
     removeStyle("zh-infinite-scroll-style");
+    if (infiniteScrollState.pollTimer) window.clearInterval(infiniteScrollState.pollTimer);
     infiniteScrollState.nextUrl = "";
     infiniteScrollState.done = true;
     infiniteScrollState.hasLoadedPage = false;
     infiniteScrollState.currentPage = 0;
     infiniteScrollState.failCount = 0;
     infiniteScrollState.nextRetryAt = 0;
+    infiniteScrollState.pollTimer = 0;
   }
 
   function autoDetectCategory(row, indexes) {
