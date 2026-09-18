@@ -13,7 +13,7 @@
       items: [
         "Neu: Vorlagen können jetzt auch Priorität und Auswirkung vorgeben (und aus dem aktuellen Formular übernehmen).",
         "Die Prioritäts-Vorlagen sind jetzt standardmäßig aktiv.",
-        "Behoben: Die DOCX-Vorschau in Firefox zeigte \"Can't read the data of 'the loaded zip file'\".",
+        "Behoben: DOCX- und XLSX-Vorschau in Firefox (Realm-Problem beim Einlesen der Datei).",
         "Behoben: Infinite Scroll konnte in Ticketlisten Seiten überspringen. Die Folgeseite wird jetzt aus der geladenen Seite selbst bestimmt.",
         "Infinite Scroll lässt die Seitenzahlen wieder sichtbar (als Fallback nutzbar)."
       ]

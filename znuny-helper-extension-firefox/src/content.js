@@ -1336,6 +1336,57 @@
     container.appendChild(details);
   }
 
+  // Read a Blob into a Uint8Array that belongs to this content-script realm.
+  // In Firefox, blob.arrayBuffer() can hand back a page-realm ArrayBuffer;
+  // constructing a typed array from it (or handing it to a library) then throws
+  // "Permission denied to access property 'constructor'". A content-script
+  // FileReader produces a same-realm buffer, with a forced copy as fallback.
+  function readBlobAsUint8Array(blob) {
+    return new Promise((resolve, reject) => {
+      const fallback = () => {
+        if (typeof blob?.arrayBuffer !== "function") {
+          reject(new Error("Datei konnte nicht gelesen werden"));
+          return;
+        }
+        Promise.resolve()
+          .then(() => blob.arrayBuffer())
+          .then((buffer) => {
+            const raw = new Uint8Array(buffer);
+            const copy = new Uint8Array(raw.length);
+            copy.set(raw);
+            resolve(copy);
+          })
+          .catch(reject);
+      };
+
+      if (typeof FileReader === "undefined") {
+        fallback();
+        return;
+      }
+
+      let reader;
+      try {
+        reader = new FileReader();
+      } catch (error) {
+        fallback();
+        return;
+      }
+
+      reader.onload = () => {
+        const result = reader.result;
+        if (result instanceof ArrayBuffer) resolve(new Uint8Array(result));
+        else fallback();
+      };
+      reader.onerror = fallback;
+
+      try {
+        reader.readAsArrayBuffer(blob);
+      } catch (error) {
+        fallback();
+      }
+    });
+  }
+
   async function renderDocxPreview(content, blob) {
     content.textContent = "";
 
@@ -1345,18 +1396,13 @@
     }
 
     // Mammoth hands the data to JSZip, whose internal `instanceof` checks fail
-    // for objects that belong to another realm. In Firefox content scripts the
-    // data from blob.arrayBuffer() can come from the page realm, which triggers
-    // "Can't read the data of 'the loaded zip file'". Copying the bytes into a
-    // freshly allocated buffer guarantees a same-realm ArrayBuffer; if that
-    // still fails, fall back to the Blob itself, which JSZip detects via
+    // for objects that belong to another realm. If our same-realm bytes are not
+    // accepted, fall back to the Blob itself, which JSZip detects via
     // Object.prototype.toString and reads with a content-script FileReader.
     let result;
     try {
-      const raw = new Uint8Array(await blob.arrayBuffer());
-      const sameRealm = new Uint8Array(raw.length);
-      sameRealm.set(raw);
-      result = await mammothApi.convertToHtml({ arrayBuffer: sameRealm.buffer });
+      const bytes = await readBlobAsUint8Array(blob);
+      result = await mammothApi.convertToHtml({ arrayBuffer: bytes.buffer });
     } catch (error) {
       if (!/Can't read the data of/i.test(String(error?.message || ""))) throw error;
       result = await mammothApi.convertToHtml({ arrayBuffer: blob });
@@ -1489,11 +1535,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       throw new Error("SheetJS ist nicht geladen");
     }
 
-    // Pass a same-realm Uint8Array with an explicit type. In Firefox content
-    // scripts the ArrayBuffer from blob.arrayBuffer() can come from another
-    // realm, which makes SheetJS's own instanceof check fail and fall back to
-    // treating the bytes as a base64 string ("e.replace is not a function").
-    const bytes = new Uint8Array(await blob.arrayBuffer());
+    // Read the bytes as a same-realm Uint8Array with an explicit type. In
+    // Firefox the ArrayBuffer from blob.arrayBuffer() can come from the page
+    // realm, which breaks SheetJS (and can throw "Permission denied to access
+    // property 'constructor'").
+    const bytes = await readBlobAsUint8Array(blob);
     const workbook = sheetApi.read(bytes, {
       type: "array",
       cellDates: true,
