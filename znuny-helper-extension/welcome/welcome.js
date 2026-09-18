@@ -16,6 +16,8 @@
         "Die Prioritäts-Vorlagen sind jetzt standardmäßig aktiv.",
         "Behoben: DOCX- und XLSX-Vorschau in Firefox (Realm-Problem beim Einlesen der Datei).",
         "Behoben: Infinite Scroll lud nach der zweiten Seite nicht weiter bzw. übersprang Seiten. Es blättert jetzt zuverlässig Seite für Seite, bis keine neuen Tickets mehr kommen.",
+        "Behoben: Infinite Scroll auf der Suchseite (Ergebnis-Tabelle mit anderen Spaltennamen).",
+        "Behoben: Nach dem Absenden wird ein eigens geöffneter Aktions-Tab automatisch geschlossen und der Fokus kehrt zum vorherigen Tab zurück (funktioniert auch bei Enter/Strg+Enter und unabhängig von „Popups als Tabs“).",
         "Infinite Scroll lässt die Seitenzahlen wieder sichtbar (als Fallback nutzbar)."
       ]
     },

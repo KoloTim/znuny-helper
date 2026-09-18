@@ -626,6 +626,14 @@
   const AUTO_CLOSE_FLAG_KEY = "zhAutoCloseAfterSubmit";
   const AUTO_CLOSE_FLAG_TTL_MS = 20000;
 
+  // Action pages that return to the ticket after submitting. Only these may
+  // close their tab after a successful submit; zoom/queue/search must stay open.
+  const CLOSE_AFTER_SUBMIT_ACTION = /Action=AgentTicket(?:Compose|Owner|Note|Close|Merge|Phone|Priority|Pending|Responsible|FreeText|Bounce|Forward|Move|LinkObject|Watch|Unwatch|Customer|Email|Process|Appointment)\b/i;
+
+  function isCloseAfterSubmitPage(href = window.location.href) {
+    return CLOSE_AFTER_SUBMIT_ACTION.test(String(href || ""));
+  }
+
   function isZnunyActionSubmitContext(form) {
     const formAction = getFormControlValue(form, "Action");
     if (formAction) return /^AgentTicket/i.test(formAction);
@@ -634,10 +642,23 @@
     return /^AgentTicket/i.test(urlAction);
   }
 
+  function wasOpenedInOwnTab() {
+    // Tabs opened by the extension (window.open / patched Znuny popups) keep
+    // their opener. A same-tab navigation does not, so we never close the main
+    // ticket tab by accident.
+    return Boolean(window.opener);
+  }
+
   function armAutoCloseOnSubmit(event) {
-    const control = event.target?.closest?.('button, input[type="submit"], input[type="button"], a, [role="button"]');
-    if (!control || !isTransmitSubmitControl(control)) return;
-    if (!isZnunyActionSubmitContext(control.closest?.("form") || null)) return;
+    if (event.type === "submit") {
+      if (!isZnunyActionSubmitContext(event.target)) return;
+    } else {
+      const control = event.target?.closest?.('button, input[type="submit"], input[type="button"], a, [role="button"]');
+      if (!control || !isTransmitSubmitControl(control)) return;
+      if (!isZnunyActionSubmitContext(control.closest?.("form") || null)) return;
+    }
+
+    if (!wasOpenedInOwnTab()) return;
 
     try {
       sessionStorage.setItem(AUTO_CLOSE_FLAG_KEY, String(Date.now()));
@@ -647,17 +668,16 @@
   }
 
   function enableCloseTabAfterSubmit() {
-    if (window.top !== window.self || !settings.popupTabs) return;
+    if (window.top !== window.self) return;
+    if (!isCloseAfterSubmitPage()) return;
     if (document.documentElement.dataset.zhCloseAfterSubmitBound === "1") return;
 
     document.documentElement.dataset.zhCloseAfterSubmitBound = "1";
-    // Arming on the click that precedes submission (rather than on the form's
-    // "submit" event, which fires just as the page starts unloading) avoids a
-    // race where the close-tab message never reaches the background script
-    // because navigation begins before it can be flushed. The flag survives
-    // the resulting same-tab navigation via sessionStorage and is consumed
-    // once the landing page has fully loaded, see consumeAutoCloseFlag().
+    // Arm on the click that precedes submission (so the message can still be
+    // sent before navigation starts) and on the form submit event, which also
+    // covers Enter-key submission.
     document.addEventListener("click", armAutoCloseOnSubmit, true);
+    document.addEventListener("submit", armAutoCloseOnSubmit, true);
   }
 
   function enableActionPopupCancelFallback() {
@@ -684,7 +704,11 @@
       return;
     }
 
-    if (!settings.popupTabs || !armedAt || Date.now() - armedAt > AUTO_CLOSE_FLAG_TTL_MS) return;
+    if (!armedAt || Date.now() - armedAt > AUTO_CLOSE_FLAG_TTL_MS) return;
+
+    // If we are still on an action page, the submit did not succeed (e.g. a
+    // validation error re-rendered the form) - keep the tab open.
+    if (isCloseAfterSubmitPage()) return;
 
     window.setTimeout(() => requestCloseSubmittedTab(), 400);
   }
@@ -5676,23 +5700,39 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       Number(text.match(/(\d+)\s*m/)?.[1] || 0);
   }
 
-  function findTicketTable(doc = document) {
-    return [...doc.querySelectorAll("table")].find((table) => {
+  function tableLooksLikeTicketList(table) {
+    const headers = [...table.querySelectorAll("th")].map((th) => getElementText(th).toUpperCase());
+    if (!headers.length) {
       const text = getElementText(table).toUpperCase();
-      return text.includes("CASE") && text.includes("ALTER") && text.includes("SENDER") && text.includes("TITEL");
-    });
+      return text.includes("CASE") && text.includes("ALTER") &&
+        (text.includes("SENDER") || text.includes("TITEL") || text.includes("BETREFF"));
+    }
+
+    if (!headers.some((header) => header.includes("CASE") || header.includes("TICKET"))) return false;
+
+    const has = (terms) => headers.some((header) => terms.some((term) => header.includes(term)));
+    let score = 0;
+    if (has(["ALTER", "AGE"])) score += 1;
+    if (has(["SENDER", "VON", "FROM", "ABSENDER"])) score += 1;
+    if (has(["TITEL", "BETREFF", "SUBJECT"])) score += 1;
+    if (has(["STATUS"])) score += 1;
+    return score >= 2;
+  }
+
+  function findTicketTable(doc = document) {
+    return [...doc.querySelectorAll("table")].find(tableLooksLikeTicketList);
   }
 
   function getIndexes(table) {
     const headers = [...table.querySelectorAll("th")].map((th) => getElementText(th).trim().toUpperCase());
 
     return {
-      case: headers.findIndex((header) => header.includes("CASE")),
-      age: headers.findIndex((header) => header.includes("ALTER")),
-      sender: headers.findIndex((header) => header.includes("SENDER")),
-      title: headers.findIndex((header) => header.includes("TITEL")),
+      case: headers.findIndex((header) => header.includes("CASE") || header.includes("TICKET")),
+      age: headers.findIndex((header) => header.includes("ALTER") || header.includes("AGE")),
+      sender: headers.findIndex((header) => header.includes("SENDER") || header.includes("ABSENDER") || header.includes("VON") || header.includes("FROM")),
+      title: headers.findIndex((header) => header.includes("TITEL") || header.includes("BETREFF") || header.includes("SUBJECT")),
       status: headers.findIndex((header) => header.includes("STATUS")),
-      customer: headers.findIndex((header) => header.includes("KUNDENNUMMER"))
+      customer: headers.findIndex((header) => header.includes("KUNDENNUMMER") || header.includes("CUSTOMER"))
     };
   }
 
@@ -5703,12 +5743,21 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function getTicketId(row, indexes) {
     const cell = row.querySelectorAll("td")[indexes.case];
-    if (!cell) return "";
-    if (cell.dataset.zhTicketId) return cell.dataset.zhTicketId;
+    if (cell?.dataset.zhTicketId) return cell.dataset.zhTicketId;
 
-    const id = getElementText(cell).trim().match(/\b\d{7,}\b/)?.[0] || "";
-    if (id) cell.dataset.zhTicketId = id;
+    let id = "";
+    if (cell) id = getElementText(cell).trim().match(/\b\d{7,}\b/)?.[0] || "";
 
+    if (!id) {
+      const href = decodeURIComponent(
+        row.querySelector('a[href*="TicketID="], a[href*="TicketNumber="]')?.getAttribute("href") || ""
+      );
+      id = href.match(/[?;&](?:TicketID|TicketNumber)=(\d{5,})/i)?.[1] || "";
+    }
+
+    if (!id) id = getElementText(row).match(/\b\d{7,}\b/)?.[0] || "";
+
+    if (id && cell) cell.dataset.zhTicketId = id;
     return id;
   }
 
@@ -5970,6 +6019,21 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   const INFINITE_SCROLL_MAX_FAILURES = 3;
   const INFINITE_SCROLL_RETRY_DELAY_MS = 4000;
+  const INFINITE_SCROLL_FETCH_TIMEOUT_MS = 20000;
+
+  async function fetchTicketListPage(url) {
+    if (typeof AbortController === "undefined") {
+      return fetch(url, { credentials: "include", cache: "no-store" });
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), INFINITE_SCROLL_FETCH_TIMEOUT_MS);
+    try {
+      return await fetch(url, { credentials: "include", cache: "no-store", signal: controller.signal });
+    } finally {
+      window.clearTimeout(timer);
+    }
+  }
 
   async function loadNextTicketListPage() {
     if (infiniteScrollState.loading || infiniteScrollState.done || !infiniteScrollState.nextUrl) return;
@@ -5978,14 +6042,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const tbody = table?.querySelector("tbody");
     if (!table || !tbody) return;
 
+    const loadingPage = getPageNumberFromUrl(infiniteScrollState.nextUrl) ||
+      (infiniteScrollState.currentPage ? infiniteScrollState.currentPage + 1 : 0);
+
     infiniteScrollState.loading = true;
-    setInfiniteScrollStatus("Weitere Tickets werden geladen …", table);
+    setInfiniteScrollStatus(loadingPage ? `Weitere Tickets werden geladen … (Seite ${loadingPage})` : "Weitere Tickets werden geladen …", table);
 
     try {
-      const response = await fetch(infiniteScrollState.nextUrl, {
-        credentials: "include",
-        cache: "no-store"
-      });
+      const response = await fetchTicketListPage(infiniteScrollState.nextUrl);
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -6004,15 +6068,20 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       const indexes = getIndexes(table);
       const nextIndexes = getIndexes(nextTable);
       const existingIds = getExistingTicketIds(table, indexes);
+      // Fallback de-duplication for views whose table has no parseable ticket id:
+      // compare the row text so we still append rows without looping forever.
+      const existingKeys = new Set([...tbody.querySelectorAll("tr")].map((row) => getElementText(row).trim()));
       let addedCount = 0;
 
       [...nextBody.querySelectorAll("tr")].forEach((row) => {
         const ticketId = getTicketId(row, nextIndexes);
-        if (!ticketId || existingIds.has(ticketId)) return;
+        const key = ticketId || getElementText(row).trim();
+        if (!key || (ticketId && existingIds.has(ticketId)) || existingKeys.has(key)) return;
 
         const clone = document.importNode(row, true);
         tbody.appendChild(clone);
-        existingIds.add(ticketId);
+        if (ticketId) existingIds.add(ticketId);
+        existingKeys.add(key);
         addedCount += 1;
       });
 
