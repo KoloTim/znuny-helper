@@ -9,6 +9,17 @@
 
   const releases = [
     {
+      version: "1.5.2",
+      items: [
+        "Neu: \"Priorisierung\" lässt sich jetzt über die Schnellantwort öffnen – als Fenster direkt über dem Ticket, inklusive Prioritäts-Vorlagen und Warten-Schnellauswahl.",
+        "Behoben: Infinite Scroll lief auch auf geöffneten Ticketseiten und konnte dort Zeilen in fremde Tabellen einfügen (Artikelübersicht, Widget \"Verknüpft\") – sichtbar als einzelne fremde Nummer im Artikelbereich und als Eintrag, der auf das Ticket selbst verweist.",
+        "Die Erkennung \"Ticketliste\" ist jetzt aktionsbasiert: Infinite Scroll greift nur noch in echten Listenansichten (Queue-, Sperr-, Besitzer- und Suchansicht).",
+        "Widget-Tabellen (Artikelübersicht, \"Verknüpft\", Ticketinformationen, Ähnliche Tickets, Historie, Anhang, Sidebar) werden nicht mehr als Ticketliste behandelt. Beim Nachladen müssen Aktion, Spaltenaufbau und Zellenzahl übereinstimmen.",
+        "Behoben: \"Ton bei neuem Ticket\" aktualisierte auch in geöffneten Tickets die Tabelle, obwohl ein offenes Ticket unangetastet bleiben soll.",
+        "Behoben: Infinite Scroll blieb nach dem Aus- und wieder Einschalten ohne Seitenneuladen hängen."
+      ]
+    },
+    {
       version: "1.5.1",
       items: [
         "Neu: Vorlagen können jetzt auch Priorität und Auswirkung vorgeben (und aus dem aktuellen Formular übernehmen).",

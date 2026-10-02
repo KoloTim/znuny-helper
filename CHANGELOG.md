@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.5.2] – 2026-10-02
+
+### Added
+- **Versionsanzeige in der Browser-Konsole:** Beim Laden schreibt das Addon `Znuny Helper <Version> aktiv` samt Angabe, ob die aktuelle Seite als Ticketliste behandelt wird (`ticketliste: true/false`). Das macht bei einer Meldung sofort prüfbar, welcher Stand läuft und wie die Seite eingestuft wird – sichtbar nur bei geöffneten Entwicklerwerkzeugen.
+- **Schnellantwort deckt jetzt auch die Priorisierung ab:** „Priorisierung" (Znuny-Aktion `AgentTicketPriority`) öffnet bei aktivierter Schnellantwort als eingebettetes Fenster direkt über dem Ticket und trägt die Überschrift „Priorisierung". Es ist dieselbe Aktionsseite, die auch die Prioritäts-Vorlagen verwenden, daher funktionieren Vorlagen und Warten-Schnellauswahl dort wie auf der normalen Seite. Damit sind „Antworten", „Allen antworten", „Besitzer", „Priorisierung", „Notiz", „Schließen", „Verknüpfen" und „Zusammenfassen" abgedeckt.
+
+### Fixed
+- **Infinite Scroll lief auf Ticketseiten und schrieb fremde Zeilen in Widget-Tabellen:** Die Prüfung „ist das eine Ticketliste?" war rein inhaltlich (`Boolean(findTicketTable())`) und hielt auf einer geöffneten Ticketseite auch die **Artikelübersicht** und das Widget **„Verknüpft"** für eine Ticketliste. Dadurch konnte das Nachladen Zeilen aus einem anderen Zusammenhang in diese Tabellen einfügen – sichtbar als einzelne fremde Nummer im Artikelbereich und als Eintrag im Widget „Verknüpft", der auf das Ticket selbst verweist. Die Prüfung ist jetzt **aktionsbasiert** (nur echte Listenansichten: Queue-, Sperr-, Besitzer-, Verantwortlicher-, Beobachter-, Status- und Suchansicht). Zusätzlich werden Widget-Tabellen strukturell ausgeschlossen (Artikelübersicht, „Verknüpft", Ticket-/Kundeninformation, Ähnliche Tickets, Historie, Anhang, Sidebar), und eine Tabelle muss mindestens zwei Zeilen haben, um als Liste zu gelten.
+- **Beim Nachladen wird jetzt geprüft, dass es wirklich dieselbe Liste ist:** Der Abruf ist auf Ticketlisten-Aktionen beschränkt, Pager-Links außerhalb eines echten Seitenzahl-Bereichs müssen dieselbe Aktion und einen echten Seiten-/Offset-Parameter (`Page=`/`StartHit=`) tragen, und die geladene Seite muss dieselbe Spaltensignatur sowie dieselbe Zellenzahl wie die angezeigte Liste haben. Zeilen mit abweichender Spaltenzahl werden übersprungen. Fremde Inhalte können damit nicht mehr in eine bestehende Tabelle gelangen.
+- **„Ton bei neuem Ticket" aktualisierte auch geöffnete Tickets:** Weil die Listen-Erkennung auch auf Ticketseiten zuschlug, ersetzte die automatische Aktualisierung dort den Inhalt der gefundenen Tabelle, obwohl laut Dokumentation nur Übersichtsseiten aktualisiert werden und ein geöffnetes Ticket unangetastet bleibt. Die Aktualisierung nutzt jetzt dieselbe aktionsbasierte Seitenkennung und vergleicht zusätzlich die Spaltensignatur von angezeigter und geladener Tabelle, bevor sie Zeilen ersetzt.
+- **Infinite Scroll blieb nach Aus- und wieder Einschalten hängen:** Beim Abschalten blieben der Zustand „fertig" und die gemerkte URL erhalten, sodass ein erneutes Einschalten ohne Neuladen der Seite nichts mehr nachlud. Der komplette Ladezustand wird jetzt beim Abschalten zurückgesetzt.
+
 ## [1.5.1] – 2026-09-17
 
 ### Added

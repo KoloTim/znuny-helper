@@ -21,7 +21,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 
 | Punkt | Beschreibung |
 | --- | --- |
-| Aktuelle Version | 1.5.1 (Stand: 17.09.2026) |
+| Aktuelle Version | 1.5.2 (Stand: 02.10.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` |
@@ -81,7 +81,7 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Ton bei neuem Ticket**
 | --- | --- | --- |
 | Navigation | Anhang-Vorschau | PDF, Bilder, Text/Log, E-Mails, DOCX und Tabellen direkt im Ticket anzeigen |
 | Navigation | Popups als Tabs | Znuny-Aktionen übersichtlicher in Tabs öffnen |
-| Navigation | Schnellantwort | Antworten, Besitzer ändern, Notiz, Schließen, Verknüpfen und Zusammenfassen direkt als kleines Fenster über dem Ticket statt in einem neuen Tab |
+| Navigation | Schnellantwort | Antworten, Besitzer ändern, Priorisierung, Notiz, Schließen, Verknüpfen und Zusammenfassen direkt als kleines Fenster über dem Ticket statt in einem neuen Tab |
 | Navigation | Suchergebnisse im neuen Tab | Suchergebnis-Seiten optional in neuem Tab öffnen |
 | Suchen | Ticketnummer-Suche | Globale Suche um ein direktes Ticketnummer-Feld erweitern |
 | Suchen | Ticketinhalt-Suche | Innerhalb eines geöffneten Tickets suchen |
@@ -127,13 +127,13 @@ Vorteile:
 
 ## Schnellantwort
 
-Standardmäßig öffnen "Antworten" und "Allen antworten" (Artikel), "Besitzer" (Personen), "Notiz" (Kommunikation) sowie "Schließen", "Verknüpfen" und "Zusammenfassen" die echte Znuny-Seite der jeweiligen Aktion (inklusive Editor, Signatur und aller Pflichtfelder) – je nach Einstellung **Popups als Tabs** entweder als Popup-Fenster oder als neuer Tab.
+Standardmäßig öffnen "Antworten" und "Allen antworten" (Artikel), "Besitzer" (Personen), "Notiz" (Kommunikation) sowie "Priorisierung", "Schließen", "Verknüpfen" und "Zusammenfassen" die echte Znuny-Seite der jeweiligen Aktion (inklusive Editor, Signatur und aller Pflichtfelder) – je nach Einstellung **Popups als Tabs** entweder als Popup-Fenster oder als neuer Tab.
 
-Ist **Schnellantwort** aktiviert, öffnet sich diese Seite stattdessen als kleines Fenster direkt über dem aktuellen Ticket, ganz ohne Tab- oder Fensterwechsel. Es handelt sich weiterhin um die echte Znuny-Seite, nur eingebettet statt in einem eigenen Tab oder Popup – alle Felder, der Editor und die Validierung funktionieren wie gewohnt, einschließlich Prioritäts-Vorlagen und Warten-Schnellauswahl, sofern die jeweilige Seite entsprechende Felder anzeigt. Das Fenster zeigt dabei je nach Aktion die passende Überschrift (z. B. "Schnellantwort", "Besitzer ändern", "Notiz hinzufügen", "Ticket schließen").
+Ist **Schnellantwort** aktiviert, öffnet sich diese Seite stattdessen als kleines Fenster direkt über dem aktuellen Ticket, ganz ohne Tab- oder Fensterwechsel. Es handelt sich weiterhin um die echte Znuny-Seite, nur eingebettet statt in einem eigenen Tab oder Popup – alle Felder, der Editor und die Validierung funktionieren wie gewohnt, einschließlich Prioritäts-Vorlagen und Warten-Schnellauswahl, sofern die jeweilige Seite entsprechende Felder anzeigt. Das Fenster zeigt dabei je nach Aktion die passende Überschrift (z. B. "Schnellantwort", "Besitzer ändern", "Priorisierung", "Notiz hinzufügen", "Ticket schließen").
 
 Nach dem Absenden schließt sich das Fenster automatisch und das Ticket wird aktualisiert, damit die Änderung sofort sichtbar ist. Über den Knopf **Schließen** oben rechts im Fenster lässt sich das jederzeit verwerfen, ohne etwas zu übermitteln.
 
-> **Wichtig:** Die Funktion ist standardmäßig deaktiviert, weil sie das gewohnte Verhalten grundlegend ändert. Sie betrifft "Antworten", "Allen antworten", "Besitzer", "Notiz", "Schließen", "Verknüpfen" und "Zusammenfassen"; Weiterleiten, Umleiten und andere Aktionen öffnen weiterhin wie bisher. Die zugrunde liegenden Znuny-Aktionsnamen für Schließen/Verknüpfen/Zusammenfassen sind unsere beste Einschätzung der Standard-Bezeichnungen – trifft eine davon an dieser Installation nicht zu, öffnet der jeweilige Link einfach weiterhin wie gewohnt.
+> **Wichtig:** Die Funktion ist standardmäßig deaktiviert, weil sie das gewohnte Verhalten grundlegend ändert. Sie betrifft "Antworten", "Allen antworten", "Besitzer", "Priorisierung", "Notiz", "Schließen", "Verknüpfen" und "Zusammenfassen"; Weiterleiten, Umleiten und andere Aktionen öffnen weiterhin wie bisher. Die zugrunde liegenden Znuny-Aktionsnamen für Schließen/Verknüpfen/Zusammenfassen sind unsere beste Einschätzung der Standard-Bezeichnungen – trifft eine davon an dieser Installation nicht zu, öffnet der jeweilige Link einfach weiterhin wie gewohnt.
 
 ## Suchergebnisse im neuen Tab
 
@@ -250,6 +250,8 @@ Wichtig: Lokale Notizen sind nicht für andere Personen sichtbar und ersetzen ke
 Wenn **Infinite Scroll** aktiv ist, lädt das Addon in Ticketlisten automatisch weitere Ergebnisse nach, sobald man nach unten scrollt.
 
 Das spart Klicks auf weitere Seiten und macht längere Listen flüssiger nutzbar. Die Seitenzahlen bleiben dabei sichtbar, sodass man bei Bedarf auch manuell weiterblättern kann.
+
+Die Funktion greift ausschließlich in echten Ticketlisten: in den Übersichten (z. B. „Gesperrte Tickets"), in der Queue-Ansicht und in Suchergebnissen. In einem geöffneten Ticket bleibt sie bewusst inaktiv, damit Tabellen wie die Artikelübersicht oder „Verknüpft" unverändert bleiben.
 
 Hinweis: Da automatisch weitere Znuny-Seiten abgerufen werden, kann die Funktion bei sehr großen Listen etwas mehr Browser- und Netzwerklast erzeugen.
 
