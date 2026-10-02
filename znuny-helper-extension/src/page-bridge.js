@@ -27,11 +27,11 @@
   }
 
   // Actions the quick-reply drawer knows how to embed: replying (Compose),
-  // changing the owner (Owner), adding a note (Note), closing (Close),
-  // linking (LinkObject) and merging (Merge). Keep this in sync with
-  // QUICK_REPLY_ACTION_PATTERN in content.js.
+  // changing the owner (Owner), setting the priority (Priority), adding a note
+  // (Note), closing (Close), linking (LinkObject) and merging (Merge). Keep this
+  // in sync with QUICK_REPLY_ACTION_PATTERN in content.js.
   function isQuickReplyEligibleUrl(url) {
-    return /Action=(?:AgentTicket(?:Compose|Owner|Note|Close|Merge)|AgentLinkObject)\b/i.test(String(url || ""));
+    return /Action=(?:AgentTicket(?:Compose|Owner|Priority|Note|Close|Merge)|AgentLinkObject)\b/i.test(String(url || ""));
   }
 
   function isZnunyUrl(url) {

@@ -14,14 +14,16 @@
   const SPREADSHEET_PREVIEW_MAX_COLS = 80;
   const TICKET_SOUND_CHECK_INTERVAL_MS = 60000;
   // Actions the quick-reply drawer knows how to embed: replying (Compose),
-  // changing the owner (Owner), adding a note (Note), closing (Close),
-  // linking (LinkObject) and merging (Merge). The Close/Merge/LinkObject
-  // action names are our best-known guess at the standard Znuny naming and
-  // are unverified against this live instance — if one of them doesn't
-  // trigger the drawer, the link simply falls back to its normal tab/popup
-  // behaviour, so this is safe to leave in place either way.
+  // changing the owner (Owner), setting the priority (Priority), adding a note
+  // (Note), closing (Close), linking (LinkObject) and merging (Merge).
+  // AgentTicketPriority is the same action the priority templates already target,
+  // so it is verified on this instance. The Close/Merge/LinkObject action names
+  // are our best-known guess at the standard Znuny naming and are unverified
+  // against this live instance — if one of them doesn't trigger the drawer, the
+  // link simply falls back to its normal tab/popup behaviour, so this is safe to
+  // leave in place either way.
   // Keep this in sync with isQuickReplyEligibleUrl in page-bridge.js.
-  const QUICK_REPLY_ACTION_PATTERN = /Action=(?:AgentTicket(?:Compose|Owner|Note|Close|Merge)|AgentLinkObject)\b/i;
+  const QUICK_REPLY_ACTION_PATTERN = /Action=(?:AgentTicket(?:Compose|Owner|Priority|Note|Close|Merge)|AgentLinkObject)\b/i;
 
   const DEFAULT_SETTINGS = {
     popupTabs: true,
@@ -442,6 +444,12 @@
       if (!freshTable || !freshBody) return;
 
       const freshRows = [...freshBody.querySelectorAll("tr")].map((row) => document.importNode(row, true));
+
+      // Live table and freshly fetched table are resolved independently; they must
+      // describe the same list, otherwise the live table would be filled with rows
+      // that belong to a different table.
+      if (tableColumnSignature(table) !== tableColumnSignature(freshTable)) return;
+
       tbody.replaceChildren(...freshRows);
 
       if (settings.ticketCategories && isCategoryTicketListPage()) {
@@ -5713,12 +5721,43 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     ).length;
   }
 
+  // Widget tables on ticket pages ("Artikeluebersicht", "Verknuepft",
+  // "Ticketinformationen", history, attachments, ...) are structurally similar to a
+  // ticket list. They must never be treated as a paginated ticket list, no matter
+  // how many links they contain.
+  const NON_LIST_WIDGET_PATTERN =
+    /artikel(?:\u00fc|ue)bersicht|verkn(?:\u00fc|ue)pft|linked|ticketinformation|kundeninformation|customerinformation|(?:\u00e4|ae)hnliche|similar|historie|history|anhang|attachment/i;
+
+  function isKnownWidgetTable(table) {
+    if (!table) return true;
+    if (isArticleOverviewTable(table)) return true;
+
+    for (let node = table.parentElement; node && node !== document.documentElement; node = node.parentElement) {
+      const className = typeof node.className === "string" ? node.className : "";
+      if (/(?:^|\s)(?:Sidebar|SidebarColumn|TicketInformation)(?:\s|$)/.test(className)) return true;
+
+      const header = node.querySelector?.(":scope > .Header, :scope > header");
+      if (header && NON_LIST_WIDGET_PATTERN.test(getElementText(header))) return true;
+
+      const heading = node.querySelector?.(":scope > h1, :scope > h2, :scope > h3, :scope > legend");
+      if (heading && NON_LIST_WIDGET_PATTERN.test(getElementText(heading))) return true;
+    }
+
+    return false;
+  }
+
   function tableLooksLikeTicketList(table) {
+    if (isKnownWidgetTable(table)) return false;
+
     // Strong, language-independent signal: several table rows link to the
     // ticket zoom. This also matches the search results table, whose column
     // names differ from the regular ticket list ("Ticket"/"Betreff"/"Von").
     const bodyRows = table.querySelectorAll("tbody tr").length;
     if (bodyRows >= 2 && countTicketRowLinks(table) >= 2) return true;
+
+    // A real ticket list always shows more than one row. Requiring at least two
+    // keeps single-row widget details (e.g. "Verknuepft: Ticket (1)") out.
+    if (bodyRows < 2) return false;
 
     const headers = [...table.querySelectorAll("th")].map((th) => getElementText(th).toUpperCase());
     if (!headers.length) {
@@ -5803,8 +5842,30 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     ].join(" ").toLowerCase();
   }
 
+  // The page check must be action-based, not structural. "Boolean(findTicketTable())"
+  // also matched widget tables on ticket zoom pages - the article overview ("Nr.",
+  // "Sender", "Betreff", "Erstellt") and the "Verknuepft" (linked tickets) widget -
+  // so infinite scroll ran on ordinary ticket pages: it appended rows that belong to
+  // a different context into those widgets and even fetched further "pages" for them.
+  // Only real ticket list views may be extended.
+  const TICKET_LIST_ACTION_PATTERN =
+    /Action=(?:AgentTicket(?:Queue|LockedView|OwnerView|ResponsibleView|WatchView|StatusView|EscalationView|Search)|AgentSearch)\b/i;
+
+  // Used for links that are followed while loading more tickets. Deliberately wider
+  // than TICKET_LIST_ACTION_PATTERN (some views paginate through a dedicated result
+  // action), but it must never allow a ticket page itself - hence the "Zoom" guard.
+  const LIST_PAGER_ACTION_PATTERN = /Action=(?:AgentTicket(?!Zoom\b)|AgentSearch|AgentDashboard)/i;
+
+  function decodeUrlSeparators(url) {
+    return String(url || "").replace(/%3B/gi, ";").replace(/%3D/gi, "=");
+  }
+
+  function getActionFromUrl(url) {
+    return decodeUrlSeparators(url).match(/[?;&]Action=([A-Za-z0-9_]+)/i)?.[1] || "";
+  }
+
   function isTicketListPage() {
-    return Boolean(findTicketTable());
+    return TICKET_LIST_ACTION_PATTERN.test(decodeUrlSeparators(window.location.href));
   }
 
   function isSearchResultsPage() {
@@ -5923,6 +5984,31 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   function urlSupportsPageParam(url) {
     const decoded = String(url || "").replace(/%3B/gi, ";").replace(/%3D/gi, "=");
     return /[?;&]Page=\d+/i.test(decoded);
+  }
+
+  // A "next page" of a ticket list is always the same Znuny action with a different
+  // page/offset parameter. Anything else (a toolbar link, a ticket page, another
+  // view) must never be requested - that is how unrelated content used to be pulled
+  // into widget tables.
+  function isTrustedNextPageUrl(currentUrl, candidateUrl, requirePaginationParam = false) {
+    if (!candidateUrl) return false;
+
+    const current = decodeUrlSeparators(currentUrl);
+    const candidate = decodeUrlSeparators(candidateUrl);
+
+    if (normalizeListUrl(candidate) === normalizeListUrl(current)) return false;
+
+    const currentAction = getActionFromUrl(current);
+    const candidateAction = getActionFromUrl(candidate);
+    if (currentAction && candidateAction && currentAction.toLowerCase() !== candidateAction.toLowerCase()) {
+      return false;
+    }
+
+    if (requirePaginationParam && !urlSupportsPageParam(candidate) && getStartHitFromUrl(candidate) <= 0) {
+      return false;
+    }
+
+    return true;
   }
 
   // Some views (e.g. AgentTicketQueue) paginate by offset instead of page index:
@@ -6044,7 +6130,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       container.querySelectorAll("a").forEach((link) => {
         const href = extractPaginationTarget(link, baseUrl);
         if (!href) return;
-        if (!scoped && !/Action=AgentTicket|Action=AgentSearch|Action=AgentDashboard/i.test(href)) return;
+
+        // Never follow a pager link that leaves the ticket list actions.
+        if (!LIST_PAGER_ACTION_PATTERN.test(decodeUrlSeparators(href))) return;
+
+        // Outside a real pager container every link of the page is a candidate,
+        // including toolbar actions. Accept one only if it stays on the current
+        // action and carries an actual page/offset parameter.
+        if (!scoped && !isTrustedNextPageUrl(baseUrl, href, true)) return;
+
         links.push({
           href,
           text: normalizeText(link.innerText || link.textContent || ""),
@@ -6150,6 +6244,28 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return `${rows.length}#${sample.join("|")}`;
   }
 
+  // Column layout of a table, used to verify that a fetched page really is the
+  // same list. Labels are stripped down to letters/digits so that sort indicators
+  // or icons inside the header cells cannot cause a false mismatch.
+  function tableColumnSignature(table) {
+    if (!table) return "";
+
+    const labels = [...table.querySelectorAll("th")]
+      .map((cell) => normalizeText(getElementText(cell)).toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim())
+      .filter(Boolean);
+    if (labels.length) return labels.join("|");
+
+    const firstRow = table.querySelector("tbody tr");
+    return firstRow ? `${firstRow.children.length} Spalten` : "";
+  }
+
+  // Widest row in the table = the real column count. Group separators ("Heute")
+  // use a single colspan cell, so the maximum is the reliable value.
+  function getTicketRowCellCount(table) {
+    const counts = [...table.querySelectorAll("tbody tr")].map((row) => row.children.length);
+    return counts.length ? Math.max(...counts) : 0;
+  }
+
   async function fetchTicketListPage(url) {
     if (typeof AbortController === "undefined") {
       return fetch(url, { credentials: "include", cache: "no-store" });
@@ -6188,6 +6304,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const expectedPage = (infiniteScrollState.currentPage || 1) + 1;
     const loadingPage = getPageNumberFromUrl(loadUrl) || expectedPage;
 
+    // Final safety check before touching the network: only ever request a ticket
+    // list action, never a ticket page or an unrelated action.
+    if (!LIST_PAGER_ACTION_PATTERN.test(decodeUrlSeparators(loadUrl))) {
+      infiniteScrollState.done = true;
+      infiniteScrollState.nextUrl = "";
+      setInfiniteScrollStatus("", table);
+      return;
+    }
+
     // Requesting a page we already loaded means the server is ignoring the page
     // parameter and would keep serving the same content - stop instead of looping.
     if (loadingPage && infiniteScrollState.loadedPages.has(loadingPage)) {
@@ -6221,8 +6346,19 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       const fingerprintSeen = Boolean(fingerprint) && infiniteScrollState.seenFingerprints.has(fingerprint);
       if (fingerprint) infiniteScrollState.seenFingerprints.add(fingerprint);
 
+      // The fetched page must still be the same list: same columns, same column
+      // count. Otherwise the rows would be appended into a table they do not
+      // belong to - exactly how unrelated rows ended up in widget tables.
+      if (tableColumnSignature(table) !== tableColumnSignature(nextTable)) {
+        infiniteScrollState.done = true;
+        infiniteScrollState.nextUrl = "";
+        setInfiniteScrollStatus("Weitere Tickets konnten nicht automatisch geladen werden.", table);
+        return;
+      }
+
       const indexes = getIndexes(table);
       const nextIndexes = getIndexes(nextTable);
+      const expectedCellCount = getTicketRowCellCount(table);
       const seenIds = infiniteScrollState.seenIds;
       getExistingTicketIds(table, indexes).forEach((ticketId) => seenIds.add(ticketId));
 
@@ -6230,6 +6366,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
       if (!fingerprintSeen) {
         [...nextBody.querySelectorAll("tr")].forEach((row) => {
+          // Rows must have the column count of the live list; anything else
+          // (partially rendered or foreign rows) is skipped.
+          if (expectedCellCount && row.children.length !== expectedCellCount) return;
+
           const ticketId = getTicketId(row, nextIndexes);
           // Only append rows with a stable, unique ticket id. Rows without an id
           // cannot be de-duplicated reliably and would be appended over and over.
@@ -6345,6 +6485,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           nextUrl = replaceStartHit(currentUrl, getStartHitFromUrl(currentUrl) + startHitStep);
         }
       }
+      if (nextUrl && !isTrustedNextPageUrl(currentUrl, nextUrl)) nextUrl = "";
       if (infiniteScrollState.pollTimer) window.clearInterval(infiniteScrollState.pollTimer);
       infiniteScrollState = {
         enabledUrl: currentUrl,
@@ -6378,6 +6519,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           nextUrl = replaceStartHit(currentUrl, getStartHitFromUrl(currentUrl) + infiniteScrollState.startHitStep);
         }
       }
+      if (nextUrl && !isTrustedNextPageUrl(currentUrl, nextUrl)) nextUrl = "";
       if (nextUrl) {
         infiniteScrollState.currentPage = startPage;
         infiniteScrollState.nextUrl = nextUrl;
@@ -6411,13 +6553,23 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     document.getElementById("zh-infinite-scroll-status")?.remove();
     removeStyle("zh-infinite-scroll-style");
     if (infiniteScrollState.pollTimer) window.clearInterval(infiniteScrollState.pollTimer);
+    // Reset the complete loading state. Leaving "enabledUrl" behind made the
+    // re-enable path skip its initialisation, and a leftover "done" flag kept the
+    // feature stuck on "Alle Tickets geladen." after off/on without a reload.
+    infiniteScrollState.enabledUrl = "";
     infiniteScrollState.nextUrl = "";
-    infiniteScrollState.done = true;
+    infiniteScrollState.done = false;
     infiniteScrollState.hasLoadedPage = false;
     infiniteScrollState.currentPage = 0;
     infiniteScrollState.failCount = 0;
     infiniteScrollState.nextRetryAt = 0;
     infiniteScrollState.pollTimer = 0;
+    infiniteScrollState.seenIds = new Set();
+    infiniteScrollState.loadedPages = new Set();
+    infiniteScrollState.seenFingerprints = new Set();
+    infiniteScrollState.appendedTotal = 0;
+    infiniteScrollState.pageParamSupported = false;
+    infiniteScrollState.startHitStep = 0;
   }
 
   function autoDetectCategory(row, indexes) {
@@ -7172,6 +7324,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function getQuickReplyTitle(url) {
     if (/Action=AgentTicketOwner\b/i.test(url)) return "Besitzer ändern";
+    if (/Action=AgentTicketPriority\b/i.test(url)) return "Priorisierung";
     if (/Action=AgentTicketNote\b/i.test(url)) return "Notiz hinzufügen";
     if (/Action=AgentTicketClose\b/i.test(url)) return "Ticket schließen";
     if (/Action=AgentTicketMerge\b/i.test(url)) return "Tickets zusammenfassen";
@@ -7665,6 +7818,13 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   async function init() {
+    // Diagnostic aid: shows at a glance which build is running and whether the
+    // current page is treated as a ticket list. Only visible with DevTools open.
+    console.info(
+      `Znuny Helper ${api.runtime.getManifest?.().version || "?"} aktiv`,
+      { seite: window.location.href, ticketliste: isTicketListPage() }
+    );
+
     const storedSettings = await syncGet("local", { [SETTINGS_KEY]: DEFAULT_SETTINGS });
     settings = { ...DEFAULT_SETTINGS, ...(storedSettings[SETTINGS_KEY] || {}) };
     consumeAutoCloseFlag();
