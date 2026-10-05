@@ -675,6 +675,201 @@ check("Abschalten entfernt die Markierung",
   extractDeclaration("disableDirectArticleActions").includes("unmarkArticleActionLabels()"),
   true);
 
+console.log("\n13) Suchverlauf: Eintraege, Reihenfolge und Beschriftung");
+
+const HISTORY_LIMIT = Number(source.match(/const SEARCH_HISTORY_LIMIT = (\d+);/)[1]);
+const HISTORY_VISIBLE = Number(source.match(/const SEARCH_HISTORY_VISIBLE = (\d+);/)[1]);
+const historyFunctionNames = [
+  "searchHistorySignature",
+  "normalizeSearchHistoryEntry",
+  "normalizeSearchHistory",
+  "getSearchHistory",
+  "writeSearchHistory",
+  "saveSearchHistoryRun",
+  "removeSearchHistoryEntry",
+  "clearSearchHistory",
+  "getSearchHistoryValues",
+  "formatSearchHistoryTime",
+  "describeSearchHistoryRange",
+  "describeSearchHistoryEntry",
+  "describeSearchHistoryMeta"
+];
+const historyApi = new Function(`
+  ${source.match(/const SEARCH_HISTORY_KEY = "[^"]+";/)[0]}
+  ${source.match(/const SEARCH_HISTORY_LIMIT = \d+;/)[0]}
+  ${source.match(/const SEARCH_HISTORY_VISIBLE = \d+;/)[0]}
+  let searchHistoryCache = { entries: [] };
+  const syncSet = () => {};
+  const renderSearchHistoryBlock = () => {};
+  const refreshSearchHistorySuggestions = () => {};
+  ${historyFunctionNames.map(extractDeclaration).join("\n")}
+  return {
+    ${historyFunctionNames.join(", ")},
+    setCache(value) { searchHistoryCache = value; },
+    getCache() { return searchHistoryCache; }
+  };
+`)();
+
+check("Verlauf kennt hoechstens so viele Eintraege wie erlaubt",
+  historyApi.normalizeSearchHistory({
+    entries: Array.from({ length: HISTORY_LIMIT + 25 }, (_, index) => ({ fulltext: `Suche ${index}` }))
+  }).entries.length,
+  HISTORY_LIMIT);
+check("sichtbare Eintraege sind begrenzt", HISTORY_VISIBLE <= HISTORY_LIMIT, true);
+
+// Migration: die alte Fassung speicherte zwei Listen aus reinen Texten.
+const migratedHistory = historyApi.normalizeSearchHistory({
+  fulltext: ["Rechnung", "Server"],
+  ticketNumber: ["86129100"]
+});
+check("alte Listen werden zu Eintraegen",
+  migratedHistory.entries.map((entry) => [entry.fulltext, entry.ticketNumber]),
+  [["Rechnung", ""], ["Server", ""], ["", "86129100"]]);
+check("alte Eintraege haben keinen Zeitstempel", migratedHistory.entries[0].at, 0);
+check("reine Textliste wird ebenfalls uebernommen",
+  historyApi.normalizeSearchHistory(["Alt"]).entries.map((entry) => entry.fulltext),
+  ["Alt"]);
+
+const duplicateHistory = historyApi.normalizeSearchHistory({
+  entries: [
+    { fulltext: "Rechnung", ticketNumber: "86129100", range: [1, 9, 2026, 1, 10, 2026], rangeLabel: "Letzter Monat", at: 1000 },
+    { fulltext: "rechnung", ticketNumber: "86129100", range: [1, 9, 2026, 1, 10, 2026], rangeLabel: "Letzter Monat", at: 2000 },
+    { fulltext: "   " },
+    null
+  ]
+});
+check("dieselbe Suche wird zusammengefasst", duplicateHistory.entries.length, 1);
+check("Zeitraum und Label bleiben erhalten",
+  [duplicateHistory.entries[0].rangeLabel, duplicateHistory.entries[0].range.length],
+  ["Letzter Monat", 6]);
+check("leere Eintraege fallen weg",
+  historyApi.normalizeSearchHistory({ entries: [{ fulltext: "  " }, {}] }).entries,
+  []);
+check("Suchbegriff wird gekuerzt",
+  historyApi.normalizeSearchHistoryEntry({ fulltext: "x".repeat(400) }).fulltext.length,
+  120);
+
+check("Signatur ignoriert Gross-/Kleinschreibung",
+  historyApi.searchHistorySignature({ fulltext: "Rechnung" }) === historyApi.searchHistorySignature({ fulltext: "rechnung" }),
+  true);
+check("Signatur unterscheidet den Zeitraum",
+  historyApi.searchHistorySignature({ fulltext: "a", range: [1, 1, 2026, 2, 1, 2026] }) ===
+    historyApi.searchHistorySignature({ fulltext: "a" }),
+  false);
+
+historyApi.setCache({ entries: [] });
+historyApi.saveSearchHistoryRun({ fulltext: "Erste" });
+historyApi.saveSearchHistoryRun({ fulltext: "Zweite", range: [1, 9, 2026, 1, 10, 2026], rangeLabel: "Letzter Monat" });
+historyApi.saveSearchHistoryRun({ fulltext: "Erste" });
+check("neueste Suche steht oben",
+  historyApi.getCache().entries.map((entry) => entry.fulltext),
+  ["Erste", "Zweite"]);
+check("jede Suche bekommt einen Zeitstempel",
+  historyApi.getCache().entries.every((entry) => entry.at > 0),
+  true);
+check("Zeitraum wird mitgespeichert",
+  historyApi.getCache().entries[1].range.join(","),
+  "1,9,2026,1,10,2026");
+
+historyApi.saveSearchHistoryRun({});
+historyApi.saveSearchHistoryRun({ fulltext: "   " });
+check("leere Suche wird nicht gespeichert", historyApi.getCache().entries.length, 2);
+
+historyApi.removeSearchHistoryEntry(historyApi.getCache().entries[0]);
+check("einzelner Eintrag laesst sich entfernen",
+  historyApi.getCache().entries.map((entry) => entry.fulltext),
+  ["Zweite"]);
+
+historyApi.setCache({ entries: [] });
+for (let index = 0; index < HISTORY_LIMIT + 5; index += 1) {
+  historyApi.saveSearchHistoryRun({ fulltext: `Suche ${index}` });
+}
+check("Verlauf waechst nicht ueber die Grenze",
+  historyApi.getCache().entries.length,
+  HISTORY_LIMIT);
+check("die aeltesten Suchen fallen heraus",
+  historyApi.getCache().entries[0].fulltext,
+  `Suche ${HISTORY_LIMIT + 4}`);
+
+historyApi.clearSearchHistory();
+check("Verlauf leeren", historyApi.getCache().entries, []);
+
+historyApi.setCache({
+  entries: [
+    { fulltext: "B" },
+    { fulltext: "A" },
+    { fulltext: "B" },
+    { ticketNumber: "86129100" },
+    { ticketNumber: "86126767" },
+    { ticketNumber: "86129100" }
+  ]
+});
+check("Feldvorschlaege sind eindeutig und in Reihenfolge",
+  historyApi.getSearchHistoryValues("fulltext"),
+  ["B", "A"]);
+check("Ticketnummer-Vorschlaege sind eindeutig",
+  historyApi.getSearchHistoryValues("ticketNumber"),
+  ["86129100", "86126767"]);
+
+const historyNow = Date.now();
+check("Zeitangabe: gerade eben", historyApi.formatSearchHistoryTime(historyNow), "gerade eben");
+check("Zeitangabe: vor Minuten", historyApi.formatSearchHistoryTime(historyNow - 5 * 60000), "vor 5 Min.");
+
+const yesterdayNoon = new Date();
+yesterdayNoon.setDate(yesterdayNoon.getDate() - 1);
+yesterdayNoon.setHours(12, 30, 0, 0);
+check("Zeitangabe: gestern mit Uhrzeit",
+  historyApi.formatSearchHistoryTime(yesterdayNoon.getTime()),
+  "gestern 12:30");
+
+const olderSearch = new Date();
+olderSearch.setDate(olderSearch.getDate() - 20);
+olderSearch.setHours(9, 5, 0, 0);
+const padNumber = (value) => String(value).padStart(2, "0");
+check("Zeitangabe: aeltere Suche mit Datum",
+  historyApi.formatSearchHistoryTime(olderSearch.getTime()),
+  `${padNumber(olderSearch.getDate())}.${padNumber(olderSearch.getMonth() + 1)}.${olderSearch.getFullYear()} 09:05`);
+check("Zeitangabe fehlt ohne Zeitstempel", historyApi.formatSearchHistoryTime(0), "");
+
+check("Eintrag mit Suchbegriff und Ticketnummer",
+  historyApi.describeSearchHistoryEntry({ fulltext: "Rechnung", ticketNumber: "86129100" }),
+  "Volltext \u201eRechnung\u201c + Ticketnummer 86129100");
+check("Eintrag nur mit Ticketnummer",
+  historyApi.describeSearchHistoryEntry({ ticketNumber: "86129100" }),
+  "Ticketnummer 86129100");
+check("Eintrag ohne Suchbegriff",
+  historyApi.describeSearchHistoryEntry({ range: [1, 9, 2026, 1, 10, 2026] }),
+  "Zeitraum-Suche");
+check("Zeitraum aus den Werten",
+  historyApi.describeSearchHistoryRange({ range: [5, 9, 2026, 4, 10, 2026] }),
+  "05.09.2026 \u2013 04.10.2026");
+check("Zeitraum-Label hat Vorrang",
+  historyApi.describeSearchHistoryRange({ range: [5, 9, 2026, 4, 10, 2026], rangeLabel: "Letzter Monat" }),
+  "Letzter Monat");
+check("ohne Zeitraum keine Angabe", historyApi.describeSearchHistoryRange({}), "");
+check("Meta verbindet Zeitraum und Zeit",
+  historyApi.describeSearchHistoryMeta({ rangeLabel: "Letzte Woche", at: historyNow }),
+  "Letzte Woche \u00b7 gerade eben");
+
+check("Verlauf haengt im Suchformular",
+  source.includes("getOrCreateSearchHistoryBlock(form, primaryBlock)"),
+  true);
+check("Abschalten entfernt den Verlauf",
+  extractDeclaration("restoreTicketNumberSearch").includes("zh-search-history-block"),
+  true);
+check("Suche wird mit Zeitraum gespeichert",
+  extractDeclaration("rememberSearchRun").includes("readSearchDateRangeValues"),
+  true);
+check("Zeitraum wird nur nach Anfassen gespeichert",
+  extractDeclaration("bindSearchRangeTouchedTracking").includes("zhSearchRangeTouched"),
+  true);
+check("Verlauf liegt im Addon-Speicher",
+  source.includes('const SEARCH_HISTORY_KEY = "znunyHelperSearchHistory"'),
+  true);
+check("Styles fuer den Verlauf vorhanden",
+  Boolean(source.includes(".zh-search-history-apply") && source.includes('.zh-search-history-block[data-empty="1"]')),
+  true);
+
 console.log(`\nErgebnis: ${passed} bestanden, ${failures.length} fehlgeschlagen`);
 if (failures.length) {
   failures.forEach((failure) => console.log(`  - ${failure}`));

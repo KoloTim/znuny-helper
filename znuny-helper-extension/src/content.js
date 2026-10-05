@@ -4,6 +4,8 @@
   const SETTINGS_KEY = "znunyHelperSettings";
   const TICKET_STATE_KEY = "znunyHelperTicketState";
   const SEARCH_HISTORY_KEY = "znunyHelperSearchHistory";
+  const SEARCH_HISTORY_LIMIT = 15;
+  const SEARCH_HISTORY_VISIBLE = 8;
   const CATEGORY_CONFIG_KEY = "znunyHelperCategoryConfig";
   const PRIORITY_TEMPLATE_CONFIG_KEY = "znunyHelperPriorityTemplateConfig";
   const TICKET_SOUND_CONFIG_KEY = "znunyHelperTicketSoundConfig";
@@ -2438,6 +2440,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     }
 
     ensureSearchDateRangeQuickButtons(form, primaryBlock);
+    getOrCreateSearchHistoryBlock(form, primaryBlock);
 
     moveKnownSearchSectionsAfterPrimary(form, primaryBlock);
     hideOldUsedFilterScaffold(form);
@@ -2459,6 +2462,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   function restoreTicketNumberSearch() {
     const form = findVisibleSearchForm();
     const attr = findSearchAttributeControl(form);
+
+    document.getElementById("zh-search-history-block")?.remove();
+    document.querySelectorAll(".zh-search-history").forEach((element) => element.remove());
+
     if (!attr?.__znunyHelperOriginalOptions) return;
 
     restoreSearchAttributeOptions(attr, true);
@@ -2709,11 +2716,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     let filled = false;
 
     containers.forEach((container) => {
-      const selects = [...container.querySelectorAll("select")]
-        .filter((select) => select.id !== "Attribute")
-        .filter((select) => !select.closest("#zh-search-primary-fields"))
-        .filter((select) => !select.disabled)
-        .filter((select) => [...select.options].some((option) => Number.isFinite(optionNumber(option))));
+      const selects = getTicketTimeRangeSelects(container);
 
       if (selects.length < 6) return;
 
@@ -2723,6 +2726,72 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     });
 
     return filled || containers.length > 0;
+  }
+
+  function getTicketTimeRangeSelects(container) {
+    return [...(container?.querySelectorAll?.("select") || [])]
+      .filter((select) => select.id !== "Attribute")
+      .filter((select) => !select.closest("#zh-search-primary-fields"))
+      .filter((select) => !select.disabled)
+      .filter((select) => [...select.options].some((option) => Number.isFinite(optionNumber(option))));
+  }
+
+  // The six dropdowns of the "Last ticket change" range - the same ones the Zeitraum
+  // buttons fill. The search history remembers their values so a past search can be
+  // restored with its period.
+  function getSearchDateRangeSelects(form) {
+    const containers = findDefaultTicketTimeFilterContainers(form);
+
+    for (const container of containers) {
+      const selects = getTicketTimeRangeSelects(container);
+      if (selects.length >= 6) return selects.slice(0, 6);
+    }
+
+    return [];
+  }
+
+  function readSearchDateRangeValues(form) {
+    const selects = getSearchDateRangeSelects(form);
+    if (selects.length < 6) return null;
+
+    const values = selects.map((select) => {
+      const selected = select.options?.[select.selectedIndex] ||
+        [...(select.options || [])].find((option) => option.selected);
+      return optionNumber(selected);
+    });
+
+    return values.every((value) => Number.isFinite(value)) ? values : null;
+  }
+
+  function applySearchDateRangeValues(form, values) {
+    if (!Array.isArray(values) || values.length < 6) return false;
+
+    const selects = getSearchDateRangeSelects(form);
+    if (selects.length < 6) return false;
+
+    let applied = false;
+    values.slice(0, 6).forEach((value, index) => {
+      applied = selectDateNumber(selects[index], Number(value)) || applied;
+    });
+
+    return applied;
+  }
+
+  // Only a period the agent actually touched belongs in the history; the default
+  // values of those dropdowns would otherwise show up on every entry.
+  function bindSearchRangeTouchedTracking(form) {
+    if (!form || form.dataset.zhSearchRangeTracked === "1") return;
+
+    const selects = getSearchDateRangeSelects(form);
+    if (!selects.length) return;
+
+    form.dataset.zhSearchRangeTracked = "1";
+    selects.forEach((select) => {
+      select.addEventListener("change", () => {
+        form.dataset.zhSearchRangeTouched = "1";
+        delete form.dataset.zhSearchRangeLabel;
+      });
+    });
   }
 
   function fillDefaultTicketTimeRange(form) {
@@ -2781,6 +2850,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           stopEvent(event);
           const activeForm = findVisibleSearchForm() || form;
           applySearchDateRangePreset(activeForm, preset);
+          // After applying, so the change events of the dropdowns cannot clear it.
+          activeForm.dataset.zhSearchRangeTouched = "1";
+          activeForm.dataset.zhSearchRangeLabel = preset.label;
+          renderSearchHistoryBlock();
         });
         buttons.appendChild(button);
       });
@@ -2927,15 +3000,58 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     });
   }
 
-  let searchHistoryCache = { fulltext: [], ticketNumber: [] };
+  let searchHistoryCache = { entries: [] };
   let searchHistoryLoaded = false;
 
-  function normalizeSearchHistory(value) {
-    const clean = (list) => (Array.isArray(list)
-      ? list.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 10)
-      : []);
+  function searchHistorySignature(entry) {
+    const range = Array.isArray(entry?.range) ? entry.range.join("-") : "";
+    return [entry?.fulltext || "", entry?.ticketNumber || "", range].join("|").toLowerCase();
+  }
 
-    return { fulltext: clean(value?.fulltext), ticketNumber: clean(value?.ticketNumber) };
+  function normalizeSearchHistoryEntry(raw) {
+    const entry = {
+      fulltext: String(raw?.fulltext || "").trim().slice(0, 120),
+      ticketNumber: String(raw?.ticketNumber || "").trim().slice(0, 60),
+      range: Array.isArray(raw?.range) && raw.range.length >= 6
+        ? raw.range.slice(0, 6).map((value) => Math.trunc(Number(value)) || 0)
+        : null,
+      rangeLabel: String(raw?.rangeLabel || "").trim().slice(0, 40),
+      at: Number.isFinite(Number(raw?.at)) ? Number(raw.at) : 0
+    };
+
+    if (!entry.fulltext && !entry.ticketNumber && !entry.range) return null;
+
+    return entry;
+  }
+
+  // Accepts the current shape ({ entries: [...] }), the older per-field string lists
+  // ({ fulltext: [...], ticketNumber: [...] }) and a bare list of strings, so an
+  // existing history is carried over instead of being dropped.
+  function normalizeSearchHistory(value) {
+    const entries = [];
+    const seen = new Set();
+
+    const push = (entry) => {
+      const clean = normalizeSearchHistoryEntry(entry);
+      if (!clean) return;
+
+      const signature = searchHistorySignature(clean);
+      if (seen.has(signature)) return;
+
+      seen.add(signature);
+      entries.push(clean);
+    };
+
+    if (Array.isArray(value?.entries)) {
+      value.entries.forEach(push);
+    } else if (Array.isArray(value?.fulltext) || Array.isArray(value?.ticketNumber)) {
+      [...(value.fulltext || [])].forEach((item) => push({ fulltext: item }));
+      [...(value.ticketNumber || [])].forEach((item) => push({ ticketNumber: item }));
+    } else if (Array.isArray(value)) {
+      value.forEach((item) => push({ fulltext: item }));
+    }
+
+    return { entries: entries.slice(0, SEARCH_HISTORY_LIMIT) };
   }
 
   // The history used to live in the page's localStorage - readable by anything on
@@ -2946,7 +3062,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const stored = await syncGet("local", { [SEARCH_HISTORY_KEY]: null });
     let history = normalizeSearchHistory(stored[SEARCH_HISTORY_KEY]);
 
-    if (!stored[SEARCH_HISTORY_KEY]) {
+    if (!stored[SEARCH_HISTORY_KEY] || !history.entries.length) {
       let legacy = null;
       try {
         legacy = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "null");
@@ -2954,8 +3070,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         legacy = null;
       }
 
-      if (legacy) {
-        history = normalizeSearchHistory(legacy);
+      const migrated = legacy ? normalizeSearchHistory(legacy) : null;
+      if (migrated?.entries.length) {
+        history = migrated;
         await syncSet("local", { [SEARCH_HISTORY_KEY]: history });
         try {
           localStorage.removeItem(SEARCH_HISTORY_KEY);
@@ -2974,19 +3091,235 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return searchHistoryCache;
   }
 
-  function saveSearchHistoryEntry(type, value) {
-    const clean = String(value || "").trim();
-    if (!clean) return;
+  function writeSearchHistory(entries) {
+    searchHistoryCache = { entries: entries.slice(0, SEARCH_HISTORY_LIMIT) };
+    syncSet("local", { [SEARCH_HISTORY_KEY]: searchHistoryCache });
+    renderSearchHistoryBlock();
+    refreshSearchHistorySuggestions();
+  }
 
-    const history = getSearchHistory();
-    const next = {
-      fulltext: history.fulltext.slice(),
-      ticketNumber: history.ticketNumber.slice()
-    };
-    next[type] = [clean, ...(next[type] || []).filter((item) => item !== clean)].slice(0, 10);
+  // One entry per executed search: search term, ticket number and - when the agent
+  // picked one - the period. Searching the same thing again moves the entry up.
+  function saveSearchHistoryRun(run) {
+    const entry = normalizeSearchHistoryEntry({
+      fulltext: run?.fulltext,
+      ticketNumber: run?.ticketNumber,
+      range: run?.range,
+      rangeLabel: run?.rangeLabel,
+      at: Date.now()
+    });
 
-    searchHistoryCache = next;
-    syncSet("local", { [SEARCH_HISTORY_KEY]: next });
+    if (!entry) return;
+
+    const signature = searchHistorySignature(entry);
+    const kept = getSearchHistory().entries.filter((existing) => searchHistorySignature(existing) !== signature);
+    writeSearchHistory([entry, ...kept]);
+  }
+
+  function removeSearchHistoryEntry(entry) {
+    const signature = searchHistorySignature(entry);
+    writeSearchHistory(getSearchHistory().entries.filter((existing) => searchHistorySignature(existing) !== signature));
+  }
+
+  function clearSearchHistory() {
+    writeSearchHistory([]);
+  }
+
+  function getSearchHistoryValues(type) {
+    const key = type === "ticketNumber" ? "ticketNumber" : "fulltext";
+
+    return getSearchHistory().entries
+      .map((entry) => entry[key])
+      .filter(Boolean)
+      .filter((value, index, all) => all.indexOf(value) === index)
+      .slice(0, 5);
+  }
+
+  function formatSearchHistoryTime(at) {
+    const stamp = Number(at);
+    if (!Number.isFinite(stamp) || stamp <= 0) return "";
+
+    const then = new Date(stamp);
+    const now = new Date();
+    const minutes = Math.floor((now.getTime() - stamp) / 60000);
+    const clock = `${String(then.getHours()).padStart(2, "0")}:${String(then.getMinutes()).padStart(2, "0")}`;
+
+    if (minutes < 1) return "gerade eben";
+    if (minutes < 60) return `vor ${minutes} Min.`;
+    if (then.toDateString() === now.toDateString()) return `heute ${clock}`;
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (then.toDateString() === yesterday.toDateString()) return `gestern ${clock}`;
+
+    const day = String(then.getDate()).padStart(2, "0");
+    const month = String(then.getMonth() + 1).padStart(2, "0");
+    return `${day}.${month}.${then.getFullYear()} ${clock}`;
+  }
+
+  function describeSearchHistoryRange(entry) {
+    if (entry?.rangeLabel) return entry.rangeLabel;
+    if (!Array.isArray(entry?.range) || entry.range.length < 6) return "";
+
+    const [day1, month1, year1, day2, month2, year2] = entry.range;
+    const values = [day1, month1, year1, day2, month2, year2];
+    if (!values.every((value) => Number.isFinite(value) && value > 0)) return "";
+
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${pad(day1)}.${pad(month1)}.${year1} – ${pad(day2)}.${pad(month2)}.${year2}`;
+  }
+
+  function describeSearchHistoryEntry(entry) {
+    const parts = [];
+    if (entry?.fulltext) parts.push(`Volltext \u201e${entry.fulltext}\u201c`);
+    if (entry?.ticketNumber) parts.push(`Ticketnummer ${entry.ticketNumber}`);
+    if (!parts.length) parts.push("Zeitraum-Suche");
+
+    return parts.join(" + ");
+  }
+
+  function describeSearchHistoryMeta(entry) {
+    return [describeSearchHistoryRange(entry), formatSearchHistoryTime(entry?.at)]
+      .filter(Boolean)
+      .join(" \u00b7 ");
+  }
+
+  function renderSearchHistoryBlock() {
+    const block = document.getElementById("zh-search-history-block");
+    if (!block) return;
+
+    const list = block.querySelector(".zh-search-history-list");
+    if (!list) return;
+
+    const entries = getSearchHistory().entries.slice(0, SEARCH_HISTORY_VISIBLE);
+    list.replaceChildren();
+
+    entries.forEach((entry) => {
+      const item = document.createElement("li");
+      item.className = "zh-search-history-entry";
+
+      const apply = document.createElement("button");
+      apply.type = "button";
+      apply.className = "zh-search-history-apply";
+      apply.title = "Diese Suche in die Felder übernehmen";
+
+      const text = document.createElement("span");
+      text.className = "zh-search-history-text";
+      text.textContent = describeSearchHistoryEntry(entry);
+      apply.appendChild(text);
+
+      const meta = describeSearchHistoryMeta(entry);
+      if (meta) {
+        const metaElement = document.createElement("span");
+        metaElement.className = "zh-search-history-meta";
+        metaElement.textContent = meta;
+        apply.appendChild(metaElement);
+      }
+
+      apply.addEventListener("click", (event) => {
+        stopEvent(event);
+        applySearchHistoryEntry(entry);
+      });
+      item.appendChild(apply);
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "zh-search-history-remove";
+      remove.title = "Eintrag entfernen";
+      remove.setAttribute("aria-label", "Eintrag entfernen");
+      remove.textContent = "\u00d7";
+      remove.addEventListener("click", (event) => {
+        stopEvent(event);
+        removeSearchHistoryEntry(entry);
+      });
+      item.appendChild(remove);
+
+      list.appendChild(item);
+    });
+
+    block.dataset.empty = entries.length ? "0" : "1";
+
+    const clear = block.querySelector(".zh-search-history-clear");
+    if (clear) clear.hidden = entries.length === 0;
+  }
+
+  // Puts a past search back into the fields - including the period - and leaves
+  // starting it to the agent, because the remaining filters (templates, attributes)
+  // are not part of the entry.
+  function applySearchHistoryEntry(entry) {
+    const form = findVisibleSearchForm();
+    if (!form) return;
+
+    const fulltextControl = ensureFulltextControl(form);
+    const ticketNumberControl = ensureTicketNumberControl(form);
+
+    if (fulltextControl) {
+      fulltextControl.value = entry.fulltext || "";
+      delete fulltextControl.dataset.zhAutoWildcard;
+      fulltextControl.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
+    if (ticketNumberControl) {
+      ticketNumberControl.value = entry.ticketNumber || "";
+      ticketNumberControl.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
+    if (entry.range) {
+      applySearchDateRangeValues(form, entry.range);
+      form.dataset.zhSearchRangeTouched = "1";
+      if (entry.rangeLabel) form.dataset.zhSearchRangeLabel = entry.rangeLabel;
+      else delete form.dataset.zhSearchRangeLabel;
+    }
+
+    syncTicketNumberFulltextFallback(fulltextControl, ticketNumberControl);
+    refreshSearchHistorySuggestions();
+
+    const focusTarget = entry.ticketNumber && !entry.fulltext ? ticketNumberControl : fulltextControl;
+    focusTarget?.focus?.();
+  }
+
+  function getOrCreateSearchHistoryBlock(form, primaryBlock) {
+    let block = document.getElementById("zh-search-history-block");
+
+    if (!block) {
+      block = document.createElement("div");
+      block.id = "zh-search-history-block";
+      block.className = "zh-search-history-block";
+
+      const head = document.createElement("div");
+      head.className = "zh-search-history-head";
+
+      const title = document.createElement("span");
+      title.className = "zh-search-history-title";
+      title.textContent = "Suchverlauf";
+      head.appendChild(title);
+
+      const clear = document.createElement("button");
+      clear.type = "button";
+      clear.className = "zh-search-history-clear";
+      clear.textContent = "Verlauf leeren";
+      clear.addEventListener("click", (event) => {
+        stopEvent(event);
+        clearSearchHistory();
+      });
+      head.appendChild(clear);
+
+      block.appendChild(head);
+
+      const list = document.createElement("ul");
+      list.className = "zh-search-history-list";
+      block.appendChild(list);
+
+      const empty = document.createElement("p");
+      empty.className = "zh-search-history-empty";
+      empty.textContent = "Noch kein Suchverlauf – ausgeführte Suchen erscheinen hier.";
+      block.appendChild(empty);
+    }
+
+    primaryBlock.appendChild(block);
+    bindSearchRangeTouchedTracking(form);
+    renderSearchHistoryBlock();
+    return block;
   }
 
   function attachSearchHistory(control, type) {
@@ -2994,7 +3327,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const listId = `zh-${type}-history`;
     let list = document.getElementById(listId);
-    const history = getSearchHistory()[type] || [];
+    const history = getSearchHistoryValues(type);
 
     if (!list) {
       list = document.createElement("datalist");
@@ -3018,7 +3351,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (!row) return;
 
     let historyWrap = row.querySelector(`.zh-search-history[data-history-type="${type}"]`);
-    const history = (getSearchHistory()[type] || []).slice(0, 5);
+    const history = getSearchHistoryValues(type);
 
     if (!historyWrap) {
       historyWrap = document.createElement("div");
@@ -3032,7 +3365,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = value;
-      button.title = value;
+      button.title = `\u201e${value}\u201c in das Feld übernehmen`;
       button.addEventListener("click", (event) => {
         stopEvent(event);
         control.value = value;
@@ -3043,6 +3376,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     });
 
     historyWrap.hidden = history.length === 0;
+  }
+
+  function refreshSearchHistorySuggestions() {
+    const controls = getVisibleSearchControls();
+    if (!controls) return;
+
+    if (controls.fulltextControl) attachSearchHistory(controls.fulltextControl, "fulltext");
+    if (controls.ticketNumberControl) attachSearchHistory(controls.ticketNumberControl, "ticketNumber");
   }
 
   function getSearchControlValue(control) {
@@ -3171,10 +3512,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       const ticketNumber = normalizeText(event.detail?.ticketNumber || "");
       if (!ticketNumber) return;
 
-      saveSearchHistoryEntry("ticketNumber", ticketNumber);
-
       const controls = getVisibleSearchControls();
-      if (controls?.ticketNumberControl) renderSearchHistoryHints(controls.ticketNumberControl, "ticketNumber");
+      const form = controls?.form || null;
+      const touched = form?.dataset?.zhSearchRangeTouched === "1";
+
+      saveSearchHistoryRun({
+        ticketNumber,
+        fulltext: controls ? getSearchControlValue(controls.fulltextControl) : "",
+        range: touched ? readSearchDateRangeValues(form) : null,
+        rangeLabel: touched ? form.dataset.zhSearchRangeLabel : ""
+      });
     });
   }
 
@@ -3182,8 +3529,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (!isTicketNumberOnlySearch(fulltextControl, ticketNumberControl)) return false;
 
     prepareTicketNumberOnlySearch(form, fulltextControl, ticketNumberControl, createdMonthsControl);
-    saveSearchHistoryEntry("ticketNumber", getSearchControlValue(ticketNumberControl));
-    renderSearchHistoryHints(ticketNumberControl, "ticketNumber");
+    rememberSearchRun(form, fulltextControl, ticketNumberControl);
 
     event.preventDefault();
     event.stopPropagation();
@@ -3205,6 +3551,19 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     );
   }
 
+  // One history entry per executed search - so the entry can put search term, ticket
+  // number and period back into the form at once.
+  function rememberSearchRun(form, fulltextControl, ticketNumberControl) {
+    const touched = form?.dataset?.zhSearchRangeTouched === "1";
+
+    saveSearchHistoryRun({
+      fulltext: getSearchControlValue(fulltextControl),
+      ticketNumber: getSearchControlValue(ticketNumberControl),
+      range: touched ? readSearchDateRangeValues(form) : null,
+      rangeLabel: touched ? form.dataset.zhSearchRangeLabel : ""
+    });
+  }
+
   function rememberSearchOnSubmit(form, fulltextControl, ticketNumberControl, createdMonthsControl) {
     if (form.dataset.zhSearchHistoryBound === "1") return;
     form.dataset.zhSearchHistoryBound = "1";
@@ -3220,10 +3579,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       if (handleVisibleTicketNumberOnlySearch(event)) return;
 
       ensureCreatedDateFilter(form, createdMonthsControl);
-      saveSearchHistoryEntry("fulltext", getSearchControlValue(fulltextControl));
-      saveSearchHistoryEntry("ticketNumber", getSearchControlValue(ticketNumberControl));
-      renderSearchHistoryHints(fulltextControl, "fulltext");
-      renderSearchHistoryHints(ticketNumberControl, "ticketNumber");
+      rememberSearchRun(form, fulltextControl, ticketNumberControl);
     }, true);
 
     if (document.documentElement.dataset.zhTicketSearchGlobalClick !== "1") {
@@ -3341,6 +3697,22 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       .zh-search-daterange-buttons { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; width: 270px; max-width: 45vw; box-sizing: border-box; }
       .zh-search-daterange-buttons button { font-size: 11px; padding: 3px 8px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; white-space: nowrap; }
       .zh-search-daterange-buttons button:hover { background: #fff; border-color: #888; }
+      #zh-search-primary-fields .zh-search-history-block { margin: 12px 0 2px; padding-top: 10px; border-top: 1px solid #e6e6e6; }
+      #zh-search-primary-fields .zh-search-history-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; max-width: 540px; margin: 0 auto 6px; }
+      #zh-search-primary-fields .zh-search-history-title { color: #555; font-size: 12px; font-weight: 700; }
+      #zh-search-primary-fields .zh-search-history-clear { padding: 0; border: 0; background: none; color: #1f5f9f; font-size: 11px; cursor: pointer; text-decoration: underline; }
+      #zh-search-primary-fields .zh-search-history-clear[hidden] { display: none; }
+      #zh-search-primary-fields .zh-search-history-list { display: grid; gap: 4px; max-width: 540px; margin: 0 auto; padding: 0; list-style: none; }
+      #zh-search-primary-fields .zh-search-history-entry { display: flex; align-items: stretch; gap: 4px; }
+      #zh-search-primary-fields .zh-search-history-apply { flex: 1; display: grid; gap: 1px; padding: 5px 8px; border: 1px solid #ddd; border-radius: 3px; background: #fafafa; color: #222; font: inherit; text-align: left; cursor: pointer; }
+      #zh-search-primary-fields .zh-search-history-apply:hover { background: #fff; border-color: #ff9900; }
+      #zh-search-primary-fields .zh-search-history-text { font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #zh-search-primary-fields .zh-search-history-meta { color: #888; font-size: 10px; }
+      #zh-search-primary-fields .zh-search-history-remove { width: 24px; border: 1px solid #ddd; border-radius: 3px; background: #fafafa; color: #999; font-size: 12px; line-height: 1; cursor: pointer; }
+      #zh-search-primary-fields .zh-search-history-remove:hover { background: #fff; border-color: #c0392b; color: #c0392b; }
+      #zh-search-primary-fields .zh-search-history-empty { max-width: 540px; margin: 0 auto; color: #888; font-size: 11px; }
+      #zh-search-primary-fields .zh-search-history-block[data-empty="1"] .zh-search-history-list { display: none; }
+      #zh-search-primary-fields .zh-search-history-block[data-empty="0"] .zh-search-history-empty { display: none; }
       .zh-search-hidden-scaffold { display: none !important; }
     `);
   }

@@ -14,6 +14,7 @@
         "Neu: \"Weiterleiten\" läuft jetzt ebenfalls über die Schnellantwort – als Fenster direkt über dem Ticket.",
         "Aufgeräumtes Popup: Einstellungen in abgerundeten Karten je Bereich, zusammengehörige Optionen wie die Warten-Schnellauswahl als eine Einheit (bei ausgeschaltetem Schalter gedimmt), Versionsanzeige im Kopf.",
         "Neu: Die Standard-Wartezeit (bisher fest 3 Tage) ist im Popup unter \"Antworten und Warten\" einstellbar.",
+        "Neu: Suchverlauf in der globalen Suche – die letzten Suchen mit Suchbegriff, Ticketnummer, Zeitraum und Uhrzeit. Ein Klick übernimmt alles zurück in die Felder, \"Verlauf leeren\" räumt auf.",
         "Behoben: Antwort-Entwürfe wurden nicht gespeichert (es wurde das versteckte Editor-Feld statt des sichtbaren Editors gelesen). Jetzt wird auch beim Schließen des Tabs gesichert.",
         "Behoben: In Entwürfen steckte Editor-Quelltext (<br />, &nbsp;) – daraus wird jetzt lesbarer Text, auch bei bereits gespeicherten Entwürfen.",
         "Einstellungen wie die Standard-Wartezeit wirken jetzt sofort auf geöffnete Znuny-Seiten, ohne die Seite neu zu laden.",

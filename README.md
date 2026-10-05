@@ -171,6 +171,14 @@ Das verhindert sehr große Suchläufe und sorgt trotzdem dafür, dass aktuelle u
 
 Außerdem merkt sich das Addon lokal die letzten Suchbegriffe und Ticketnummern als kleine Suchhistorie. Sie liegt im Speicher der Erweiterung – nicht im Seitenspeicher von Znuny.
 
+Unter den Suchfeldern steht dafür ein Block **Suchverlauf**: Er zeigt die zuletzt ausgeführten Suchen (neueste zuerst, bis zu acht von maximal fünfzehn gemerkten) mit Suchbegriff, Ticketnummer, dem verwendeten Zeitraum und der Uhrzeit („gerade eben", „vor 5 Min.", „gestern 16:40", sonst Datum und Uhrzeit).
+
+- Ein Klick auf einen Eintrag übernimmt Suchbegriff, Ticketnummer **und** den damaligen Zeitraum zurück in die Felder. Gestartet wird die Suche wie gewohnt über **Suche starten**, weil die übrigen Filter (Vorlagen, zusätzliche Attribute) nicht Teil eines Eintrags sind.
+- Über **×** lässt sich ein einzelner Eintrag entfernen, über **Verlauf leeren** die ganze Liste.
+- Der Zeitraum wird nur mitgespeichert, wenn er wirklich gesetzt wurde (Schnellknopf oder Auswahl in den Datumsfeldern) – die Standardwerte der Dropdowns erscheinen nicht in jedem Eintrag.
+- Unter den einzelnen Feldern stehen weiterhin die kleinen Vorschlags-Knöpfe (letzte fünf Begriffe bzw. Nummern), die nur das jeweilige Feld füllen; die Felder bieten diese Werte zusätzlich als Autovervollständigung an.
+- Eine Historie aus einer älteren Version (zwei Listen aus reinen Texten) wird beim ersten Laden automatisch übernommen.
+
 Zusätzlich gibt es Schnellknöpfe, um den Zeitraum mit einem Klick umzustellen:
 
 - Letzte Woche
