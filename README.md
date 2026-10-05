@@ -179,14 +179,13 @@ Unter den Suchfeldern steht dafür ein Block **Suchverlauf**: Er zeigt die zulet
 - Unter den einzelnen Feldern stehen weiterhin die kleinen Vorschlags-Knöpfe (letzte fünf Begriffe bzw. Nummern), die nur das jeweilige Feld füllen; die Felder bieten diese Werte zusätzlich als Autovervollständigung an.
 - Eine Historie aus einer älteren Version (zwei Listen aus reinen Texten) wird beim ersten Laden automatisch übernommen.
 
-Zusätzlich gibt es Schnellknöpfe, um den Zeitraum mit einem Klick umzustellen:
+Zusätzlich gibt es Schnellknöpfe, um den Zeitraum mit einem Klick umzustellen. Sie stehen in einer Reihe:
 
 - Letzte Woche
 - Letzter Monat
 - Letztes Quartal
-- Letztes Jahr (Standard)
 
-Ein Klick setzt nur den Zeitraum neu; die Suche muss danach wie gewohnt gestartet werden.
+Ein Klick setzt nur den Zeitraum neu; die Suche muss danach wie gewohnt gestartet werden. Ohne Klick bleibt der automatische Standard (letztes Jahr bis heute) bestehen.
 
 ## Ticketinhalt-Suche
 

@@ -699,14 +699,19 @@ const historyApi = new Function(`
   ${source.match(/const SEARCH_HISTORY_LIMIT = \d+;/)[0]}
   ${source.match(/const SEARCH_HISTORY_VISIBLE = \d+;/)[0]}
   let searchHistoryCache = { entries: [] };
+  let searchHistoryLoaded = true;
+  let lastSearchRecordSignature = "";
+  let lastSearchRecordedAt = 0;
   const syncSet = () => {};
   const renderSearchHistoryBlock = () => {};
   const refreshSearchHistorySuggestions = () => {};
+  const loadSearchHistory = () => Promise.resolve().then(() => { searchHistoryLoaded = true; });
   ${historyFunctionNames.map(extractDeclaration).join("\n")}
   return {
     ${historyFunctionNames.join(", ")},
     setCache(value) { searchHistoryCache = value; },
-    getCache() { return searchHistoryCache; }
+    getCache() { return searchHistoryCache; },
+    setLoaded(value) { searchHistoryLoaded = value; }
   };
 `)();
 
@@ -868,6 +873,44 @@ check("Verlauf liegt im Addon-Speicher",
   true);
 check("Styles fuer den Verlauf vorhanden",
   Boolean(source.includes(".zh-search-history-apply") && source.includes('.zh-search-history-block[data-empty="1"]')),
+  true);
+
+// Ein Suchlauf direkt nach dem Seitenaufbau darf den gespeicherten Verlauf nicht
+// ueberschreiben: dann wird erst gelesen und danach gespeichert.
+historyApi.setLoaded(false);
+historyApi.setCache({ entries: [{ fulltext: "Alt" }] });
+historyApi.saveSearchHistoryRun({ fulltext: "Neu" });
+check("ohne geladenen Verlauf wird zuerst gelesen",
+  historyApi.getCache().entries.map((entry) => entry.fulltext),
+  ["Alt"]);
+
+const datePresetLabels = [...source.matchAll(/\{ id: "(week|month|quarter|year)", label: "([^"]+)"/g)]
+  .map((match) => match[2]);
+check("Zeitraum-Knoepfe ohne \"Letztes Jahr\"",
+  datePresetLabels,
+  ["Letzte Woche", "Letzter Monat", "Letztes Quartal"]);
+
+const searchStyles = source.slice(
+  source.indexOf("function addSearchModalStyles()"),
+  source.indexOf("function findArticleOverviewTable")
+);
+check("Zeitraum-Knoepfe bleiben in einer Reihe",
+  Boolean(
+    /\.zh-search-field-row\.zh-search-daterange-row \{[^}]*max-content/.test(searchStyles) &&
+    /\.zh-search-daterange-buttons \{[^}]*flex-wrap: nowrap/.test(searchStyles)
+  ),
+  true);
+check("Suche wird schon beim Klick gemerkt",
+  extractDeclaration("rememberSearchOnSubmit").includes("rememberSearchRun(controls.form"),
+  true);
+check("doppelte Klick-Ereignisse speichern nur einmal",
+  extractDeclaration("rememberSearchRun").includes("lastSearchRecordSignature"),
+  true);
+check("Speichern wartet auf den geladenen Verlauf",
+  extractDeclaration("saveSearchHistoryRun").includes("if (!searchHistoryLoaded)"),
+  true);
+check("gespeicherte Suche wird protokolliert",
+  extractDeclaration("saveSearchHistoryRun").includes("Suche im Verlauf gespeichert"),
   true);
 
 console.log(`\nErgebnis: ${passed} bestanden, ${failures.length} fehlgeschlagen`);

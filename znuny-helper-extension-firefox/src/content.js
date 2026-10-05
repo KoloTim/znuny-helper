@@ -2815,8 +2815,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   const SEARCH_DATE_RANGE_PRESETS = [
     { id: "week", label: "Letzte Woche", getStart: (now) => getDateDaysAgo(now, 7) },
     { id: "month", label: "Letzter Monat", getStart: (now) => getDateMonthsAgo(now, 1) },
-    { id: "quarter", label: "Letztes Quartal", getStart: (now) => getDateMonthsAgo(now, 3) },
-    { id: "year", label: "Letztes Jahr", getStart: (now) => getSameDateLastYear(now) }
+    { id: "quarter", label: "Letztes Quartal", getStart: (now) => getDateMonthsAgo(now, 3) }
   ];
 
   function applySearchDateRangePreset(form, preset) {
@@ -3002,6 +3001,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   let searchHistoryCache = { entries: [] };
   let searchHistoryLoaded = false;
+  let lastSearchRecordSignature = "";
+  let lastSearchRecordedAt = 0;
 
   function searchHistorySignature(entry) {
     const range = Array.isArray(entry?.range) ? entry.range.join("-") : "";
@@ -3111,9 +3112,26 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     if (!entry) return;
 
+    // A search can be started right after page load, before the stored history is in
+    // memory - reading it first keeps the existing entries instead of overwriting them.
+    if (!searchHistoryLoaded) {
+      loadSearchHistory()
+        .then(() => saveSearchHistoryRun(run))
+        .catch(() => {
+          // Without storage access the search is simply not remembered.
+        });
+      return;
+    }
+
     const signature = searchHistorySignature(entry);
     const kept = getSearchHistory().entries.filter((existing) => searchHistorySignature(existing) !== signature);
     writeSearchHistory([entry, ...kept]);
+
+    // Diagnostic aid, like the version marker: one line per remembered search.
+    console.info("Znuny Helper: Suche im Verlauf gespeichert", {
+      suche: describeSearchHistoryEntry(entry),
+      zeitpunkt: describeSearchHistoryMeta(entry) || "ohne Zeitangabe"
+    });
   }
 
   function removeSearchHistoryEntry(entry) {
@@ -3552,16 +3570,29 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   // One history entry per executed search - so the entry can put search term, ticket
-  // number and period back into the form at once.
+  // number and period back into the form at once. Recorded on the click that starts
+  // the search: depending on the Znuny version the form never raises a submit event
+  // (the search dialog works through its own handler), and then nothing was stored.
   function rememberSearchRun(form, fulltextControl, ticketNumberControl) {
     const touched = form?.dataset?.zhSearchRangeTouched === "1";
-
-    saveSearchHistoryRun({
+    const run = {
       fulltext: getSearchControlValue(fulltextControl),
       ticketNumber: getSearchControlValue(ticketNumberControl),
       range: touched ? readSearchDateRangeValues(form) : null,
       rangeLabel: touched ? form.dataset.zhSearchRangeLabel : ""
-    });
+    };
+
+    const entry = normalizeSearchHistoryEntry({ ...run, at: Date.now() });
+    if (!entry) return;
+
+    // pointerdown, mousedown and click all report the same search; remember it once.
+    const signature = searchHistorySignature(entry);
+    const now = Date.now();
+    if (signature === lastSearchRecordSignature && now - lastSearchRecordedAt < 3000) return;
+
+    lastSearchRecordSignature = signature;
+    lastSearchRecordedAt = now;
+    saveSearchHistoryRun(run);
   }
 
   function rememberSearchOnSubmit(form, fulltextControl, ticketNumberControl, createdMonthsControl) {
@@ -3587,7 +3618,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       ["pointerdown", "mousedown", "click"].forEach((eventName) => {
         document.addEventListener(eventName, (event) => {
           if (!isSearchSubmitControl(event.target)) return;
-          prepareSearchFormNewTab(findVisibleSearchForm());
+
+          const controls = getVisibleSearchControls();
+          prepareSearchFormNewTab(controls?.form || null);
+
+          // Remember the search on the click itself, not only on "submit".
+          if (controls?.form) {
+            rememberSearchRun(controls.form, controls.fulltextControl, controls.ticketNumberControl);
+          }
+
           handleVisibleTicketNumberOnlySearch(event);
         }, true);
       });
@@ -3694,8 +3733,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-search-primary-fields .zh-search-history button { max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; line-height: 1.3; padding: 2px 6px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; }
       #zh-search-primary-fields .zh-search-history button:hover { background: #fff; border-color: #888; }
       .zh-search-daterange-label { grid-column: 1; text-align: right; color: #777; }
-      .zh-search-daterange-buttons { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; width: 270px; max-width: 45vw; box-sizing: border-box; }
-      .zh-search-daterange-buttons button { font-size: 11px; padding: 3px 8px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; white-space: nowrap; }
+      #zh-search-primary-fields .zh-search-field-row.zh-search-daterange-row { grid-template-columns: minmax(130px, 1fr) minmax(270px, max-content) minmax(130px, 1fr); }
+      #zh-search-primary-fields .zh-search-daterange-buttons { grid-column: 2; display: flex; flex-wrap: nowrap; gap: 6px; width: auto; max-width: none; box-sizing: border-box; }
+      #zh-search-primary-fields .zh-search-daterange-buttons button { flex: 0 0 auto; font-size: 11px; padding: 3px 8px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; white-space: nowrap; }
       .zh-search-daterange-buttons button:hover { background: #fff; border-color: #888; }
       #zh-search-primary-fields .zh-search-history-block { margin: 12px 0 2px; padding-top: 10px; border-top: 1px solid #e6e6e6; }
       #zh-search-primary-fields .zh-search-history-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; max-width: 540px; margin: 0 auto 6px; }
