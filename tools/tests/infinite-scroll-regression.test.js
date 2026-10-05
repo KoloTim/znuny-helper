@@ -692,7 +692,9 @@ const historyFunctionNames = [
   "formatSearchHistoryTime",
   "describeSearchHistoryRange",
   "describeSearchHistoryEntry",
-  "describeSearchHistoryMeta"
+  "describeSearchHistoryMeta",
+  "getSameDateLastYear",
+  "isDefaultSearchDateRange"
 ];
 const historyApi = new Function(`
   ${source.match(/const SEARCH_HISTORY_KEY = "[^"]+";/)[0]}
@@ -901,7 +903,10 @@ check("Zeitraum-Knoepfe bleiben in einer Reihe",
   ),
   true);
 check("Suche wird schon beim Klick gemerkt",
-  extractDeclaration("rememberSearchOnSubmit").includes("rememberSearchRun(controls.form"),
+  Boolean(
+    extractDeclaration("handleSearchStartEvent").includes("rememberSearchRun(controls.form") &&
+    extractDeclaration("rememberSearchOnSubmit").includes("bindGlobalSearchStartListeners()")
+  ),
   true);
 check("doppelte Klick-Ereignisse speichern nur einmal",
   extractDeclaration("rememberSearchRun").includes("lastSearchRecordSignature"),
@@ -911,6 +916,72 @@ check("Speichern wartet auf den geladenen Verlauf",
   true);
 check("gespeicherte Suche wird protokolliert",
   extractDeclaration("saveSearchHistoryRun").includes("Suche im Verlauf gespeichert"),
+  true);
+
+// Der Suchdialog liegt auf dieser Znuny-Version in einem eigenen Fenster: das Fenster
+// mit dem Verlauf muss Speicheraenderungen mitbekommen, sonst bleibt es leer.
+check("Verlauf folgt Speicheraenderungen",
+  Boolean(source.includes("changes[SEARCH_HISTORY_KEY]") &&
+    extractDeclaration("handleSearchHistoryStorageChange").includes("renderSearchHistoryBlock()")),
+  true);
+
+const fakeSearchWindow = { location: { href: "" } };
+const isSearchPage = new Function(
+  "window",
+  `${extractDeclaration("isSearchPage")}\nreturn isSearchPage;`
+)(fakeSearchWindow);
+const searchPageFor = (href) => {
+  fakeSearchWindow.location.href = href;
+  return isSearchPage();
+};
+
+check("Suchseite wird erkannt",
+  searchPageFor("https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketSearch"), true);
+check("Suchseite auch mit kodierten Trennzeichen",
+  searchPageFor("https://otrs.staff.hsrw/otrs/index.pl?Action%3DAgentTicketSearch%3BSubaction%3DSearch"), true);
+check("Ticketseite ist keine Suchseite",
+  searchPageFor("https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketZoom;TicketID=1"), false);
+check("Liste ist keine Suchseite",
+  searchPageFor("https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketLockedView"), false);
+
+const defaultRangeEnd = new Date();
+const defaultRangeStart = historyApi.getSameDateLastYear(defaultRangeEnd);
+const defaultRangeValues = [
+  defaultRangeStart.getDate(), defaultRangeStart.getMonth() + 1, defaultRangeStart.getFullYear(),
+  defaultRangeEnd.getDate(), defaultRangeEnd.getMonth() + 1, defaultRangeEnd.getFullYear()
+];
+check("Standardzeitraum wird erkannt", historyApi.isDefaultSearchDateRange(defaultRangeValues), true);
+check("gewaehlter Zeitraum gilt als gesetzt",
+  historyApi.isDefaultSearchDateRange([1, 1, 2024, 1, 2, 2024]),
+  false);
+check("ohne Zeitraum gilt der Standard", historyApi.isDefaultSearchDateRange(null), true);
+
+check("Suchseite speichert auch ohne Klick",
+  extractDeclaration("fixTicketNumberSearch").includes("rememberSearchFromSearchPage("),
+  true);
+check("Standardzeitraum landet nicht im Eintrag",
+  extractDeclaration("rememberSearchFromSearchPage").includes("isDefaultSearchDateRange"),
+  true);
+
+const fixSearchSource = extractDeclaration("fixTicketNumberSearch");
+check("Aufzeichnung wird vor der Kosmetik verdrahtet",
+  fixSearchSource.indexOf("rememberSearchOnSubmit(") < fixSearchSource.indexOf('form.dataset.zhSearchEnhanced = "1"'),
+  true);
+check("Klick wird auf window und document abgefangen",
+  Boolean(
+    extractDeclaration("bindGlobalSearchStartListeners").includes("[window, document]") &&
+    extractDeclaration("bindGlobalSearchStartListeners").includes('"pointerup"') &&
+    extractDeclaration("bindGlobalSearchStartListeners").includes('"mouseup"')
+  ),
+  true);
+check("Enter im Suchfeld wird gemerkt",
+  extractDeclaration("handleSearchFieldEnter").includes("rememberSearchRun("),
+  true);
+check("Ueberschrift sitzt auf der Feldspalte",
+  Boolean(
+    /\.zh-search-history-block \{[^}]*grid-template-columns: minmax\(130px, 1fr\) 270px/.test(searchStyles) &&
+    /\.zh-search-history-head \{[^}]*grid-column: 2 \/ 4/.test(searchStyles)
+  ),
   true);
 
 console.log(`\nErgebnis: ${passed} bestanden, ${failures.length} fehlgeschlagen`);

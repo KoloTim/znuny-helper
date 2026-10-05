@@ -2442,10 +2442,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     ensureSearchDateRangeQuickButtons(form, primaryBlock);
     getOrCreateSearchHistoryBlock(form, primaryBlock);
 
+    // Attach the search recording before the cosmetic work below: a failure there must
+    // not be able to leave the form without its listeners.
+    rememberSearchOnSubmit(form, fulltextControl, ticketNumberControl, null);
+    rememberSearchFromSearchPage(form, fulltextControl, ticketNumberControl);
+
     moveKnownSearchSectionsAfterPrimary(form, primaryBlock);
     hideOldUsedFilterScaffold(form);
     prepareSearchFormNewTab(form);
-    rememberSearchOnSubmit(form, fulltextControl, ticketNumberControl, null);
     form.dataset.zhSearchEnhanced = "1";
 
     if (fulltextControl && fulltextControl.dataset.zhFocused !== "1") {
@@ -3340,6 +3344,59 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return block;
   }
 
+  // The global search dialog lives in its own window on this Znuny version: the search
+  // is executed in one document while the history block is looked at in another. A
+  // document therefore has to follow storage changes, otherwise its list stays empty
+  // even though the search was stored.
+  function handleSearchHistoryStorageChange(newValue) {
+    searchHistoryCache = normalizeSearchHistory(newValue);
+    searchHistoryLoaded = true;
+    renderSearchHistoryBlock();
+    refreshSearchHistorySuggestions();
+  }
+
+  function isSearchPage() {
+    const href = String(window.location?.href || "");
+    let decoded = href;
+    try {
+      decoded = decodeURIComponent(href);
+    } catch (error) {
+      // Keep the raw URL; it still contains the action on this instance.
+    }
+
+    return /Action=AgentTicketSearch\b/i.test(href) || /Action=AgentTicketSearch\b/i.test(decoded);
+  }
+
+  // The automatic default period (last year up to today) is not something the agent
+  // chose, so it is not worth showing in every entry.
+  function isDefaultSearchDateRange(values) {
+    if (!Array.isArray(values) || values.length < 6) return true;
+
+    const end = new Date();
+    const start = getSameDateLastYear(end);
+    const expected = [
+      start.getDate(), start.getMonth() + 1, start.getFullYear(),
+      end.getDate(), end.getMonth() + 1, end.getFullYear()
+    ];
+
+    return values.every((value, index) => Number(value) === expected[index]);
+  }
+
+  // A search page is only reached by running a search, and the form then carries the
+  // values that were searched. Recording them here catches every search - independent
+  // of click or submit events, which a Znuny popup window can swallow entirely.
+  function rememberSearchFromSearchPage(form, fulltextControl, ticketNumberControl) {
+    if (!isSearchPage()) return;
+    if (!fulltextControl && !ticketNumberControl) return;
+
+    const range = readSearchDateRangeValues(form);
+    if (!isDefaultSearchDateRange(range)) {
+      form.dataset.zhSearchRangeTouched = "1";
+    }
+
+    rememberSearchRun(form, fulltextControl, ticketNumberControl);
+  }
+
   function attachSearchHistory(control, type) {
     if (!control) return;
 
@@ -3595,6 +3652,48 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     saveSearchHistoryRun(run);
   }
 
+  function handleSearchStartEvent(event) {
+    if (!isSearchSubmitControl(event.target)) return;
+
+    const controls = getVisibleSearchControls();
+    prepareSearchFormNewTab(controls?.form || null);
+
+    // Remember the search on the click itself, not only on "submit": Znuny runs the
+    // search through its own handler and, depending on the window, never raises a
+    // submit event.
+    if (controls?.form) {
+      rememberSearchRun(controls.form, controls.fulltextControl, controls.ticketNumberControl);
+    }
+
+    handleVisibleTicketNumberOnlySearch(event);
+  }
+
+  function handleSearchFieldEnter(event) {
+    if (event.key !== "Enter") return;
+
+    const form = event.target?.closest?.("form");
+    if (!form || form !== findVisibleSearchForm()) return;
+
+    rememberSearchRun(form, ensureFulltextControl(form), ensureTicketNumberControl(form));
+  }
+
+  function bindGlobalSearchStartListeners() {
+    if (document.documentElement.dataset.zhTicketSearchGlobalClick === "1") return;
+    document.documentElement.dataset.zhTicketSearchGlobalClick = "1";
+
+    // Bound on window and document in the capture phase and for several mouse events:
+    // a Znuny popup window may swallow a single event, but not all of them.
+    ["pointerdown", "pointerup", "mousedown", "mouseup", "click"].forEach((eventName) => {
+      [window, document].forEach((target) => {
+        target.addEventListener(eventName, handleSearchStartEvent, true);
+      });
+    });
+
+    [window, document].forEach((target) => {
+      target.addEventListener("keydown", handleSearchFieldEnter, true);
+    });
+  }
+
   function rememberSearchOnSubmit(form, fulltextControl, ticketNumberControl, createdMonthsControl) {
     if (form.dataset.zhSearchHistoryBound === "1") return;
     form.dataset.zhSearchHistoryBound = "1";
@@ -3613,24 +3712,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       rememberSearchRun(form, fulltextControl, ticketNumberControl);
     }, true);
 
-    if (document.documentElement.dataset.zhTicketSearchGlobalClick !== "1") {
-      document.documentElement.dataset.zhTicketSearchGlobalClick = "1";
-      ["pointerdown", "mousedown", "click"].forEach((eventName) => {
-        document.addEventListener(eventName, (event) => {
-          if (!isSearchSubmitControl(event.target)) return;
-
-          const controls = getVisibleSearchControls();
-          prepareSearchFormNewTab(controls?.form || null);
-
-          // Remember the search on the click itself, not only on "submit".
-          if (controls?.form) {
-            rememberSearchRun(controls.form, controls.fulltextControl, controls.ticketNumberControl);
-          }
-
-          handleVisibleTicketNumberOnlySearch(event);
-        }, true);
-      });
-    }
+    bindGlobalSearchStartListeners();
   }
 
   function getOrCreateSearchPrimaryBlock(form) {
@@ -3737,12 +3819,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-search-primary-fields .zh-search-daterange-buttons { grid-column: 2; display: flex; flex-wrap: nowrap; gap: 6px; width: auto; max-width: none; box-sizing: border-box; }
       #zh-search-primary-fields .zh-search-daterange-buttons button { flex: 0 0 auto; font-size: 11px; padding: 3px 8px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; white-space: nowrap; }
       .zh-search-daterange-buttons button:hover { background: #fff; border-color: #888; }
-      #zh-search-primary-fields .zh-search-history-block { margin: 12px 0 2px; padding-top: 10px; border-top: 1px solid #e6e6e6; }
-      #zh-search-primary-fields .zh-search-history-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; max-width: 540px; margin: 0 auto 6px; }
+      #zh-search-primary-fields .zh-search-history-block { display: grid; grid-template-columns: minmax(130px, 1fr) 270px minmax(130px, 1fr); margin: 12px 0 2px; padding-top: 10px; border-top: 1px solid #e6e6e6; }
+      #zh-search-primary-fields .zh-search-history-head { grid-column: 2 / 4; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 6px; }
       #zh-search-primary-fields .zh-search-history-title { color: #555; font-size: 12px; font-weight: 700; }
       #zh-search-primary-fields .zh-search-history-clear { padding: 0; border: 0; background: none; color: #1f5f9f; font-size: 11px; cursor: pointer; text-decoration: underline; }
       #zh-search-primary-fields .zh-search-history-clear[hidden] { display: none; }
-      #zh-search-primary-fields .zh-search-history-list { display: grid; gap: 4px; max-width: 540px; margin: 0 auto; padding: 0; list-style: none; }
+      #zh-search-primary-fields .zh-search-history-list { grid-column: 2 / 4; display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
       #zh-search-primary-fields .zh-search-history-entry { display: flex; align-items: stretch; gap: 4px; }
       #zh-search-primary-fields .zh-search-history-apply { flex: 1; display: grid; gap: 1px; padding: 5px 8px; border: 1px solid #ddd; border-radius: 3px; background: #fafafa; color: #222; font: inherit; text-align: left; cursor: pointer; }
       #zh-search-primary-fields .zh-search-history-apply:hover { background: #fff; border-color: #ff9900; }
@@ -3750,7 +3832,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-search-primary-fields .zh-search-history-meta { color: #888; font-size: 10px; }
       #zh-search-primary-fields .zh-search-history-remove { width: 24px; border: 1px solid #ddd; border-radius: 3px; background: #fafafa; color: #999; font-size: 12px; line-height: 1; cursor: pointer; }
       #zh-search-primary-fields .zh-search-history-remove:hover { background: #fff; border-color: #c0392b; color: #c0392b; }
-      #zh-search-primary-fields .zh-search-history-empty { max-width: 540px; margin: 0 auto; color: #888; font-size: 11px; }
+      #zh-search-primary-fields .zh-search-history-empty { grid-column: 2 / 4; margin: 0; color: #888; font-size: 11px; }
       #zh-search-primary-fields .zh-search-history-block[data-empty="1"] .zh-search-history-list { display: none; }
       #zh-search-primary-fields .zh-search-history-block[data-empty="0"] .zh-search-history-empty { display: none; }
       .zh-search-hidden-scaffold { display: none !important; }
@@ -9301,6 +9383,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       if (changes[SETTINGS_KEY]) {
         settings = { ...DEFAULT_SETTINGS, ...(changes[SETTINGS_KEY].newValue || {}) };
         runEnabledFeatures();
+      }
+
+      if (changes[SEARCH_HISTORY_KEY]) {
+        handleSearchHistoryStorageChange(changes[SEARCH_HISTORY_KEY].newValue);
       }
 
       if (changes[TICKET_SOUND_CONFIG_KEY]) {

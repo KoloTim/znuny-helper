@@ -16,6 +16,8 @@
         "Neu: Die Standard-Wartezeit (bisher fest 3 Tage) ist im Popup unter \"Antworten und Warten\" einstellbar.",
         "Neu: Suchverlauf in der globalen Suche – die letzten Suchen mit Suchbegriff, Ticketnummer, Zeitraum und Uhrzeit. Ein Klick übernimmt alles zurück in die Felder, \"Verlauf leeren\" räumt auf.",
         "Behoben: Der Suchverlauf speicherte nichts – die Suche wird jetzt schon beim Klick auf \"Suche starten\" gemerkt, auch wenn Znuny kein Formular-Absenden auslöst.",
+        "Behoben: Der Suchverlauf blieb in anderen Znuny-Fenstern leer (der Suchdialog ist ein eigenes Fenster) – jedes Fenster folgt jetzt dem gespeicherten Verlauf, und eine Suche wird auch ganz ohne Klick erkannt.",
+        "Die Überschrift \"Suchverlauf\" sitzt jetzt auf derselben Spalte wie die Suchfelder.",
         "Der Zeitraum-Knopf \"Letztes Jahr\" ist entfallen; die drei übrigen Knöpfe stehen jetzt in einer Reihe. Der automatische Standardzeitraum bleibt letztes Jahr bis heute.",
         "Behoben: Antwort-Entwürfe wurden nicht gespeichert (es wurde das versteckte Editor-Feld statt des sichtbaren Editors gelesen). Jetzt wird auch beim Schließen des Tabs gesichert.",
         "Behoben: In Entwürfen steckte Editor-Quelltext (<br />, &nbsp;) – daraus wird jetzt lesbarer Text, auch bei bereits gespeicherten Entwürfen.",
