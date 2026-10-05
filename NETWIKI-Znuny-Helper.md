@@ -21,7 +21,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 
 | Punkt | Beschreibung |
 | --- | --- |
-| Aktuelle Version | 1.5.2 (Stand: 02.10.2026) |
+| Aktuelle Version | 1.6.0 (Stand: 02.10.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` |
@@ -81,7 +81,8 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Ton bei neuem Ticket**
 | --- | --- | --- |
 | Navigation | Anhang-Vorschau | PDF, Bilder, Text/Log, E-Mails, DOCX und Tabellen direkt im Ticket anzeigen |
 | Navigation | Popups als Tabs | Znuny-Aktionen übersichtlicher in Tabs öffnen |
-| Navigation | Schnellantwort | Antworten, Besitzer ändern, Priorisierung, Notiz, Schließen, Verknüpfen und Zusammenfassen direkt als kleines Fenster über dem Ticket statt in einem neuen Tab |
+| Navigation | Vorlagen-Klick sparen | Hat eine Aktion nur eine Vorlage (z. B. "leere Antwort"), genügt ein Klick auf "Antworten" oder "Weiterleiten" |
+| Navigation | Schnellantwort | Antworten, Weiterleiten, Besitzer ändern, Priorisierung, Notiz, Schließen, Verknüpfen und Zusammenfassen direkt als kleines Fenster über dem Ticket statt in einem neuen Tab |
 | Navigation | Suchergebnisse im neuen Tab | Suchergebnis-Seiten optional in neuem Tab öffnen |
 | Suchen | Ticketnummer-Suche | Globale Suche um ein direktes Ticketnummer-Feld erweitern |
 | Suchen | Ticketinhalt-Suche | Innerhalb eines geöffneten Tickets suchen |
@@ -125,15 +126,27 @@ Vorteile:
 - einfacheres Wechseln zwischen Ticket und Aktion
 - weniger Probleme mit blockierten oder verdeckten Popup-Fenstern
 
+## Antworten und Weiterleiten ohne Vorlagenklick
+
+Znuny stellt "Antworten" und "Weiterleiten" je Artikel als Auswahlfeld dar: In der Artikelübersicht erscheint ein leeres Suchfeld, in dem erst eine Vorlage gewählt werden muss. Gibt es nur eine einzige Vorlage (z. B. "leere Antwort" beim Antworten oder "Weiterleitung" beim Weiterleiten), sind das zwei Klicks ohne jede Auswahlmöglichkeit.
+
+Ist die Funktion **Antworten/Weiterleiten ohne Vorlagenklick** aktiv (Standard), wird eine solche einzelne Vorlage automatisch vorausgewählt und das leere Suchfeld ausgeblendet. Ein Klick auf **Antworten** oder **Weiterleiten** startet die Aktion dann direkt – weiterhin mit den gewohnten Einstellungen: **Popups als Tabs**, **Schnellantwort** oder ein echtes Znuny-Popup.
+
+Sobald mehr als eine Vorlage vorhanden ist, ändert das Addon nichts; die Auswahl bleibt wie gewohnt. Abschalten lässt sich die Funktion im Popup unter **Im geöffneten Ticket**.
+
 ## Schnellantwort
 
-Standardmäßig öffnen "Antworten" und "Allen antworten" (Artikel), "Besitzer" (Personen), "Notiz" (Kommunikation) sowie "Priorisierung", "Schließen", "Verknüpfen" und "Zusammenfassen" die echte Znuny-Seite der jeweiligen Aktion (inklusive Editor, Signatur und aller Pflichtfelder) – je nach Einstellung **Popups als Tabs** entweder als Popup-Fenster oder als neuer Tab.
+Standardmäßig öffnen "Antworten" und "Allen antworten" (Artikel), "Besitzer" (Personen), "Notiz" (Kommunikation) sowie "Priorisierung", "Weiterleiten", "Schließen", "Verknüpfen" und "Zusammenfassen" die echte Znuny-Seite der jeweiligen Aktion (inklusive Editor, Signatur und aller Pflichtfelder) – je nach Einstellung **Popups als Tabs** entweder als Popup-Fenster oder als neuer Tab.
 
-Ist **Schnellantwort** aktiviert, öffnet sich diese Seite stattdessen als kleines Fenster direkt über dem aktuellen Ticket, ganz ohne Tab- oder Fensterwechsel. Es handelt sich weiterhin um die echte Znuny-Seite, nur eingebettet statt in einem eigenen Tab oder Popup – alle Felder, der Editor und die Validierung funktionieren wie gewohnt, einschließlich Prioritäts-Vorlagen und Warten-Schnellauswahl, sofern die jeweilige Seite entsprechende Felder anzeigt. Das Fenster zeigt dabei je nach Aktion die passende Überschrift (z. B. "Schnellantwort", "Besitzer ändern", "Priorisierung", "Notiz hinzufügen", "Ticket schließen").
+Ist **Schnellantwort** aktiviert, öffnet sich diese Seite stattdessen als kleines Fenster direkt über dem aktuellen Ticket, ganz ohne Tab- oder Fensterwechsel. Es handelt sich weiterhin um die echte Znuny-Seite, nur eingebettet statt in einem eigenen Tab oder Popup – alle Felder, der Editor und die Validierung funktionieren wie gewohnt, einschließlich Prioritäts-Vorlagen und Warten-Schnellauswahl, sofern die jeweilige Seite entsprechende Felder anzeigt. Das Fenster zeigt dabei je nach Aktion die passende Überschrift (z. B. "Schnellantwort", "Weiterleiten", "Besitzer ändern", "Priorisierung", "Notiz hinzufügen", "Ticket schließen").
+
+Das Fenster lässt sich am Kopfbereich mit der Maus verschieben und an allen Rändern und Ecken in der Größe ändern; ein Doppelklick auf den Kopfbereich schaltet zwischen der gemerkten Größe und dem Vollbild um. Größe und Position werden gespeichert und beim nächsten Öffnen wiederhergestellt. **Ansicht zurücksetzen** stellt die Standardansicht wieder her, **Esc** schließt das Fenster (außer während man gerade in einem Textfeld tippt).
+
+Über **–** lässt sich das Fenster minimieren, ohne den Formularinhalt zu verlieren. **Schließen** beendet es, aber der geschriebene Text geht nicht verloren: Er wird als Entwurf gespeichert und beim nächsten Öffnen derselben Aktion für dasselbe Ticket wieder eingesetzt – mit Hinweis und dem Knopf **Entwurf verwerfen**. Nach dem Übermitteln und bei **Abbrechen und Schließen** wird der Entwurf gelöscht. Gespeichert wird nur der Text, nicht die Formatierung; Entwürfe liegen im Erweiterungsspeicher (höchstens zehn, die ältesten fallen heraus).
 
 Nach dem Absenden schließt sich das Fenster automatisch und das Ticket wird aktualisiert, damit die Änderung sofort sichtbar ist. Über den Knopf **Schließen** oben rechts im Fenster lässt sich das jederzeit verwerfen, ohne etwas zu übermitteln.
 
-> **Wichtig:** Die Funktion ist standardmäßig deaktiviert, weil sie das gewohnte Verhalten grundlegend ändert. Sie betrifft "Antworten", "Allen antworten", "Besitzer", "Priorisierung", "Notiz", "Schließen", "Verknüpfen" und "Zusammenfassen"; Weiterleiten, Umleiten und andere Aktionen öffnen weiterhin wie bisher. Die zugrunde liegenden Znuny-Aktionsnamen für Schließen/Verknüpfen/Zusammenfassen sind unsere beste Einschätzung der Standard-Bezeichnungen – trifft eine davon an dieser Installation nicht zu, öffnet der jeweilige Link einfach weiterhin wie gewohnt.
+> **Wichtig:** Die Funktion ist standardmäßig deaktiviert, weil sie das gewohnte Verhalten grundlegend ändert. Sie betrifft "Antworten", "Allen antworten", "Weiterleiten", "Besitzer", "Priorisierung", "Notiz", "Schließen", "Verknüpfen" und "Zusammenfassen"; Umleiten und andere Aktionen öffnen weiterhin wie bisher. Die zugrunde liegenden Znuny-Aktionsnamen für Schließen/Verknüpfen/Zusammenfassen sind unsere beste Einschätzung der Standard-Bezeichnungen – trifft eine davon an dieser Installation nicht zu, öffnet der jeweilige Link einfach weiterhin wie gewohnt.
 
 ## Suchergebnisse im neuen Tab
 
@@ -154,7 +167,7 @@ Beispiel: Am `02.07.2026` wird automatisch von `02.07.2025` bis `02.07.2026` ges
 
 Das verhindert sehr große Suchläufe und sorgt trotzdem dafür, dass aktuelle und ältere Tickets innerhalb eines sinnvollen Zeitraums gefunden werden.
 
-Außerdem merkt sich das Addon lokal die letzten Suchbegriffe und Ticketnummern als kleine Suchhistorie.
+Außerdem merkt sich das Addon lokal die letzten Suchbegriffe und Ticketnummern als kleine Suchhistorie. Sie liegt im Speicher der Erweiterung – nicht im Seitenspeicher von Znuny.
 
 Zusätzlich gibt es Schnellknöpfe, um den Zeitraum mit einem Klick umzustellen:
 
@@ -276,17 +289,19 @@ Zusätzlich zeigt das Addon auf Prioritätsseiten einen Warnhinweis an, wenn ein
 
 Wo immer beim Setzen eines "Warten"-Status ein Datum verlangt wird, ergänzt das Addon Schnellknöpfe für das Wartedatum:
 
-- +3 Tage (Standard, wird beim Erscheinen des Datumsfelds automatisch vorbelegt)
+- +3 Tage (wird beim Erscheinen des Datumsfelds automatisch vorbelegt, solange die Standard-Wartezeit 3 Tage beträgt)
 - +7 Tage
 - +14 Tage
 
-Die Tage lassen sich im Popup unter **Antworten und Warten → Tage der Schnellknöpfe** frei einstellen (kommagetrennt, z. B. `1, 3, 7, 14`). Der erste Wert wird beim Erscheinen des Datumsfelds automatisch gesetzt.
+Die Tage lassen sich im Popup unter **Antworten und Warten → Tage der Schnellknöpfe** frei einstellen (kommagetrennt, z. B. `1, 3, 7, 14`). Welche Wartezeit automatisch vorbelegt wird, steht direkt darunter unter **Standard-Wartezeit (Tage)** – voreingestellt sind 3 Tage; der zugehörige Schnellknopf ist mit „(Standard)" gekennzeichnet.
 
-Ein Klick auf einen anderen Knopf überschreibt die Vorbelegung jederzeit.
+Ein Klick auf einen anderen Knopf überschreibt die Vorbelegung jederzeit. Eine geänderte Standard-Wartezeit wirkt sofort – auch auf einer bereits geöffneten Warten-Seite, ohne Neuladen.
 
 ## Tastenkürzel
 
-**Strg+Enter** übermittelt das aktuell offene Formular (Antwort, Notiz, Schließen, Priorität, ...), egal ob der Cursor gerade im normalen Formular oder im Text-Editor steht. Danach greift wie gewohnt die Funktion **Popups als Tabs**: Der Tab schließt automatisch und die Ursprungsseite wird aktualisiert.
+**Strg+Enter** übermittelt das aktuell offene Formular (Antwort, Notiz, Schließen, Priorität, ...), egal ob der Cursor gerade im normalen Formular oder im Text-Editor steht. Danach greift wie gewohnt die Funktion **Popups als Tabs**: Ist die Aktion in einem eigenen Tab geöffnet, schließt sich dieser automatisch und die Ursprungsseite wird aktualisiert.
+
+> **Wichtig:** Das automatische Schließen betrifft ausschließlich Tabs, die das Addon für eine Aktion geöffnet hat (also per **Popups als Tabs**). Das Ticket selbst, von Hand geöffnete Tabs und die **Schnellantwort** – bei der die Aktion eingebettet im Ticket läuft – bleiben immer offen.
 
 Das Kürzel funktioniert nur, wenn auf der aktuellen Seite ein passender "Übermitteln"-Knopf sichtbar ist; sonst passiert nichts.
 
@@ -345,6 +360,7 @@ Das Addon speichert bestimmte Informationen lokal im Browser:
 - lokale Ticketkategorien
 - lokale Ticketnotizen
 - Suchhistorie
+- Antwort-Entwürfe aus der Schnellantwort (nur der Text, ohne Formatierung)
 - Liste der zuletzt bekannten gesperrten Ticketnummern (für "Ton bei neuem Ticket")
 - ausgewählter bzw. selbst hochgeladener Benachrichtigungston
 

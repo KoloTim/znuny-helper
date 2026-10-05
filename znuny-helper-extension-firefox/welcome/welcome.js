@@ -9,6 +9,31 @@
 
   const releases = [
     {
+      version: "1.6.0",
+      items: [
+        "Neu: \"Weiterleiten\" läuft jetzt ebenfalls über die Schnellantwort – als Fenster direkt über dem Ticket.",
+        "Aufgeräumtes Popup: Einstellungen in abgerundeten Karten je Bereich, zusammengehörige Optionen wie die Warten-Schnellauswahl als eine Einheit (bei ausgeschaltetem Schalter gedimmt), Versionsanzeige im Kopf.",
+        "Neu: Die Standard-Wartezeit (bisher fest 3 Tage) ist im Popup unter \"Antworten und Warten\" einstellbar.",
+        "Behoben: Antwort-Entwürfe wurden nicht gespeichert (es wurde das versteckte Editor-Feld statt des sichtbaren Editors gelesen). Jetzt wird auch beim Schließen des Tabs gesichert.",
+        "Behoben: In Entwürfen steckte Editor-Quelltext (<br />, &nbsp;) – daraus wird jetzt lesbarer Text, auch bei bereits gespeicherten Entwürfen.",
+        "Einstellungen wie die Standard-Wartezeit wirken jetzt sofort auf geöffnete Znuny-Seiten, ohne die Seite neu zu laden.",
+        "Behoben: Der Antwort-Tab schließt sich nach dem Übermitteln jetzt zuverlässig, und das Ticket wird anschließend neu geladen.",
+        "Tab-Schließen nach dem Übermitteln betrifft nur noch Tabs, die das Addon für eine Aktion geöffnet hat – das Ticket selbst, von Hand geöffnete Tabs und die Schnellantwort bleiben offen.",
+        "Neu: Das Schnellantwort-Fenster lässt sich verschieben und an allen Rändern und Ecken in der Größe ändern – per Doppelklick auf den Kopfbereich auf Vollbild. Größe und Position werden gemerkt, \"Ansicht zurücksetzen\" stellt die Standardansicht wieder her, Esc schließt das Fenster.",
+        "Neu: Über \"–\" lässt sich das Fenster minimieren, ohne den Formularinhalt zu verlieren.",
+        "Neu: Angefangene Antworten gehen beim Schließen nicht mehr verloren – der Text wird als Entwurf gespeichert und beim nächsten Öffnen derselben Aktion wiederhergestellt (mit \"Entwurf verwerfen\"). Nach dem Übermitteln wird der Entwurf gelöscht.",
+        "Neu: \"Antworten\" und \"Weiterleiten\" brauchen keinen Vorlagenklick mehr, wenn nur eine Vorlage vorhanden ist – der leere Suchkasten verschwindet und ein Klick auf die Aktion genügt.",
+        "Vorlagen und Kategorien werden jetzt sofort gespeichert: Das Schließen des Bearbeiten-Fensters verwirft keine Änderungen mehr.",
+        "Die Warten-Schnellauswahl überschreibt kein bereits gewähltes Wartedatum mehr.",
+        "Strg+Enter übermittelt bevorzugt das Formular, in dem gerade gearbeitet wird.",
+        "Suchhistorie liegt jetzt im Addon-Speicher (bisher im Speicher der Znuny-Seite); vorhandene Einträge werden übernommen.",
+        "Behoben: Die Anhang-Vorschau gibt ihren Speicher beim Schließen wieder frei.",
+        "Behoben: Ein Suchbegriff, der nur im geöffneten Artikel vorkommt, wird dort jetzt markiert und angesprungen.",
+        "Behoben: EB Helper öffnet die EB-Seite ohne Zugriff auf das Ticketfenster; der Knopf heißt korrekt \"Empfangsbestätigung erstellen\".",
+        "Behoben: Die Sternchen-Markierung in Ticketlisten reagiert nicht mehr auf Spalten, die nur das Wort \"priority\" enthalten."
+      ]
+    },
+    {
       version: "1.5.2",
       items: [
         "Neu: \"Priorisierung\" lässt sich jetzt über die Schnellantwort öffnen – als Fenster direkt über dem Ticket, inklusive Prioritäts-Vorlagen und Warten-Schnellauswahl.",

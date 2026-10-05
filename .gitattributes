@@ -1,0 +1,4 @@
+# Zeilenenden vereinheitlichen: alles wird als LF im Repository und im
+# Arbeitsbaum gehalten. Damit verschwinden die CRLF-Warnungen beim Commit und
+# die SHA256-Pruefungen der Release-Archive sind auf Windows und Linux gleich.
+* text=auto eol=lf

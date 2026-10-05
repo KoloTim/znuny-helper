@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: Pruefen und Archive bauen
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Firefox-Variante pruefen (Parity)
+        run: python3 tools/sync-firefox.py --check
+
+      - name: Syntaxcheck und Regressionstest
+        run: npm test
+
+      - name: Release-Archive bauen
+        run: python3 tools/build-release-zips.py
+
+      - name: Release-Archive pruefen
+        run: python3 tools/verify-release-zips.py
+
+      - name: Archive als Workflow-Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: znuny-helper-release-archive
+          if-no-files-found: error
+          path: |
+            znuny-helper-extension.zip
+            znuny-helper-extension-firefox.zip
+            znuny-helper-extension-firefox.xpi

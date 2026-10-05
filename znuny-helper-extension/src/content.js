@@ -8,22 +8,25 @@
   const PRIORITY_TEMPLATE_CONFIG_KEY = "znunyHelperPriorityTemplateConfig";
   const TICKET_SOUND_CONFIG_KEY = "znunyHelperTicketSoundConfig";
   const TICKET_SOUND_SEEN_KEY = "znunyHelperSeenLockedTicketIds";
+  const QUICK_REPLY_LAYOUT_KEY = "znunyHelperQuickReplyLayout";
+  const QUICK_REPLY_DRAFT_KEY = "znunyHelperQuickReplyDrafts";
+  const QUICK_REPLY_DRAFT_LIMIT = 10;
   const EB_BASE_URL = "https://digi-eb.staff.hsrw/new";
   const TEXT_PREVIEW_LIMIT = 2 * 1024 * 1024;
   const SPREADSHEET_PREVIEW_MAX_ROWS = 1000;
   const SPREADSHEET_PREVIEW_MAX_COLS = 80;
   const TICKET_SOUND_CHECK_INTERVAL_MS = 60000;
   // Actions the quick-reply drawer knows how to embed: replying (Compose),
-  // changing the owner (Owner), setting the priority (Priority), adding a note
-  // (Note), closing (Close), linking (LinkObject) and merging (Merge).
-  // AgentTicketPriority is the same action the priority templates already target,
-  // so it is verified on this instance. The Close/Merge/LinkObject action names
-  // are our best-known guess at the standard Znuny naming and are unverified
-  // against this live instance — if one of them doesn't trigger the drawer, the
-  // link simply falls back to its normal tab/popup behaviour, so this is safe to
-  // leave in place either way.
+  // forwarding (Forward), changing the owner (Owner), setting the priority
+  // (Priority), adding a note (Note), closing (Close), linking (LinkObject) and
+  // merging (Merge). AgentTicketPriority is the same action the priority templates
+  // already target, so it is verified on this instance. The Close/Merge/LinkObject
+  // action names are our best-known guess at the standard Znuny naming and are
+  // unverified against this live instance — if one of them doesn't trigger the
+  // drawer, the link simply falls back to its normal tab/popup behaviour, so this is
+  // safe to leave in place either way.
   // Keep this in sync with isQuickReplyEligibleUrl in page-bridge.js.
-  const QUICK_REPLY_ACTION_PATTERN = /Action=(?:AgentTicket(?:Compose|Owner|Priority|Note|Close|Merge)|AgentLinkObject)\b/i;
+  const QUICK_REPLY_ACTION_PATTERN = /Action=(?:AgentTicket(?:Compose|Forward|Owner|Priority|Note|Close|Merge)|AgentLinkObject)\b/i;
 
   const DEFAULT_SETTINGS = {
     popupTabs: true,
@@ -38,9 +41,11 @@
     ticketCategories: true,
     ticketListInfiniteScroll: true,
     pendingDateButtons: true,
+    pendingDateDefaultDays: 3,
     keyboardShortcuts: true,
     assignedTicketSound: false,
-    quickReply: false
+    quickReply: false,
+    directArticleActions: true
   };
 
   const BUILTIN_TICKET_SOUNDS = [
@@ -154,7 +159,18 @@
   let priorityTemplateFilter = "";
   const priorityTemplateOpenIds = new Set();
   let ticketSoundConfig = { customSounds: [], selectedId: BUILTIN_TICKET_SOUNDS[0].id };
+  // Remembered size/position of the quick-reply drawer. Zero/null means "use the
+  // default" (bottom right), so a stored layout only takes over once the user
+  // actually resized or moved the window.
+  let quickReplyLayout = { width: 0, height: 0, left: null, top: null, maximized: false };
+  // Unsubmitted reply texts, keyed by "<Action>|<TicketID>". Written when the drawer
+  // is closed and restored the next time the same action is opened for that ticket.
+  let quickReplyDrafts = {};
   let openNoteTicketId = null;
+  // Object URL of the attachment preview that is currently open. It must be
+  // released when the preview closes; otherwise the whole previewed file stays in
+  // memory until the page is left.
+  let previewObjectUrl = "";
   let scanQueued = false;
   let searchModalFixQueued = false;
   let suppressMutationScanUntil = 0;
@@ -624,12 +640,12 @@
     return /bermitteln/i.test(text);
   }
 
-  function requestCloseSubmittedTab(delayMs = 300) {
+  function requestCloseSubmittedTab(delayMs = 300, returnUrl = "") {
     try {
       const response = api.runtime?.sendMessage?.({
         type: "znuny-helper-close-submitted-tab",
         delayMs,
-        returnUrl: document.referrer || ""
+        returnUrl: returnUrl || document.referrer || ""
       });
 
       response?.catch?.(() => {});
@@ -640,6 +656,28 @@
 
   const AUTO_CLOSE_FLAG_KEY = "zhAutoCloseAfterSubmit";
   const AUTO_CLOSE_FLAG_TTL_MS = 20000;
+
+  // Window-name prefix and URL fragment that page-bridge.js puts on a tab it opens for
+  // an action page. Keep both in sync with page-bridge.js.
+  const ACTION_TAB_NAME_PREFIX = "zhActionTab-";
+  const ACTION_TAB_MARKER = "zhActionTab";
+  const ACTION_TAB_STORAGE_KEY = "zhActionTabMarker";
+
+  function logAutoClose(message, detail) {
+    console.info(`Znuny Helper: ${message}`, detail);
+  }
+
+  // The fragment is only in the URL of the first load; remember it for this tab, so it
+  // is still known after the submit navigation (which drops the fragment).
+  function markActionTabIfRequested() {
+    if (window.location.hash !== `#${ACTION_TAB_MARKER}`) return;
+
+    try {
+      sessionStorage.setItem(ACTION_TAB_STORAGE_KEY, "1");
+    } catch (error) {
+      // Private mode or blocked storage; the window name still marks the tab.
+    }
+  }
 
   // Action pages that return to the ticket after submitting. Only these may
   // close their tab after a successful submit; zoom/queue/search must stay open.
@@ -657,14 +695,39 @@
     return /^AgentTicket/i.test(urlAction);
   }
 
+  function isExtensionActionTab() {
+    // Two independent markers: the window name (page-bridge sets it, but Znuny's popup
+    // code works with window.name as well) and the fragment marker remembered in this
+    // tab's session storage.
+    if (String(window.name || "").startsWith(ACTION_TAB_NAME_PREFIX)) return true;
+
+    try {
+      return sessionStorage.getItem(ACTION_TAB_STORAGE_KEY) === "1";
+    } catch (error) {
+      return false;
+    }
+  }
+
   function wasOpenedInOwnTab() {
-    // Tabs opened by the extension (window.open / patched Znuny popups) keep
-    // their opener. A same-tab navigation does not, so we never close the main
-    // ticket tab by accident.
-    return Boolean(window.opener);
+    // Only a tab that the extension itself opened for an action page may close itself
+    // after submitting. window.opener alone is not enough: it is also set for ordinary
+    // target="_blank" links, and the quick-reply drawer does not open a tab at all.
+    return isExtensionActionTab();
+  }
+
+  // Additional, independent signal: the page that led here inside this very tab. After
+  // submitting an action Znuny loads the ticket, so the referrer is the action page. A
+  // ticket tab opened from a list has a list page as referrer, never an action page.
+  function cameFromActionPage() {
+    const referrer = String(document.referrer || "");
+    return Boolean(referrer) && isCloseAfterSubmitPage(referrer);
   }
 
   function armAutoCloseOnSubmit(event) {
+    // The quick-reply drawer embeds the action inside the ticket tab; that tab must
+    // never close itself.
+    if (document.getElementById("zh-quick-reply-drawer")) return;
+
     if (event.type === "submit") {
       if (!isZnunyActionSubmitContext(event.target)) return;
     } else {
@@ -673,12 +736,35 @@
       if (!isZnunyActionSubmitContext(control.closest?.("form") || null)) return;
     }
 
-    if (!wasOpenedInOwnTab()) return;
+    if (!wasOpenedInOwnTab()) {
+      logAutoClose("Tab bleibt offen: nicht vom Addon als Aktions-Tab geoeffnet", {
+        name: window.name || "",
+        seite: window.location.href
+      });
+      return;
+    }
+
+    const returnUrl = document.referrer || "";
 
     try {
-      sessionStorage.setItem(AUTO_CLOSE_FLAG_KEY, String(Date.now()));
+      // The referrer of this action page is the ticket/list that opened the tab - the
+      // page that should be reloaded after submitting.
+      sessionStorage.setItem(AUTO_CLOSE_FLAG_KEY, JSON.stringify({ at: Date.now(), returnUrl }));
     } catch (error) {
       // sessionStorage can be unavailable in rare privacy-mode edge cases; ignore.
+    }
+
+    // Hand the tab over to the background as well: it closes the tab once Znuny has
+    // left the action page, independent of this page's script and of window.name.
+    try {
+      api.runtime?.sendMessage?.({
+        type: "znuny-helper-arm-auto-close",
+        returnUrl,
+        actionPattern: CLOSE_AFTER_SUBMIT_ACTION.source,
+        actionFlags: CLOSE_AFTER_SUBMIT_ACTION.flags
+      })?.catch?.(() => {});
+    } catch (error) {
+      // The browser API is unavailable on plain page contexts.
     }
   }
 
@@ -708,32 +794,96 @@
     });
   }
 
+  // Reads and clears the flag. Supports the older plain-timestamp form as well.
+  function readAutoCloseFlag() {
+    let raw = null;
+    try {
+      raw = sessionStorage.getItem(AUTO_CLOSE_FLAG_KEY);
+      sessionStorage.removeItem(AUTO_CLOSE_FLAG_KEY);
+    } catch (error) {
+      return null;
+    }
+
+    if (!raw) return null;
+
+    if (raw.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(raw);
+        return { at: Number(parsed?.at) || 0, returnUrl: String(parsed?.returnUrl || "") };
+      } catch (error) {
+        return null;
+      }
+    }
+
+    return { at: Number(raw) || 0, returnUrl: "" };
+  }
+
   function consumeAutoCloseFlag() {
     if (window.top !== window.self) return;
 
-    let armedAt = 0;
-    try {
-      armedAt = Number(sessionStorage.getItem(AUTO_CLOSE_FLAG_KEY) || 0);
-      sessionStorage.removeItem(AUTO_CLOSE_FLAG_KEY);
-    } catch (error) {
+    const flag = readAutoCloseFlag();
+    if (!flag?.at || Date.now() - flag.at > AUTO_CLOSE_FLAG_TTL_MS) return;
+
+    // Only a tab that the extension opened for an action may close itself. This keeps
+    // the ticket tab - and every tab the agent opened by hand - out of it, even if a
+    // flag ever ends up in the session storage that tabs share.
+    const markedTab = isExtensionActionTab();
+    const actionReferrer = cameFromActionPage();
+
+    if (!markedTab && !actionReferrer) {
+      logAutoClose("Tab bleibt offen: keine Aktions-Tab-Markierung", {
+        seite: window.location.href,
+        herkunft: document.referrer || "(keine)"
+      });
       return;
     }
 
-    if (!armedAt || Date.now() - armedAt > AUTO_CLOSE_FLAG_TTL_MS) return;
-
     // If we are still on an action page, the submit did not succeed (e.g. a
     // validation error re-rendered the form) - keep the tab open.
-    if (isCloseAfterSubmitPage()) return;
+    if (isCloseAfterSubmitPage()) {
+      logAutoClose("Tab bleibt offen: noch auf der Aktionsseite (Vermutlich Validierungsfehler)");
+      return;
+    }
 
-    window.setTimeout(() => requestCloseSubmittedTab(), 400);
+    logAutoClose("Aktions-Tab wird nach dem Übermitteln geschlossen", {
+      markiert: markedTab,
+      herkunft: actionReferrer ? document.referrer : "(ohne)"
+    });
+
+    window.setTimeout(() => {
+      try {
+        // One-shot markers: a tab that stays open for other reasons must not be closed
+        // later on because of a stale name or marker.
+        window.name = "";
+        sessionStorage.removeItem(ACTION_TAB_STORAGE_KEY);
+      } catch (error) {
+        // Ignore; the tab closes right away.
+      }
+      requestCloseSubmittedTab(300, flag.returnUrl);
+    }, 400);
   }
 
   function findSubmitShortcutControl() {
     const candidates = [...document.querySelectorAll('button, input[type="submit"], input[type="button"]')]
       .filter(isVisibleFormControl)
-      .filter((control) => !control.closest("#zh-priority-template-toolbar, .zh-priority-modal, .zh-category-modal-backdrop, .zh-note-popup, .zh-pending-date-row"));
+      .filter((control) => !control.closest("#zh-priority-template-toolbar, .zh-priority-modal, .zh-category-modal-backdrop, .zh-note-popup, .zh-pending-date-row"))
+      .filter(isTransmitSubmitControl);
 
-    return candidates.find(isTransmitSubmitControl) || null;
+    if (!candidates.length) return null;
+
+    // Prefer the form the agent is actually working in: a page can hold several
+    // forms, and blindly taking the first "Übermitteln" button could submit the
+    // wrong one.
+    const activeForm = document.activeElement?.closest?.("form") || null;
+    if (activeForm) {
+      const inActiveForm = candidates.find((control) => control.closest("form") === activeForm);
+      if (inActiveForm) return inActiveForm;
+    }
+
+    return candidates.find((control) => {
+      const form = control.closest("form");
+      return form ? elementIsVisible(form) : true;
+    }) || candidates[0];
   }
 
   function handleSubmitShortcutKeydown(event) {
@@ -825,6 +975,17 @@
     return normalizePendingDatePresets(settings.pendingDatePresets);
   }
 
+  // Waiting period that is filled in automatically as soon as a pending state (e.g.
+  // "Warten zur Erinnerung" or "Warten auf erfolgreich schließen") asks for a date.
+  // Configurable in the popup; falls back to the first quick button.
+  function getPendingDateDefaultDays() {
+    const days = Math.trunc(Number(settings.pendingDateDefaultDays));
+
+    if (Number.isFinite(days) && days > 0 && days <= 3650) return days;
+
+    return DEFAULT_PENDING_DATE_PRESETS[0];
+  }
+
   function selectNearestDateNumber(select, target) {
     if (!select?.options?.length) return false;
 
@@ -912,9 +1073,16 @@
     return anchor.parentElement;
   }
 
+  function pendingDateValueSignature(group) {
+    return ["Year", "Month", "Day", "Hour", "Minute"]
+      .map((part) => normalizeText(group?.[part]?.value || ""))
+      .join("|");
+  }
+
   function ensurePendingDateButtons(group, doc = document) {
     const presets = getPendingDatePresets();
-    const signature = presets.join(",");
+    const defaultDays = getPendingDateDefaultDays();
+    const signature = `${presets.join(",")}|${defaultDays}`;
     if (group.Year.dataset.zhPendingButtonsBound === signature) return;
 
     const container = findPendingDateContainer(group);
@@ -931,11 +1099,11 @@
     label.textContent = "Warten bis:";
     row.appendChild(label);
 
-    presets.forEach((days, index) => {
+    presets.forEach((days) => {
       const unit = days === 1 ? "Tag" : "Tage";
       const button = doc.createElement("button");
       button.type = "button";
-      button.textContent = index === 0 ? `+${days} ${unit} (Standard)` : `+${days} ${unit}`;
+      button.textContent = days === defaultDays ? `+${days} ${unit} (Standard)` : `+${days} ${unit}`;
       button.addEventListener("click", (event) => {
         stopEvent(event);
         setPendingDateOffset(group, days);
@@ -944,7 +1112,33 @@
     });
 
     container.appendChild(row);
-    setPendingDateOffset(group, presets[0]);
+
+    // Pre-fill the default only while the date fields still hold what they had when
+    // the row first appeared. The default used to be written on every rebuild, which
+    // could overwrite a date the agent had already picked.
+    const currentSignature = pendingDateValueSignature(group);
+    const storedInitialSignature = group.Year.dataset.zhPendingInitialValue;
+    const lastAppliedDefault = Number(group.Year.dataset.zhPendingDefaultApplied || 0);
+
+    if (storedInitialSignature === undefined) {
+      group.Year.dataset.zhPendingInitialValue = currentSignature;
+      group.Year.dataset.zhPendingDefaultApplied = String(defaultDays);
+      setPendingDateOffset(group, defaultDays);
+      return;
+    }
+
+    // The configured waiting period changed in the popup: apply it right away instead of
+    // waiting for the next page load. The row is only rebuilt when the setting really
+    // changed, so a date the agent picked is not overwritten otherwise.
+    if (lastAppliedDefault !== defaultDays) {
+      group.Year.dataset.zhPendingDefaultApplied = String(defaultDays);
+      setPendingDateOffset(group, defaultDays);
+      return;
+    }
+
+    if (currentSignature === storedInitialSignature) {
+      setPendingDateOffset(group, defaultDays);
+    }
   }
 
   function addPendingDateStyles(doc = document) {
@@ -972,7 +1166,143 @@
     document.querySelectorAll("select[data-zh-pending-buttons-bound]").forEach((select) => {
       delete select.dataset.zhPendingButtonsBound;
     });
+    // Forget the remembered "untouched" state too, so switching the feature back on
+    // behaves like the date fields appearing for the first time.
+    document.querySelectorAll("select[data-zh-pending-initial-value]").forEach((select) => {
+      delete select.dataset.zhPendingInitialValue;
+    });
+    document.querySelectorAll("select[data-zh-pending-default-applied]").forEach((select) => {
+      delete select.dataset.zhPendingDefaultApplied;
+    });
     removeStyle("zh-pending-date-style");
+  }
+
+  // ------------------------------------------------- article action dropdowns
+  // Znuny renders "Antworten" and "Weiterleiten" per article as a Modernize select
+  // whose visible part is an empty search field: the agent has to click that field
+  // and then pick the only entry ("leere Antwort") before the action starts. When
+  // exactly one template exists there is nothing to choose, so it is preselected and
+  // the empty field is hidden - one click on the action is enough. With several
+  // templates nothing is touched, the normal selection stays available.
+  function getSingleTemplateOptionValue(options) {
+    const values = [...(options || [])]
+      .map((option) => String(option?.value ?? "").trim())
+      .filter(Boolean);
+
+    return values.length === 1 ? values[0] : "";
+  }
+
+  function findArticleActionForm(control) {
+    const form = control?.closest?.("form");
+    if (!form) return null;
+
+    const action = getFormControlValue(form, "Action");
+    if (!/^AgentTicket(?:Compose|Forward)$/.test(action)) return null;
+
+    return form;
+  }
+
+  function getArticleActionSelect(form) {
+    return form?.querySelector?.('select[name="ResponseID"], select[name="ForwardTemplateID"]') || null;
+  }
+
+  function prepareArticleActionForm(form) {
+    const select = getArticleActionSelect(form);
+    if (!select) return false;
+
+    const value = getSingleTemplateOptionValue(select.options);
+    if (!value) return false;
+
+    const searchInput = (select.id ? form.querySelector(`#${select.id}_Search`) : null) ||
+      form.querySelector(".InputField_Search");
+    if (!searchInput) return false;
+
+    const container = searchInput.closest(".InputField_Container") || searchInput;
+
+    // Select silently, without input/change events: Znuny reacts to those on these
+    // menu widgets and would start the action on its own.
+    [...select.options].forEach((option) => {
+      option.selected = option.value === value;
+    });
+    select.value = value;
+
+    container.style.display = "none";
+    container.dataset.zhDirectActionHidden = "1";
+    form.dataset.zhDirectActionPrepared = "1";
+    return true;
+  }
+
+  function buildArticleActionUrl(form) {
+    const select = getArticleActionSelect(form);
+    if (!select) return "";
+
+    const params = [];
+
+    form.querySelectorAll("input[name]").forEach((input) => {
+      // Znuny's own menu links never carry the session token; keep it out of the URL.
+      if (input.name === "ChallengeToken") return;
+
+      const value = String(input.value || "").trim();
+      if (!value) return;
+
+      params.push(`${input.name}=${value}`);
+    });
+
+    const selectValue = String(select.value || "").trim();
+    if (selectValue) params.push(`${select.name}=${selectValue}`);
+
+    if (!params.length) return "";
+
+    return `${window.location.pathname}?${params.join(";")}`;
+  }
+
+  function handleArticleActionClick(event) {
+    const label = event.target?.closest?.("label, .InputField_Container, .InputField_Search");
+    const form = label ? findArticleActionForm(label) : null;
+
+    if (!form || form.dataset.zhDirectActionPrepared !== "1") return;
+    if (form.dataset.zhDirectActionRunning === "1") return;
+
+    const url = buildArticleActionUrl(form);
+    if (!url) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    form.dataset.zhDirectActionRunning = "1";
+    window.setTimeout(() => {
+      delete form.dataset.zhDirectActionRunning;
+    }, 1000);
+
+    // Run the action through the MAIN-world bridge, which uses Znuny's own popup
+    // layer - so quick reply, "Popups als Tabs" and real popups keep working.
+    window.dispatchEvent(new CustomEvent("znuny-helper-run-article-action", { detail: { url } }));
+  }
+
+  function enableDirectArticleActions() {
+    if (window.top !== window.self) return;
+    if (!isTicketZoomPage()) return;
+
+    document.querySelectorAll("form").forEach((form) => {
+      if (form.dataset.zhDirectActionPrepared === "1") return;
+      prepareArticleActionForm(form);
+    });
+
+    if (document.documentElement.dataset.zhDirectActionBound !== "1") {
+      document.documentElement.dataset.zhDirectActionBound = "1";
+      document.addEventListener("click", handleArticleActionClick, true);
+    }
+  }
+
+  function disableDirectArticleActions() {
+    document.querySelectorAll('[data-zh-direct-action-prepared="1"]').forEach((form) => {
+      delete form.dataset.zhDirectActionPrepared;
+
+      form.querySelectorAll('[data-zh-direct-action-hidden="1"]').forEach((container) => {
+        container.style.display = "";
+        delete container.dataset.zhDirectActionHidden;
+      });
+    });
   }
 
   function queueScan() {
@@ -1004,6 +1334,15 @@
 
   function closeAttachmentPreview() {
     document.querySelectorAll(".zh-preview-backdrop").forEach((element) => element.remove());
+
+    if (previewObjectUrl) {
+      try {
+        URL.revokeObjectURL(previewObjectUrl);
+      } catch (error) {
+        // Nothing to do; the URL is dropped either way.
+      }
+      previewObjectUrl = "";
+    }
   }
 
   function getExtension(text) {
@@ -1087,6 +1426,9 @@
   }
 
   function renderAttachmentDownloadFallback(content, href, message) {
+    // Replaces the "loading" placeholder instead of appending below it.
+    content.textContent = "";
+
     const fallback = document.createElement("div");
     fallback.className = "zh-preview-loading";
     fallback.textContent = message;
@@ -1675,7 +2017,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const closeButton = document.createElement("button");
     closeButton.type = "button";
-    closeButton.textContent = "Schliessen";
+    closeButton.textContent = "Schließen";
 
     actions.append(openTab, closeButton);
     header.append(title, actions);
@@ -1745,6 +2087,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         ? new Blob([blob], { type: "application/pdf" })
         : blob;
       const blobUrl = URL.createObjectURL(previewBlob);
+      previewObjectUrl = blobUrl;
 
       if (type === "pdf") {
         const iframe = document.createElement("iframe");
@@ -1816,7 +2159,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const closeButton = document.createElement("button");
     closeButton.type = "button";
     closeButton.className = "zh-image-lightbox-close";
-    closeButton.textContent = "Schliessen";
+    closeButton.textContent = "Schließen";
     closeButton.addEventListener("click", (event) => {
       stopEvent(event);
       closeArticleImageLightbox();
@@ -1983,7 +2326,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     }
 
     addSearchModalStyles();
-    installSearchAlertBypass();
+    installPageSearchHistoryBridge();
 
     if (attr && !attr.__znunyHelperOriginalOptions) {
       attr.__znunyHelperOriginalOptions = [...attr.options].map((option) => ({
@@ -2457,10 +2800,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const placeholder = input.getAttribute("placeholder") || "";
     const value = input.value || "";
 
+    // The installation uses an example ticket number in the built-in filter field
+    // ("10*5155"); match that placeholder pattern generically instead of a fixed
+    // number, so this keeps working when the example changes.
     return input.name === "TicketNumber" ||
       input.name === "TicketNumberRaw" ||
-      /10\*5155|105658|ticket/i.test(placeholder) ||
-      /10\*5155|105658/.test(value);
+      /ticket/i.test(placeholder) ||
+      /\d{1,3}\s?\*\s?\d{2,}/.test(placeholder) ||
+      /\d{1,3}\s?\*\s?\d{2,}/.test(value);
   }
 
   function findGeneratedSearchFieldRow(input, form) {
@@ -2500,16 +2847,51 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     });
   }
 
-  function getSearchHistory() {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "{}");
-      return {
-        fulltext: Array.isArray(parsed.fulltext) ? parsed.fulltext : [],
-        ticketNumber: Array.isArray(parsed.ticketNumber) ? parsed.ticketNumber : []
-      };
-    } catch (error) {
-      return { fulltext: [], ticketNumber: [] };
+  let searchHistoryCache = { fulltext: [], ticketNumber: [] };
+  let searchHistoryLoaded = false;
+
+  function normalizeSearchHistory(value) {
+    const clean = (list) => (Array.isArray(list)
+      ? list.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 10)
+      : []);
+
+    return { fulltext: clean(value?.fulltext), ticketNumber: clean(value?.ticketNumber) };
+  }
+
+  // The history used to live in the page's localStorage - readable by anything on
+  // the Znuny origin and lost when site data is cleared. It lives in the extension
+  // storage now, like every other setting; an existing localStorage entry is
+  // migrated once so nothing is lost.
+  async function loadSearchHistory() {
+    const stored = await syncGet("local", { [SEARCH_HISTORY_KEY]: null });
+    let history = normalizeSearchHistory(stored[SEARCH_HISTORY_KEY]);
+
+    if (!stored[SEARCH_HISTORY_KEY]) {
+      let legacy = null;
+      try {
+        legacy = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "null");
+      } catch (error) {
+        legacy = null;
+      }
+
+      if (legacy) {
+        history = normalizeSearchHistory(legacy);
+        await syncSet("local", { [SEARCH_HISTORY_KEY]: history });
+        try {
+          localStorage.removeItem(SEARCH_HISTORY_KEY);
+        } catch (error) {
+          // Blocked storage (private mode); the extension copy is authoritative.
+        }
+      }
     }
+
+    searchHistoryCache = history;
+    searchHistoryLoaded = true;
+    return history;
+  }
+
+  function getSearchHistory() {
+    return searchHistoryCache;
   }
 
   function saveSearchHistoryEntry(type, value) {
@@ -2517,8 +2899,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (!clean) return;
 
     const history = getSearchHistory();
-    history[type] = [clean, ...(history[type] || []).filter((item) => item !== clean)].slice(0, 10);
-    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+    const next = {
+      fulltext: history.fulltext.slice(),
+      ticketNumber: history.ticketNumber.slice()
+    };
+    next[type] = [clean, ...(next[type] || []).filter((item) => item !== clean)].slice(0, 10);
+
+    searchHistoryCache = next;
+    syncSet("local", { [SEARCH_HISTORY_KEY]: next });
   }
 
   function attachSearchHistory(control, type) {
@@ -2692,43 +3080,22 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     ensureCreatedDateFilter(form, createdMonthsControl);
   }
 
-  function isSearchValidationAlert(message) {
-    const text = normalizeText(message || "").toLowerCase();
-    return text.includes("zumindest einen suchbegriff") && text.includes("nach allem");
-  }
+  // The alert-based fallback for a ticket-number-only search lives in
+  // page-bridge.js (MAIN world) - the only world where Znuny's own alert() can be
+  // intercepted. This listener keeps the search history complete on that path too.
+  function installPageSearchHistoryBridge() {
+    if (window.__znunyHelperSearchHistoryBridge === "1") return;
+    window.__znunyHelperSearchHistoryBridge = "1";
 
-  function runTicketNumberOnlySearchFromAlert(message) {
-    if (!isSearchValidationAlert(message)) return false;
+    window.addEventListener("znuny-helper-ticketnumber-search", (event) => {
+      const ticketNumber = normalizeText(event.detail?.ticketNumber || "");
+      if (!ticketNumber) return;
 
-    const controls = getVisibleSearchControls();
-    if (!controls?.form || !getSearchControlValue(controls.ticketNumberControl)) return false;
+      saveSearchHistoryEntry("ticketNumber", ticketNumber);
 
-    const fulltext = getSearchControlValue(controls.fulltextControl);
-    if (fulltext && fulltext !== "*") return false;
-
-    prepareTicketNumberOnlySearch(
-      controls.form,
-      controls.fulltextControl,
-      controls.ticketNumberControl,
-      controls.createdMonthsControl
-    );
-    saveSearchHistoryEntry("ticketNumber", getSearchControlValue(controls.ticketNumberControl));
-    renderSearchHistoryHints(controls.ticketNumberControl, "ticketNumber");
-
-    window.setTimeout(() => submitSearchFormDirectly(controls.form), 0);
-    return true;
-  }
-
-  function installSearchAlertBypass() {
-    if (window.__znunyHelperSearchAlertBypass === "1") return;
-
-    const originalAlert = window.alert.bind(window);
-    window.__znunyHelperSearchAlertBypass = "1";
-
-    window.alert = (message) => {
-      if (runTicketNumberOnlySearchFromAlert(message)) return undefined;
-      return originalAlert(message);
-    };
+      const controls = getVisibleSearchControls();
+      if (controls?.ticketNumberControl) renderSearchHistoryHints(controls.ticketNumberControl, "ticketNumber");
+    });
   }
 
   function handleTicketNumberOnlySearch(event, form, fulltextControl, ticketNumberControl, createdMonthsControl) {
@@ -3571,9 +3938,20 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     if (articleSearchState.rowMatches.length > 0) {
       focusArticleSearchMatch(0);
-    } else {
-      updateArticleSearchStatus();
+      return;
     }
+
+    // No overview row matched: look inside the article that is currently open and
+    // jump to the first hit there. This used to only refresh the status line, so a
+    // term that appears only in the opened article was highlighted nowhere.
+    highlightCurrentlyOpenedArticle(articleSearchState.terms);
+
+    if (articleSearchState.matches.length > 0) {
+      focusArticleSearchMatch(0);
+      return;
+    }
+
+    updateArticleSearchStatus();
   }
 
   function scheduleArticleSearch(query) {
@@ -4023,7 +4401,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function askForHardwareText() {
-    const text = window.prompt("Hardwaretext einfuegen, falls er nicht automatisch erkannt wurde:", "");
+    const text = window.prompt("Hardwaretext einfügen, falls er nicht automatisch erkannt wurde:", "");
     return text ? uniqueHardwareEntries(splitHardwareEntriesSmart(text)) : [];
   }
 
@@ -4043,7 +4421,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const button = document.createElement("button");
     button.id = "zh-eb-open-button";
     button.type = "button";
-    button.textContent = "Empfangsbestaetigung erstellen";
+    button.textContent = "Empfangsbestätigung erstellen";
     button.style.marginLeft = "12px";
     button.style.padding = "8px 14px";
     button.style.background = "#3976bb";
@@ -4071,7 +4449,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         return;
       }
 
-      window.open(buildEbUrl(caseValue, hardwareLines), "_blank");
+      // "noopener" so the external EB page cannot reach back into the ticket page.
+      window.open(buildEbUrl(caseValue, hardwareLines), "_blank", "noopener");
     });
 
     target.prepend(button);
@@ -5068,6 +5447,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       groups: getPriorityGroups(),
       templates: readPriorityTemplateEditorRows(list)
     });
+    // Persist right away: closing the editor through the backdrop or the X used to
+    // discard every change (colour, title, fields, group, order, removals).
+    savePriorityTemplateConfig();
     renderPriorityTemplateEditorRows(list);
   }
 
@@ -5496,6 +5878,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     resetButton.textContent = "Standard wiederherstellen";
     resetButton.addEventListener("click", () => {
       priorityTemplateConfig = normalizePriorityTemplateConfig({ templates: DEFAULT_PRIORITY_TEMPLATES });
+      savePriorityTemplateConfig();
       renderPriorityTemplateEditorRows(list);
     });
 
@@ -5866,103 +6249,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function isTicketListPage() {
     return TICKET_LIST_ACTION_PATTERN.test(decodeUrlSeparators(window.location.href));
-  }
-
-  function isSearchResultsPage() {
-    const href = window.location.href;
-    const bodyText = document.body?.innerText || "";
-
-    return /Action=Agent(?:Ticket)?Search/i.test(href) ||
-      /^\s*Suchergebnisse:/im.test(bodyText);
-  }
-
-  function isTicketZoomHref(href) {
-    return /Action=AgentTicketZoom/i.test(String(href || "")) &&
-      /(?:[?;&]|%3B)(?:TicketID|TicketNumber|Case)(?:=|%3D)\d+/i.test(String(href || ""));
-  }
-
-  function normalizeTicketZoomUrl(href) {
-    try {
-      return new URL(href, window.location.href).href;
-    } catch (error) {
-      return "";
-    }
-  }
-
-  function getSearchResultTicketUrl(target) {
-    const anchor = target?.closest?.("a[href]");
-    if (anchor && isTicketZoomHref(anchor.getAttribute("href") || anchor.href)) {
-      return normalizeTicketZoomUrl(anchor.getAttribute("href") || anchor.href);
-    }
-
-    const row = target?.closest?.("tr");
-    if (!row) return "";
-
-    const rowLink = row.querySelector('a[href*="AgentTicketZoom"], a[href*="TicketID="], a[href*="TicketNumber="]');
-    if (rowLink && isTicketZoomHref(rowLink.getAttribute("href") || rowLink.href)) {
-      return normalizeTicketZoomUrl(rowLink.getAttribute("href") || rowLink.href);
-    }
-
-    const clickSource = row.getAttribute("onclick") || "";
-    const quotedUrl = clickSource.match(/['"]([^'"]*index\.pl[^'"]*)['"]/)?.[1];
-    if (quotedUrl && isTicketZoomHref(quotedUrl)) {
-      return normalizeTicketZoomUrl(quotedUrl);
-    }
-
-    const ticketNumber = row.innerText.match(/\b\d{7,}\b/)?.[0] || "";
-    if (!ticketNumber) return "";
-
-    const url = new URL(window.location.href);
-    url.search = `?Action=AgentTicketZoom;TicketNumber=${ticketNumber}`;
-    return url.href;
-  }
-
-  function prepareSearchResultLinksForNewTabs() {
-    if (!isSearchResultsPage()) return;
-
-    document.querySelectorAll('a[href*="AgentTicketZoom"], a[href*="TicketID="], a[href*="TicketNumber="]').forEach((anchor) => {
-      if (!isTicketZoomHref(anchor.getAttribute("href") || anchor.href)) return;
-      if (!settings.searchResultsPopup) {
-        anchor.removeAttribute("target");
-        anchor.removeAttribute("rel");
-        return;
-      }
-      anchor.target = "_blank";
-      anchor.rel = "noopener noreferrer";
-    });
-  }
-
-  function handleSearchResultTicketClick(event) {
-    if (!settings.searchResultsPopup) return;
-    if (!isSearchResultsPage()) return;
-    if (event.defaultPrevented || event.button > 0) return;
-    if (event.target?.closest?.("input, select, textarea, button, .zh-cat-ui, .zh-note-wrap")) return;
-
-    const anchor = event.target?.closest?.("a[href]");
-    if (anchor && isTicketZoomHref(anchor.getAttribute("href") || anchor.href)) {
-      const url = normalizeTicketZoomUrl(anchor.getAttribute("href") || anchor.href);
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation?.();
-      window.open(url, "_blank", "noopener");
-      return;
-    }
-
-    const url = getSearchResultTicketUrl(event.target);
-    if (!url) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation?.();
-    window.open(url, "_blank", "noopener");
-  }
-
-  function enableSearchResultLinksNewTabs() {
-    prepareSearchResultLinksForNewTabs();
-
-    if (document.documentElement.dataset.zhSearchResultTabsBound === "1") return;
-    document.documentElement.dataset.zhSearchResultTabsBound = "1";
-    document.addEventListener("click", handleSearchResultTicketClick, true);
   }
 
   function normalizeListUrl(url, base = window.location.href) {
@@ -6601,13 +6887,21 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     return beforeCase.some((cell) => {
       const text = cell.innerText.trim();
-      const html = cell.innerHTML.toLowerCase();
+      if (text.includes("*") || text.includes("\u2605") || text.includes("\u2606")) return true;
 
-      return text.includes("*") ||
-        html.includes("star") ||
-        html.includes("important") ||
-        html.includes("flag") ||
-        html.includes("priority");
+      // Only concrete markers count. Matching the bare word "priority" in the HTML
+      // used to mark every row of a list that happens to have a priority column.
+      return [...cell.querySelectorAll("img, i, span, a, div")].some((element) => {
+        const marker = [
+          typeof element.className === "string" ? element.className : "",
+          element.getAttribute("title"),
+          element.getAttribute("alt"),
+          element.getAttribute("aria-label"),
+          element.dataset?.icon
+        ].filter((value) => typeof value === "string").join(" ").toLowerCase();
+
+        return /\bstar(?:red)?\b|\bimportant\b|\bflag(?:ged)?\b|\bwichtig\b|\bmarkiert\b/.test(marker);
+      });
     });
   }
 
@@ -6977,7 +7271,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     title.textContent = "Ticket-Kategorien bearbeiten";
     const closeButton = document.createElement("button");
     closeButton.type = "button";
-    closeButton.textContent = "Schliessen";
+    closeButton.textContent = "Schließen";
     closeButton.addEventListener("click", closeCategoryManager);
     header.append(title, closeButton);
 
@@ -6992,7 +7286,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const addButton = document.createElement("button");
     addButton.type = "button";
-    addButton.textContent = "Kategorie hinzufuegen";
+    addButton.textContent = "Kategorie hinzufügen";
     addButton.addEventListener("click", () => {
       const current = readCategoryManagerRows(list);
       const nextId = `kategorie-${Date.now()}`;
@@ -7004,6 +7298,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         order: current.groups.length + 1
       });
       categoryConfig = normalizeCategoryConfig(current);
+      saveCategoryConfig();
       renderCategoryManagerRows(list);
     });
 
@@ -7012,6 +7307,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     resetButton.textContent = "Standard wiederherstellen";
     resetButton.addEventListener("click", () => {
       categoryConfig = normalizeCategoryConfig({ groups: DEFAULT_GROUPS, keywords: DEFAULT_KEYWORDS });
+      saveCategoryConfig();
       renderCategoryManagerRows(list);
     });
 
@@ -7079,7 +7375,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       categoryConfig.groups.forEach((group, groupIndex) => {
         group.order = groupIndex + 1;
       });
+      saveCategoryConfig();
       renderCategoryManagerRows(list);
+    });
+
+    // Field edits (name, short name, colour, keywords) are persisted right away,
+    // so closing the editor can no longer discard them.
+    list.addEventListener("change", () => {
+      categoryConfig = readCategoryManagerRows(list);
+      saveCategoryConfig();
     });
 
     modal.append(header, body, footer);
@@ -7204,14 +7508,474 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       });
   }
 
-  let quickReplyPollTimer = null;
+  function quickReplyDraftKey(url) {
+    const decoded = decodeUrlSeparators(url);
+    const action = decoded.match(/[?;&]Action=([A-Za-z0-9_]+)/i)?.[1] || "";
+    const ticket = decoded.match(/[?;&](?:TicketID|TicketNumber)=(\d+)/i)?.[1] || "";
+    return action && ticket ? `${action}|${ticket}` : "";
+  }
 
-  function closeQuickReplyDrawer() {
+  function normalizeQuickReplyDrafts(value, limit = QUICK_REPLY_DRAFT_LIMIT) {
+    const entries = Object.entries(value && typeof value === "object" ? value : {})
+      .filter(([, draft]) => draft && typeof draft.text === "string" && draft.text.trim())
+      .map(([key, draft]) => [key, { text: String(draft.text), savedAt: Number(draft.savedAt) || 0 }])
+      .sort((left, right) => right[1].savedAt - left[1].savedAt)
+      .slice(0, limit);
+
+    return Object.fromEntries(entries);
+  }
+
+  async function loadQuickReplyDrafts() {
+    const stored = await syncGet("local", { [QUICK_REPLY_DRAFT_KEY]: null });
+    quickReplyDrafts = normalizeQuickReplyDrafts(stored[QUICK_REPLY_DRAFT_KEY]);
+  }
+
+  function persistQuickReplyDrafts() {
+    quickReplyDrafts = normalizeQuickReplyDrafts(quickReplyDrafts);
+    syncSet("local", { [QUICK_REPLY_DRAFT_KEY]: quickReplyDrafts });
+  }
+
+  function getQuickReplyDraft(url) {
+    const key = quickReplyDraftKey(url);
+    return key ? quickReplyDrafts[key] || null : null;
+  }
+
+  function dropQuickReplyDraft(url) {
+    const key = quickReplyDraftKey(url);
+    if (!key || !quickReplyDrafts[key]) return;
+    delete quickReplyDrafts[key];
+    persistQuickReplyDrafts();
+  }
+
+  function findQuickReplyEditor(doc) {
+    const row = findPriorityFieldSection(["Text"], doc);
+    const textarea = [...(row?.querySelectorAll("textarea") || [])].find((control) => {
+      const signature = `${control.name || ""} ${control.id || ""}`.toLowerCase();
+      return /richtext|body|article|text/.test(signature);
+    });
+
+    const editable = row?.querySelector?.("[contenteditable='true']") ||
+      doc.querySelector(".cke_editable[contenteditable='true'], [contenteditable='true']");
+
+    let body = null;
+    try {
+      const iframe = row?.querySelector?.("iframe") || doc.querySelector(".cke_wysiwyg_frame, iframe");
+      body = iframe?.contentDocument?.body || null;
+    } catch (error) {
+      body = null;
+    }
+
+    return { textarea: textarea || null, editable: editable || null, body };
+  }
+
+  function readQuickReplyText(doc) {
+    const editor = findQuickReplyEditor(doc);
+
+    // The visible editor is authoritative: CKEditor only syncs its textarea on submit,
+    // so that textarea can still hold the original (usually empty) text and must not
+    // win over what the agent actually typed.
+    if (editor.editable) return editor.editable.innerText || "";
+    if (editor.body) return editor.body.innerText || "";
+    return editor.textarea?.value || "";
+  }
+
+  // Drafts are kept as plain text: the editor formatting is not preserved, but what
+  // was written survives closing the drawer (and leaving the page).
+  function writeQuickReplyText(doc, text) {
+    const editor = findQuickReplyEditor(doc);
+
+    if (editor.editable) {
+      insertRichTextInto(editor.editable, text, false);
+      return true;
+    }
+
+    if (editor.body) {
+      insertRichTextInto(editor.body, text, false);
+      return true;
+    }
+
+    if (editor.textarea) {
+      editor.textarea.value = text;
+      editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      editor.textarea.dispatchEvent(new Event("change", { bubbles: true }));
+      return true;
+    }
+
+    return false;
+  }
+
+  // Editor "source" (HTML) that ended up in a draft - from an older version or from a
+  // source-mode editor - must never be reinserted as literal markup. It is converted to
+  // readable plain text instead.
+  function looksLikeEditorMarkup(text) {
+    return /<(?:br|p|div|span|a|b|i|u|strong|em|ul|ol|li|table|tr|td|h[1-6])\b[^>]*>/i.test(text) ||
+      /&nbsp;/i.test(text);
+  }
+
+  function toPlainDraftText(text) {
+    const raw = String(text || "");
+    if (!looksLikeEditorMarkup(raw)) return raw;
+
+    try {
+      const prepared = raw
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/(?:p|div|li|tr|h[1-6])>/gi, "\n");
+      const parsed = new DOMParser().parseFromString(prepared, "text/html");
+      const plain = parsed.body?.textContent || "";
+
+      return plain
+        .replace(/\u00a0/g, " ")
+        .replace(/[ \t]+\n/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+    } catch (error) {
+      return raw.trim();
+    }
+  }
+
+  function logQuickReplyDraft(message, detail) {
+    // Deliberately visible: drafts are hard to verify without looking into the editor
+    // inside the drawer, so the reason is logged for support cases.
+    console.info(`Znuny Helper: ${message}`, detail);
+  }
+
+  function getQuickReplyDocument(drawer) {
+    try {
+      return drawer?.querySelector(".zh-quick-reply-frame")?.contentDocument || null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function saveQuickReplyDraftFromDrawer(drawer) {
+    const url = drawer?.dataset.zhQuickReplyUrl || "";
+    const key = quickReplyDraftKey(url);
+    if (!key) return;
+
+    const doc = getQuickReplyDocument(drawer);
+    if (!doc) {
+      logQuickReplyDraft("Entwurf nicht gespeichert: Formular nicht lesbar", { key });
+      return;
+    }
+
+    const text = toPlainDraftText(readQuickReplyText(doc)).trim();
+
+    if (!text) {
+      if (quickReplyDrafts[key]) {
+        dropQuickReplyDraft(url);
+        logQuickReplyDraft("Entwurf verworfen: Editor ist leer", { key });
+      }
+      return;
+    }
+
+    if (quickReplyDrafts[key]?.text === text) return;
+
+    quickReplyDrafts[key] = { text, savedAt: Date.now() };
+    persistQuickReplyDrafts();
+    logQuickReplyDraft("Entwurf gespeichert", { key, zeichen: text.length });
+  }
+
+  const QUICK_REPLY_RESIZE_DIRECTIONS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
+
+  // Eight handles along the edges and corners, so the window can be resized like a
+  // real window instead of only through the small native corner grip.
+  function bindQuickReplyResizers(drawer) {
+    QUICK_REPLY_RESIZE_DIRECTIONS.forEach((direction) => {
+      const handle = document.createElement("div");
+      handle.className = `zh-quick-reply-resizer zh-quick-reply-resizer-${direction}`;
+
+      handle.addEventListener("pointerdown", (event) => {
+        if (event.button > 0 || quickReplyLayout.maximized) return;
+        if (drawer.classList.contains("zh-quick-reply-minimized")) return;
+
+        const rect = drawer.getBoundingClientRect();
+        const startX = event.clientX;
+        const startY = event.clientY;
+
+        handle.setPointerCapture?.(event.pointerId);
+
+        const onMove = (moveEvent) => {
+          const dx = moveEvent.clientX - startX;
+          const dy = moveEvent.clientY - startY;
+
+          let left = rect.left;
+          let top = rect.top;
+          let width = rect.width;
+          let height = rect.height;
+
+          if (direction.includes("e")) width = rect.width + dx;
+          if (direction.includes("s")) height = rect.height + dy;
+          if (direction.includes("w")) {
+            width = rect.width - dx;
+            left = rect.left + dx;
+          }
+          if (direction.includes("n")) {
+            height = rect.height - dy;
+            top = rect.top + dy;
+          }
+
+          if (width < QUICK_REPLY_MIN_WIDTH) {
+            if (direction.includes("w")) left -= QUICK_REPLY_MIN_WIDTH - width;
+            width = QUICK_REPLY_MIN_WIDTH;
+          }
+          if (height < QUICK_REPLY_MIN_HEIGHT) {
+            if (direction.includes("n")) top -= QUICK_REPLY_MIN_HEIGHT - height;
+            height = QUICK_REPLY_MIN_HEIGHT;
+          }
+
+          if (left < 0) {
+            width += left;
+            left = 0;
+          }
+          if (top < 0) {
+            height += top;
+            top = 0;
+          }
+
+          width = Math.min(width, window.innerWidth - left);
+          height = Math.min(height, window.innerHeight - top);
+
+          drawer.style.left = `${Math.round(left)}px`;
+          drawer.style.top = `${Math.round(top)}px`;
+          drawer.style.width = `${Math.round(width)}px`;
+          drawer.style.height = `${Math.round(height)}px`;
+          drawer.dataset.zhResized = "1";
+          if (direction.includes("w") || direction.includes("n")) drawer.dataset.zhMoved = "1";
+        };
+
+        const onUp = () => {
+          handle.removeEventListener("pointermove", onMove);
+          handle.removeEventListener("pointerup", onUp);
+          handle.removeEventListener("pointercancel", onUp);
+          drawer.classList.remove("zh-quick-reply-resizing");
+          persistQuickReplyGeometry(drawer);
+        };
+
+        drawer.classList.add("zh-quick-reply-resizing");
+        handle.addEventListener("pointermove", onMove);
+        handle.addEventListener("pointerup", onUp);
+        handle.addEventListener("pointercancel", onUp);
+        event.preventDefault();
+      });
+
+      drawer.appendChild(handle);
+    });
+  }
+
+  let quickReplyPollTimer = null;
+  let quickReplyLayoutSaveTimer = 0;
+
+  const QUICK_REPLY_MIN_WIDTH = 420;
+  const QUICK_REPLY_MIN_HEIGHT = 300;
+
+  function normalizeQuickReplyLayout(layout) {
+    const width = Math.round(Number(layout?.width) || 0);
+    const height = Math.round(Number(layout?.height) || 0);
+    const rawLeft = layout?.left;
+    const rawTop = layout?.top;
+    const left = rawLeft === null || rawLeft === undefined ? null : Math.round(Number(rawLeft));
+    const top = rawTop === null || rawTop === undefined ? null : Math.round(Number(rawTop));
+
+    return {
+      width: width >= QUICK_REPLY_MIN_WIDTH ? width : 0,
+      height: height >= QUICK_REPLY_MIN_HEIGHT ? height : 0,
+      left: Number.isFinite(left) ? left : null,
+      top: Number.isFinite(top) ? top : null,
+      maximized: Boolean(layout?.maximized)
+    };
+  }
+
+  function saveQuickReplyLayout() {
+    if (quickReplyLayoutSaveTimer) window.clearTimeout(quickReplyLayoutSaveTimer);
+    quickReplyLayoutSaveTimer = window.setTimeout(() => {
+      quickReplyLayoutSaveTimer = 0;
+      syncSet("local", { [QUICK_REPLY_LAYOUT_KEY]: quickReplyLayout });
+    }, 400);
+  }
+
+  function clampNumber(value, min, max) {
+    return Math.min(Math.max(value, min), Math.max(min, max));
+  }
+
+  function isEditableQuickReplyTarget(target) {
+    const tag = String(target?.tagName || "").toUpperCase();
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+    return Boolean(target?.isContentEditable);
+  }
+
+  // Zero width/height and null coordinates mean "use the default position"
+  // (bottom right), so a stored layout only takes over once the user has actually
+  // resized or moved the window.
+  function applyQuickReplyLayout(drawer) {
+    const availableWidth = Math.max(QUICK_REPLY_MIN_WIDTH, window.innerWidth - 16);
+    const availableHeight = Math.max(QUICK_REPLY_MIN_HEIGHT, window.innerHeight - 16);
+
+    drawer.style.right = "auto";
+    drawer.style.bottom = "auto";
+
+    if (quickReplyLayout.maximized) {
+      drawer.classList.add("zh-quick-reply-maximized");
+      drawer.style.left = "8px";
+      drawer.style.top = "8px";
+      drawer.style.width = `${availableWidth - 8}px`;
+      drawer.style.height = `${availableHeight - 8}px`;
+      return;
+    }
+
+    drawer.classList.remove("zh-quick-reply-maximized");
+
+    const width = Math.min(quickReplyLayout.width || Math.min(960, availableWidth), availableWidth);
+    const height = Math.min(quickReplyLayout.height || Math.min(720, availableHeight), availableHeight);
+    const left = quickReplyLayout.left === null
+      ? Math.max(8, window.innerWidth - width - 16)
+      : clampNumber(quickReplyLayout.left, 0, window.innerWidth - 80);
+    const top = quickReplyLayout.top === null
+      ? Math.max(8, window.innerHeight - height - 12)
+      : clampNumber(quickReplyLayout.top, 0, window.innerHeight - 60);
+
+    drawer.style.left = `${left}px`;
+    drawer.style.top = `${top}px`;
+    drawer.style.width = `${width}px`;
+    drawer.style.height = `${height}px`;
+  }
+
+  function persistQuickReplyGeometry(drawer) {
+    if (!drawer || quickReplyLayout.maximized) return;
+    // While minimised the element is only a title bar - that size must not be stored.
+    if (drawer.classList.contains("zh-quick-reply-minimized")) return;
+
+    const rect = drawer.getBoundingClientRect();
+    if (rect.width < QUICK_REPLY_MIN_WIDTH || rect.height < QUICK_REPLY_MIN_HEIGHT) return;
+
+    let changed = false;
+
+    if (drawer.dataset.zhResized === "1") {
+      quickReplyLayout.width = Math.round(rect.width);
+      quickReplyLayout.height = Math.round(rect.height);
+      changed = true;
+    }
+
+    if (drawer.dataset.zhMoved === "1") {
+      quickReplyLayout.left = Math.round(rect.left);
+      quickReplyLayout.top = Math.round(rect.top);
+      changed = true;
+    }
+
+    if (changed) saveQuickReplyLayout();
+  }
+
+  function resetQuickReplyLayout(drawer) {
+    quickReplyLayout = { width: 0, height: 0, left: null, top: null, maximized: false };
+
+    if (quickReplyLayoutSaveTimer) {
+      window.clearTimeout(quickReplyLayoutSaveTimer);
+      quickReplyLayoutSaveTimer = 0;
+    }
+    syncSet("local", { [QUICK_REPLY_LAYOUT_KEY]: quickReplyLayout });
+
+    delete drawer.dataset.zhMoved;
+    delete drawer.dataset.zhResized;
+    applyQuickReplyLayout(drawer);
+  }
+
+  // Move by dragging the header, resize through the native resize grip, toggle
+  // full size by double clicking the header. Size and position are remembered.
+  function bindQuickReplyLayout(drawer, header) {
+    applyQuickReplyLayout(drawer);
+
+    header.addEventListener("pointerdown", (event) => {
+      if (quickReplyLayout.maximized) return;
+      if (event.button > 0 || event.target?.closest?.("button")) return;
+
+      const rect = drawer.getBoundingClientRect();
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startLeft = rect.left;
+      const startTop = rect.top;
+
+      const onMove = (moveEvent) => {
+        // Moving switches from the default bottom-right anchor to fixed coordinates.
+        drawer.style.left = `${clampNumber(startLeft + moveEvent.clientX - startX, 0, window.innerWidth - 80)}px`;
+        drawer.style.top = `${clampNumber(startTop + moveEvent.clientY - startY, 0, window.innerHeight - 60)}px`;
+        drawer.dataset.zhMoved = "1";
+      };
+
+      const onUp = () => {
+        header.removeEventListener("pointermove", onMove);
+        header.removeEventListener("pointerup", onUp);
+        header.removeEventListener("pointercancel", onUp);
+        header.classList.remove("zh-quick-reply-dragging");
+        persistQuickReplyGeometry(drawer);
+      };
+
+      header.classList.add("zh-quick-reply-dragging");
+      header.addEventListener("pointermove", onMove);
+      header.addEventListener("pointerup", onUp);
+      header.addEventListener("pointercancel", onUp);
+      event.preventDefault();
+    });
+
+    header.addEventListener("dblclick", (event) => {
+      if (event.target?.closest?.("button")) return;
+      quickReplyLayout.maximized = !quickReplyLayout.maximized;
+      applyQuickReplyLayout(drawer);
+      saveQuickReplyLayout();
+    });
+
+    if (typeof ResizeObserver !== "undefined") {
+      let initialObservation = true;
+      const observer = new ResizeObserver(() => {
+        // The first callback reports the initial size; that is not a user resize.
+        if (initialObservation) {
+          initialObservation = false;
+          return;
+        }
+        drawer.dataset.zhResized = "1";
+        persistQuickReplyGeometry(drawer);
+      });
+      observer.observe(drawer);
+      drawer.__zhResizeObserver = observer;
+    }
+
+    const onWindowResize = () => applyQuickReplyLayout(drawer);
+    window.addEventListener("resize", onWindowResize);
+    drawer.__zhWindowResizeHandler = onWindowResize;
+  }
+
+  function handleQuickReplyEscape(event) {
+    if (event.key !== "Escape") return;
+    // Do not steal Escape from a field the agent is editing.
+    if (isEditableQuickReplyTarget(event.target)) return;
+    closeQuickReplyDrawer();
+  }
+
+  function closeQuickReplyDrawer(options = {}) {
+    const { saveDraft = true } = options;
+
     if (quickReplyPollTimer) {
       window.clearInterval(quickReplyPollTimer);
       quickReplyPollTimer = null;
     }
-    document.getElementById("zh-quick-reply-drawer")?.remove();
+
+    const drawer = document.getElementById("zh-quick-reply-drawer");
+
+    if (drawer) {
+      // Keep an unfinished reply so it can be restored the next time this action is
+      // opened for the same ticket.
+      if (saveDraft) saveQuickReplyDraftFromDrawer(drawer);
+
+      persistQuickReplyGeometry(drawer);
+      drawer.__zhResizeObserver?.disconnect();
+      if (drawer.__zhWindowResizeHandler) {
+        window.removeEventListener("resize", drawer.__zhWindowResizeHandler);
+      }
+      if (drawer.__zhPagehideHandler) {
+        window.removeEventListener("pagehide", drawer.__zhPagehideHandler);
+      }
+      drawer.remove();
+    }
+
+    document.removeEventListener("keydown", handleQuickReplyEscape, true);
   }
 
   function getQuickReplyIframeHref(iframe) {
@@ -7230,27 +7994,46 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         bottom: 0;
         width: min(960px, 94vw);
         height: min(720px, 88vh);
+        min-width: 420px;
+        min-height: 300px;
         background: #fff;
-        border-radius: 10px 10px 0 0;
+        border-radius: 10px;
         box-shadow: 0 10px 40px rgba(0,0,0,.35);
         z-index: 999998;
         display: flex;
         flex-direction: column;
         overflow: hidden;
         border: 1px solid rgba(0,0,0,.15);
-        border-bottom: none;
       }
+      #zh-quick-reply-drawer.zh-quick-reply-resizing,
+      #zh-quick-reply-drawer.zh-quick-reply-resizing * { user-select: none; }
       .zh-quick-reply-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
+        gap: 10px;
         padding: 8px 12px;
         background: #f2f2f2;
         border-bottom: 1px solid rgba(0,0,0,.1);
         font-size: 13px;
         color: #222;
+        cursor: move;
+        user-select: none;
+        touch-action: none;
       }
+      .zh-quick-reply-header.zh-quick-reply-dragging { cursor: grabbing; }
+      .zh-quick-reply-title { white-space: nowrap; }
+      .zh-quick-reply-hint {
+        flex: 1;
+        text-align: right;
+        font-size: 11px;
+        color: #6b6b6b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .zh-quick-reply-actions { display: flex; align-items: center; gap: 6px; }
+      .zh-quick-reply-reset,
       .zh-quick-reply-close {
         font-size: 12px;
         font-weight: 700;
@@ -7260,7 +8043,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         background: #eee;
         color: #111;
         cursor: pointer;
+        white-space: nowrap;
       }
+      .zh-quick-reply-reset { font-weight: 400; padding: 4px 9px; }
+      .zh-quick-reply-reset:hover,
       .zh-quick-reply-close:hover { background: #fff; }
       .zh-quick-reply-frame {
         flex: 1;
@@ -7268,6 +8054,32 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         border: 0;
         background: #fff;
       }
+      @media (max-width: 760px) {
+        .zh-quick-reply-hint { display: none; }
+      }
+      .zh-quick-reply-resizer { position: absolute; z-index: 6; }
+      .zh-quick-reply-resizer-n { top: 0; left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
+      .zh-quick-reply-resizer-s { bottom: 0; left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
+      .zh-quick-reply-resizer-w { left: 0; top: 12px; bottom: 12px; width: 6px; cursor: ew-resize; }
+      .zh-quick-reply-resizer-e { right: 0; top: 12px; bottom: 12px; width: 6px; cursor: ew-resize; }
+      .zh-quick-reply-resizer-nw { top: 0; left: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+      .zh-quick-reply-resizer-ne { top: 0; right: 0; width: 14px; height: 14px; cursor: nesw-resize; }
+      .zh-quick-reply-resizer-sw { bottom: 0; left: 0; width: 14px; height: 14px; cursor: nesw-resize; }
+      .zh-quick-reply-resizer-se { bottom: 0; right: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+      .zh-quick-reply-draft-note {
+        font-size: 11px;
+        color: #7a4b00;
+        background: #fff3cd;
+        border: 1px solid #ffe08a;
+        border-radius: 999px;
+        padding: 2px 8px;
+        white-space: nowrap;
+      }
+      #zh-quick-reply-drawer.zh-quick-reply-minimized { height: 40px !important; min-height: 40px; }
+      #zh-quick-reply-drawer.zh-quick-reply-minimized .zh-quick-reply-frame,
+      #zh-quick-reply-drawer.zh-quick-reply-minimized .zh-quick-reply-resizer,
+      #zh-quick-reply-drawer.zh-quick-reply-minimized .zh-quick-reply-hint,
+      #zh-quick-reply-drawer.zh-quick-reply-minimized .zh-quick-reply-draft-note { display: none; }
     `);
   }
 
@@ -7287,6 +8099,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     try {
       doc.__zhQuickReplyShortcutBound = true;
       doc.addEventListener("keydown", (event) => {
+        // Escape closes the drawer, but not while a field is being edited.
+        if (event.key === "Escape") {
+          if (isEditableQuickReplyTarget(event.target)) return;
+          event.preventDefault();
+          closeQuickReplyDrawer();
+          return;
+        }
+
         if (!settings.keyboardShortcuts) return;
         if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
 
@@ -7317,7 +8137,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       link.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        closeQuickReplyDrawer();
+        // Znuny's "Abbrechen und Schließen" means discard, so no draft is kept.
+        closeQuickReplyDrawer({ saveDraft: false });
       });
     });
   }
@@ -7325,6 +8146,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   function getQuickReplyTitle(url) {
     if (/Action=AgentTicketOwner\b/i.test(url)) return "Besitzer ändern";
     if (/Action=AgentTicketPriority\b/i.test(url)) return "Priorisierung";
+    if (/Action=AgentTicketForward\b/i.test(url)) return "Weiterleiten";
     if (/Action=AgentTicketNote\b/i.test(url)) return "Notiz hinzufügen";
     if (/Action=AgentTicketClose\b/i.test(url)) return "Ticket schließen";
     if (/Action=AgentTicketMerge\b/i.test(url)) return "Tickets zusammenfassen";
@@ -7340,21 +8162,65 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const drawer = document.createElement("div");
     drawer.id = "zh-quick-reply-drawer";
+    drawer.dataset.zhQuickReplyUrl = url;
 
     const header = document.createElement("div");
     header.className = "zh-quick-reply-header";
+    header.title = "Ziehen zum Verschieben, Doppelklick für Vollbild";
 
     const title = document.createElement("strong");
+    title.className = "zh-quick-reply-title";
     title.textContent = getQuickReplyTitle(url);
     header.appendChild(title);
+
+    const hint = document.createElement("span");
+    hint.className = "zh-quick-reply-hint";
+    hint.textContent = "Ziehen: verschieben · Ränder: Größe · Doppelklick: Vollbild · Esc: schließen";
+    header.appendChild(hint);
+
+    const draftNote = document.createElement("span");
+    draftNote.className = "zh-quick-reply-draft-note";
+    draftNote.hidden = true;
+    header.appendChild(draftNote);
+
+    const actions = document.createElement("div");
+    actions.className = "zh-quick-reply-actions";
+
+    const resetButton = document.createElement("button");
+    resetButton.type = "button";
+    resetButton.className = "zh-quick-reply-reset";
+    resetButton.textContent = "Ansicht zurücksetzen";
+    resetButton.title = "Gespeicherte Größe und Position verwerfen";
+    resetButton.addEventListener("click", () => resetQuickReplyLayout(drawer));
+    actions.appendChild(resetButton);
+
+    const minimizeButton = document.createElement("button");
+    minimizeButton.type = "button";
+    minimizeButton.className = "zh-quick-reply-reset";
+    minimizeButton.textContent = "\u2013";
+    minimizeButton.title = "Minimieren – der Entwurf bleibt erhalten";
+    minimizeButton.addEventListener("click", () => {
+      const minimized = drawer.classList.toggle("zh-quick-reply-minimized");
+      minimizeButton.textContent = minimized ? "\u25b2" : "\u2013";
+      minimizeButton.title = minimized ? "Wieder öffnen" : "Minimieren – der Entwurf bleibt erhalten";
+
+      if (minimized) {
+        drawer.style.height = "40px";
+      } else {
+        applyQuickReplyLayout(drawer);
+      }
+    });
+    actions.appendChild(minimizeButton);
 
     const closeButton = document.createElement("button");
     closeButton.type = "button";
     closeButton.className = "zh-quick-reply-close";
-    closeButton.textContent = "Schliessen";
-    closeButton.title = "Fenster schliessen, ohne zu übermitteln";
+    closeButton.textContent = "Schließen";
+    closeButton.title = "Fenster schließen – der Entwurf wird gespeichert";
     closeButton.addEventListener("click", closeQuickReplyDrawer);
-    header.appendChild(closeButton);
+    actions.appendChild(closeButton);
+
+    header.appendChild(actions);
 
     drawer.appendChild(header);
 
@@ -7363,6 +8229,61 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     drawer.appendChild(iframe);
 
     document.body.appendChild(drawer);
+
+    bindQuickReplyLayout(drawer, header);
+    bindQuickReplyResizers(drawer);
+    document.addEventListener("keydown", handleQuickReplyEscape, true);
+
+    // Closing the tab or navigating away with the drawer open must keep the draft too.
+    const saveDraftBeforeLeaving = () => {
+      if (!document.getElementById("zh-quick-reply-drawer")) return;
+      saveQuickReplyDraftFromDrawer(drawer);
+    };
+    window.addEventListener("pagehide", saveDraftBeforeLeaving);
+    drawer.__zhPagehideHandler = saveDraftBeforeLeaving;
+
+    let draftRestored = false;
+
+    const restoreQuickReplyDraft = (doc) => {
+      if (draftRestored) return;
+
+      const draft = getQuickReplyDraft(url);
+      if (!draft?.text) return;
+
+      // Repairs drafts that an earlier version stored as editor markup.
+      const text = toPlainDraftText(draft.text);
+      const draftKey = quickReplyDraftKey(url);
+
+      if (text && text !== draft.text) {
+        quickReplyDrafts[draftKey] = { text, savedAt: draft.savedAt };
+        persistQuickReplyDrafts();
+      }
+
+      if (!writeQuickReplyText(doc, text)) {
+        logQuickReplyDraft("Entwurf gefunden, aber kein Editor zum Einsetzen", { draftKey });
+        return;
+      }
+
+      draftRestored = true;
+      logQuickReplyDraft("Entwurf wiederhergestellt", { draftKey, zeichen: text.length });
+      const savedAt = new Date(draft.savedAt);
+      draftNote.textContent = `Entwurf wiederhergestellt (${savedAt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })})`;
+      draftNote.hidden = false;
+
+      const discardButton = document.createElement("button");
+      discardButton.type = "button";
+      discardButton.className = "zh-quick-reply-reset";
+      discardButton.textContent = "Entwurf verwerfen";
+      discardButton.title = "Gespeicherten Entwurf löschen";
+      discardButton.addEventListener("click", () => {
+        writeQuickReplyText(doc, "");
+        dropQuickReplyDraft(url);
+        draftRestored = false;
+        draftNote.hidden = true;
+        discardButton.remove();
+      });
+      actions.insertBefore(discardButton, actions.firstChild);
+    };
 
     let actionPageSeen = false;
 
@@ -7380,6 +8301,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       if (settings.priorityTemplates) enablePriorityTemplates(doc);
       bindQuickReplyCancelLink(doc);
       expandArticleWidget(doc);
+      restoreQuickReplyDraft(doc);
     };
 
     const refreshQuickReplyPendingDates = () => {
@@ -7416,7 +8338,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     };
 
     const finishQuickReply = () => {
-      closeQuickReplyDrawer();
+      // The reply was submitted, so there is nothing left to restore.
+      dropQuickReplyDraft(url);
+      closeQuickReplyDrawer({ saveDraft: false });
       window.location.reload();
     };
 
@@ -7503,7 +8427,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (settings.ticketCategories) applyTicketCategories();
     else disableTicketCategories();
 
-    enableSearchResultLinksNewTabs();
+    // "Search results in a new tab" is handled entirely in page-bridge.js (MAIN
+    // world), where window.open and the search form can be patched reliably. The
+    // former second implementation in this isolated world was removed.
+
+    if (settings.directArticleActions) enableDirectArticleActions();
+    else disableDirectArticleActions();
 
     if (settings.ticketListInfiniteScroll) enableTicketListInfiniteScroll();
     else disableTicketListInfiniteScroll();
@@ -7827,6 +8756,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const storedSettings = await syncGet("local", { [SETTINGS_KEY]: DEFAULT_SETTINGS });
     settings = { ...DEFAULT_SETTINGS, ...(storedSettings[SETTINGS_KEY] || {}) };
+
+    // Must run before the flag is consumed below.
+    markActionTabIfRequested();
     consumeAutoCloseFlag();
 
     const storedTicketState = await syncGet("local", { [TICKET_STATE_KEY]: ticketState });
@@ -7850,6 +8782,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const storedTicketSoundConfig = await syncGet("local", { [TICKET_SOUND_CONFIG_KEY]: ticketSoundConfig });
     ticketSoundConfig = normalizeTicketSoundConfig(storedTicketSoundConfig[TICKET_SOUND_CONFIG_KEY]);
+
+    const storedQuickReplyLayout = await syncGet("local", { [QUICK_REPLY_LAYOUT_KEY]: quickReplyLayout });
+    quickReplyLayout = normalizeQuickReplyLayout(storedQuickReplyLayout[QUICK_REPLY_LAYOUT_KEY]);
+
+    await loadSearchHistory();
+    await loadQuickReplyDrafts();
 
     dispatchPageSettings();
 
@@ -7876,11 +8814,19 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       if (changes[TICKET_SOUND_CONFIG_KEY]) {
         ticketSoundConfig = normalizeTicketSoundConfig(changes[TICKET_SOUND_CONFIG_KEY].newValue);
       }
+
+      if (changes[QUICK_REPLY_LAYOUT_KEY]) {
+        quickReplyLayout = normalizeQuickReplyLayout(changes[QUICK_REPLY_LAYOUT_KEY].newValue);
+      }
     });
 
     window.setTimeout(checkForAssignedTickets, 5000);
     window.setInterval(checkForAssignedTickets, TICKET_SOUND_CHECK_INTERVAL_MS);
   }
 
-  init().catch((error) => console.warn("Znuny Helper failed to initialize:", error));
+  init().catch((error) => {
+    // Not just a warning: if initialisation fails, every feature stays inactive and
+    // the console line (see the version marker in init) is the only clue.
+    console.error("Znuny Helper failed to initialize:", error);
+  });
 })();

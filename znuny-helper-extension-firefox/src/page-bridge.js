@@ -1,9 +1,12 @@
 (function () {
   "use strict";
 
+  // Must mirror DEFAULT_SETTINGS in content.js: this world only holds these three
+  // values, and the DOM data attributes set by the content script overwrite them
+  // as soon as they are available.
   const DEFAULT_SETTINGS = {
     popupTabs: true,
-    searchResultsPopup: true,
+    searchResultsPopup: false,
     quickReply: false
   };
 
@@ -27,11 +30,45 @@
   }
 
   // Actions the quick-reply drawer knows how to embed: replying (Compose),
-  // changing the owner (Owner), setting the priority (Priority), adding a note
-  // (Note), closing (Close), linking (LinkObject) and merging (Merge). Keep this
-  // in sync with QUICK_REPLY_ACTION_PATTERN in content.js.
+  // forwarding (Forward), changing the owner (Owner), setting the priority
+  // (Priority), adding a note (Note), closing (Close), linking (LinkObject) and
+  // merging (Merge). Keep this in sync with QUICK_REPLY_ACTION_PATTERN in content.js.
   function isQuickReplyEligibleUrl(url) {
-    return /Action=(?:AgentTicket(?:Compose|Owner|Priority|Note|Close|Merge)|AgentLinkObject)\b/i.test(String(url || ""));
+    return /Action=(?:AgentTicket(?:Compose|Forward|Owner|Priority|Note|Close|Merge)|AgentLinkObject)\b/i.test(String(url || ""));
+  }
+
+  // Tabs opened by the extension for an action page carry this window-name prefix and
+  // a "#zhActionTab" fragment. The content script uses both to decide whether a tab
+  // may close itself after submitting - a plain target="_blank" link, the ticket tab
+  // itself and the quick-reply drawer never get the marker.
+  // Keep both constants in sync with content.js; the regression test compares them.
+  const ACTION_TAB_NAME_PREFIX = "zhActionTab-";
+  const ACTION_TAB_MARKER = "zhActionTab";
+
+  // Action pages that return to the ticket after submitting. Keep in sync with
+  // CLOSE_AFTER_SUBMIT_ACTION in content.js.
+  const CLOSE_AFTER_SUBMIT_ACTION = /Action=AgentTicket(?:Compose|Owner|Note|Close|Merge|Phone|Priority|Pending|Responsible|FreeText|Bounce|Forward|Move|LinkObject|Watch|Unwatch|Customer|Email|Process|Appointment)\b/i;
+
+  // The fragment survives the first load; the content script stores it for the tab so
+  // it is still known after the submit navigation (which drops the fragment).
+  function withActionTabMarker(url) {
+    try {
+      const parsed = new URL(url, window.location.href);
+      parsed.hash = `#${ACTION_TAB_MARKER}`;
+      return parsed.href;
+    } catch (error) {
+      return url;
+    }
+  }
+
+  // Opens an action page in its own tab. A unique window name keeps the previous
+  // "one tab per click" behaviour while marking the tab as opened by the extension.
+  function openActionTab(url) {
+    if (!CLOSE_AFTER_SUBMIT_ACTION.test(String(url || ""))) {
+      return originalOpen.call(window, url, "_blank");
+    }
+
+    return originalOpen.call(window, withActionTabMarker(url), `${ACTION_TAB_NAME_PREFIX}${Date.now()}`);
   }
 
   function isZnunyUrl(url) {
@@ -292,6 +329,13 @@
       const text = normalizeText(message).toLowerCase();
       const form = findSearchForm();
       if (text.includes("zumindest einen suchbegriff") && text.includes("nach allem") && form && prepareTicketNumberOnlySearch(form)) {
+        // The search history is kept in the extension storage, which this world
+        // cannot reach - hand the number over so the content script can record it.
+        const ticketControl = form.querySelector('[data-zh-ticketnumber-control="1"]') ||
+          form.querySelector('[name="TicketNumber"], [name="TicketNumberRaw"]');
+        window.dispatchEvent(new CustomEvent("znuny-helper-ticketnumber-search", {
+          detail: { ticketNumber: normalizeText(ticketControl?.value || "") }
+        }));
         window.setTimeout(() => submitSearchDirectly(form), 0);
         return undefined;
       }
@@ -317,7 +361,7 @@
           return window;
         }
 
-        return originalOpen.call(window, normalizedUrl, "_blank");
+        return openActionTab(normalizedUrl);
       }
     }
 
@@ -356,6 +400,24 @@
     installSearchFormNewTab();
     installTicketNumberSearchBypass();
   }
+
+  // The content script shortcuts article actions ("Antworten" / "Weiterleiten") that
+  // offer only one template. Running them through Znuny's own popup layer keeps quick
+  // reply, "Popups als Tabs" and real popups behaving exactly like a normal click.
+  window.addEventListener("znuny-helper-run-article-action", (event) => {
+    const url = event.detail?.url;
+    if (!url) return;
+
+    readDomSettings();
+
+    const popup = window.Core?.UI?.Popup;
+    if (popup?.OpenPopup) {
+      popup.OpenPopup(url);
+      return;
+    }
+
+    window.open(url, "_blank");
+  });
 
   window.addEventListener("znuny-helper-settings", (event) => {
     readDomSettings();

@@ -7,14 +7,17 @@
   </head>
   <body>
     <main class="shell">
-      <header>
-        <h1>Znuny Helper</h1>
-        <p>Zusatzfunktionen für das Znuny-Ticketsystem. Jede Funktion lässt sich hier einzeln ein- und ausschalten.</p>
+      <header class="app-header">
+        <div class="app-header-text">
+          <h1>Znuny Helper</h1>
+          <p>Zusatzfunktionen für das Znuny-Ticketsystem. Jede Funktion lässt sich hier einzeln ein- und ausschalten. Änderungen gelten sofort auf geöffneten Znuny-Seiten; nur ein Tab, der schon vor der Installation offen war, muss einmal neu geladen werden.</p>
+        </div>
+        <span class="version-pill" id="versionPill">v1.6.0</span>
       </header>
 
       <form id="settingsForm" class="settings">
-        <fieldset class="settings-group">
-          <legend>Im geöffneten Ticket</legend>
+        <section class="bubble">
+          <h2 class="bubble-title">Im geöffneten Ticket</h2>
 
           <label class="toggle">
             <input type="checkbox" name="attachmentPreview">
@@ -39,36 +42,54 @@
               <small>Ein Klick auf die Case-/Ticketnummer oben links im Ticket kopiert sie in die Zwischenablage.</small>
             </span>
           </label>
-        </fieldset>
 
-        <fieldset class="settings-group">
-          <legend>Antworten und Warten</legend>
+          <label class="toggle">
+            <input type="checkbox" name="directArticleActions">
+            <span>
+              <strong>Antworten/Weiterleiten ohne Vorlagenklick</strong>
+              <small>Hat eine Aktion nur eine Vorlage (z. B. <code>leere Antwort</code>), wird sie vorausgewählt und das leere Suchfeld ausgeblendet – ein Klick auf „Antworten" oder „Weiterleiten" genügt. Bei mehreren Vorlagen bleibt alles wie gewohnt.</small>
+            </span>
+          </label>
+        </section>
+
+        <section class="bubble">
+          <h2 class="bubble-title">Antworten und Warten</h2>
 
           <label class="toggle">
             <input type="checkbox" name="quickReply">
             <span>
               <strong>Schnellantwort</strong>
-              <small>Antworten, Besitzer ändern, Priorisierung, Notiz, Schließen, Verknüpfen und Zusammenfassen öffnen als Fenster direkt über dem Ticket statt in einem neuen Tab.</small>
+              <small>Antworten, Weiterleiten, Besitzer ändern, Priorisierung, Notiz, Schließen, Verknüpfen und Zusammenfassen öffnen als Fenster direkt über dem Ticket statt in einem neuen Tab.</small>
             </span>
           </label>
 
-          <label class="toggle">
-            <input type="checkbox" name="pendingDateButtons">
-            <span>
-              <strong>Warten-Schnellauswahl</strong>
-              <small>Bei Status „Warten" Schnellknöpfe anzeigen, die das Wartedatum in einem Schritt setzen.</small>
-            </span>
-          </label>
+          <div class="toggle-stack">
+            <label class="toggle">
+              <input type="checkbox" name="pendingDateButtons">
+              <span>
+                <strong>Warten-Schnellauswahl</strong>
+                <small>Bei Status „Warten" Schnellknöpfe anzeigen, die das Wartedatum in einem Schritt setzen.</small>
+              </span>
+            </label>
 
-          <div class="field-settings">
-            <label for="pendingPresetsInput">Tage der Schnellknöpfe</label>
-            <input type="text" id="pendingPresetsInput" placeholder="3, 7, 14" autocomplete="off" inputmode="numeric">
-            <small>Kommagetrennt, z. B. „1, 3, 7, 14". Der erste Wert wird beim Öffnen automatisch gesetzt (Standard).</small>
+            <div class="bubble-details" id="pendingDetails">
+              <div class="field-settings">
+                <label for="pendingPresetsInput">Tage der Schnellknöpfe</label>
+                <input type="text" id="pendingPresetsInput" placeholder="3, 7, 14" autocomplete="off" inputmode="numeric">
+                <small>Kommagetrennt: <code>1, 3, 7, 14</code> — der Knopf mit der Standard-Wartezeit trägt den Zusatz „(Standard)".</small>
+              </div>
+
+              <div class="field-settings">
+                <label for="pendingDefaultInput">Standard-Wartezeit (Tage)</label>
+                <input type="text" id="pendingDefaultInput" placeholder="3" autocomplete="off" inputmode="numeric">
+                <small>Wird automatisch gesetzt, sobald ein Warten-Status ein Datum verlangt – z. B. „Warten zur Erinnerung" oder „Warten auf erfolgreich schließen".</small>
+              </div>
+            </div>
           </div>
-        </fieldset>
+        </section>
 
-        <fieldset class="settings-group">
-          <legend>Navigation und Listen</legend>
+        <section class="bubble">
+          <h2 class="bubble-title">Navigation und Listen</h2>
 
           <label class="toggle">
             <input type="checkbox" name="popupTabs">
@@ -93,10 +114,10 @@
               <small>Weitere Seiten beim Scrollen automatisch anhängen. Die Seitenzahlen bleiben als Fallback sichtbar.</small>
             </span>
           </label>
-        </fieldset>
+        </section>
 
-        <fieldset class="settings-group">
-          <legend>Suche</legend>
+        <section class="bubble">
+          <h2 class="bubble-title">Suche</h2>
 
           <label class="toggle">
             <input type="checkbox" name="ticketNumberSearch">
@@ -105,10 +126,10 @@
               <small>Die globale Suche um ein Feld für die Ticketnummer samt Zeitraum-Schnellauswahl erweitern.</small>
             </span>
           </label>
-        </fieldset>
+        </section>
 
-        <fieldset class="settings-group">
-          <legend>Ticketlisten</legend>
+        <section class="bubble">
+          <h2 class="bubble-title">Ticketlisten</h2>
 
           <label class="toggle">
             <input type="checkbox" name="ticketCategories">
@@ -117,10 +138,10 @@
               <small>Tickets in Listen lokal gruppieren, farbig markieren und mit Notizen versehen.</small>
             </span>
           </label>
-        </fieldset>
+        </section>
 
-        <fieldset class="settings-group">
-          <legend>Vorlagen und ServiceDesk</legend>
+        <section class="bubble">
+          <h2 class="bubble-title">Vorlagen und ServiceDesk</h2>
 
           <label class="toggle">
             <input type="checkbox" name="priorityTemplates">
@@ -137,10 +158,10 @@
               <small>Empfangsbestätigungen aus passenden Hardware-Tickets vorbereiten.</small>
             </span>
           </label>
-        </fieldset>
+        </section>
 
-        <fieldset class="settings-group">
-          <legend>Bedienung</legend>
+        <section class="bubble">
+          <h2 class="bubble-title">Bedienung</h2>
 
           <label class="toggle">
             <input type="checkbox" name="keyboardShortcuts">
@@ -149,10 +170,10 @@
               <small>Übermittelt das aktuelle Formular; der Tab schließt danach wie gewohnt automatisch.</small>
             </span>
           </label>
-        </fieldset>
+        </section>
 
-        <fieldset class="settings-group">
-          <legend>Benachrichtigung</legend>
+        <section class="bubble">
+          <h2 class="bubble-title">Benachrichtigung</h2>
 
           <label class="toggle">
             <input type="checkbox" name="assignedTicketSound">
@@ -162,20 +183,22 @@
             </span>
           </label>
 
-          <div class="sound-settings">
-            <div class="sound-row">
-              <select id="soundSelect"></select>
-              <button type="button" id="soundPreview" class="ghost-button" title="Anhören">▶</button>
-            </div>
+          <div class="bubble-details bubble-details--plain">
+            <div class="sound-settings">
+              <div class="sound-row">
+                <select id="soundSelect" aria-label="Benachrichtigungston"></select>
+                <button type="button" id="soundPreview" class="ghost-button" title="Anhören">▶</button>
+              </div>
 
-            <ul id="customSoundList" class="sound-list"></ul>
+              <ul id="customSoundList" class="sound-list"></ul>
 
-            <div class="sound-row">
-              <button type="button" id="soundAdd" class="ghost-button">+ Eigenen Sound hinzufügen</button>
+              <div class="sound-row">
+                <button type="button" id="soundAdd" class="ghost-button">+ Eigenen Sound hinzufügen</button>
+              </div>
+              <input type="file" id="soundFileInput" accept="audio/*" hidden>
             </div>
-            <input type="file" id="soundFileInput" accept="audio/*" hidden>
           </div>
-        </fieldset>
+        </section>
       </form>
 
       <footer>

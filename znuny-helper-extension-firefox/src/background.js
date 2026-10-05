@@ -193,8 +193,16 @@
     ) || null;
   }
 
+  const handledCloseTabs = new Set();
+
   async function closeSubmittedTab(tab, message) {
     if (!tab?.id) return;
+
+    // The content script and the watcher below may both ask for the same tab; the second
+    // request must not reload the return tab a second time.
+    if (handledCloseTabs.has(tab.id)) return;
+    handledCloseTabs.add(tab.id);
+    globalThis.setTimeout(() => handledCloseTabs.delete(tab.id), 10000);
 
     let returnTab = tab.openerTabId ? await getTab(tab.openerTabId) : null;
 
@@ -250,4 +258,78 @@
 
     return false;
   });
+
+  // ---------------------------------------------------------------------------------
+  // Auto close for action tabs.
+  // A tab that the extension opened for an action page reports itself when the agent
+  // submits. The background then watches that tab and closes it as soon as it has left
+  // the action page (Znuny loads the ticket afterwards) and reloads the tab it came
+  // from. Doing this here means it works even if the follow-up page's own script does
+  // not run and even if Znuny has overwritten window.name.
+  const pendingAutoClose = new Map();
+  const AUTO_CLOSE_TIMEOUT_MS = 30000;
+  const AUTO_CLOSE_POLL_MS = 1500;
+
+  function isActionPageUrl(url, source, flags) {
+    try {
+      return new RegExp(source, flags || "i").test(String(url || ""));
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async function maybeCloseArmedTab(tabId) {
+    const entry = pendingAutoClose.get(tabId);
+    if (!entry) return;
+
+    if (Date.now() - entry.at > AUTO_CLOSE_TIMEOUT_MS) {
+      // Still on the action page after all: the submit did not go through.
+      pendingAutoClose.delete(tabId);
+      return;
+    }
+
+    const tab = await getTab(tabId);
+    if (!tab?.id) {
+      pendingAutoClose.delete(tabId);
+      return;
+    }
+
+    const url = tab.url || tab.pendingUrl || "";
+    if (!url) return;
+
+    // Still on the action page (e.g. a validation error re-rendered the form): keep it.
+    if (entry.pattern && isActionPageUrl(url, entry.pattern, entry.flags)) return;
+
+    pendingAutoClose.delete(tabId);
+    await closeSubmittedTab(tab, { returnUrl: entry.returnUrl });
+  }
+
+  api.runtime.onMessage.addListener((message, sender) => {
+    if (message?.type !== "znuny-helper-arm-auto-close") return false;
+
+    const tab = sender.tab;
+    if (!tab?.id) return false;
+
+    pendingAutoClose.set(tab.id, {
+      at: Date.now(),
+      returnUrl: String(message.returnUrl || ""),
+      pattern: String(message.actionPattern || ""),
+      flags: String(message.actionFlags || "i")
+    });
+
+    return false;
+  });
+
+  api.tabs.onUpdated?.addListener((tabId, changeInfo) => {
+    if (!pendingAutoClose.has(tabId)) return;
+    if (!changeInfo.url && changeInfo.status !== "complete") return;
+
+    maybeCloseArmedTab(tabId);
+  });
+
+  globalThis.setInterval(() => {
+    [...pendingAutoClose.keys()].forEach((tabId) => {
+      maybeCloseArmedTab(tabId);
+    });
+  }, AUTO_CLOSE_POLL_MS);
 })();

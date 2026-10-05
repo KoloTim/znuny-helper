@@ -16,9 +16,11 @@
     ticketListInfiniteScroll: true,
     pendingDateButtons: true,
     pendingDatePresets: [3, 7, 14],
+    pendingDateDefaultDays: 3,
     keyboardShortcuts: true,
     assignedTicketSound: false,
-    quickReply: false
+    quickReply: false,
+    directArticleActions: true
   };
 
   const BUILTIN_TICKET_SOUNDS = [
@@ -44,6 +46,9 @@
   const soundAdd = document.getElementById("soundAdd");
   const soundFileInput = document.getElementById("soundFileInput");
   const pendingPresetsInput = document.getElementById("pendingPresetsInput");
+  const pendingDefaultInput = document.getElementById("pendingDefaultInput");
+  const pendingDetails = document.getElementById("pendingDetails");
+  const versionPill = document.getElementById("versionPill");
 
   let ticketSoundConfig = { customSounds: [], selectedId: BUILTIN_TICKET_SOUNDS[0].id };
 
@@ -80,6 +85,16 @@
     return presets.length ? presets.slice(0, 8) : DEFAULT_SETTINGS.pendingDatePresets.slice();
   }
 
+  function parsePendingDefaultDays(value) {
+    const days = Math.trunc(Number(String(value ?? "").replace(",", ".")));
+
+    if (!Number.isFinite(days) || days <= 0 || days > 3650) {
+      return DEFAULT_SETTINGS.pendingDateDefaultDays;
+    }
+
+    return days;
+  }
+
   function readForm() {
     const settings = {};
 
@@ -88,12 +103,13 @@
     });
 
     settings.pendingDatePresets = parsePendingPresets(pendingPresetsInput.value);
+    settings.pendingDateDefaultDays = parsePendingDefaultDays(pendingDefaultInput.value);
     return settings;
   }
 
   function writeForm(settings) {
     Object.entries(settings).forEach(([key, value]) => {
-      if (key === "pendingDatePresets") return;
+      if (key === "pendingDatePresets" || key === "pendingDateDefaultDays") return;
       if (form.elements[key]) {
         form.elements[key].checked = Boolean(value);
       }
@@ -103,6 +119,7 @@
       ? settings.pendingDatePresets
       : DEFAULT_SETTINGS.pendingDatePresets;
     pendingPresetsInput.value = presets.join(", ");
+    pendingDefaultInput.value = String(parsePendingDefaultDays(settings.pendingDateDefaultDays));
   }
 
   async function save() {
@@ -230,10 +247,24 @@
   function updatePendingPresetState() {
     const enabled = Boolean(form.elements.pendingDateButtons?.checked);
     pendingPresetsInput.disabled = !enabled;
-    pendingPresetsInput.closest(".field-settings")?.classList.toggle("is-disabled", !enabled);
+    pendingDefaultInput.disabled = !enabled;
+    pendingDetails?.classList.toggle("is-disabled", !enabled);
+    pendingDetails?.setAttribute("aria-disabled", enabled ? "false" : "true");
+  }
+
+  function showVersion() {
+    if (!versionPill) return;
+
+    try {
+      versionPill.textContent = `v${api.runtime.getManifest().version}`;
+    } catch (error) {
+      console.warn("Znuny Helper: Version konnte nicht gelesen werden:", error);
+    }
   }
 
   async function init() {
+    showVersion();
+
     const stored = await storageGet({ [SETTINGS_KEY]: DEFAULT_SETTINGS });
     writeForm({ ...DEFAULT_SETTINGS, ...(stored[SETTINGS_KEY] || {}) });
     updatePendingPresetState();

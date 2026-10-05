@@ -1,0 +1,14 @@
+{
+  "name": "znuny-helper",
+  "version": "1.5.2",
+  "private": true,
+  "description": "Repo-Infrastruktur fuer die Browser-Erweiterung Znuny Helper (Chrome/Edge und Firefox)",
+  "license": "UNLICENSED",
+  "scripts": {
+    "test": "node tools/run-node-test.js",
+    "build": "node tools/run-python.js tools/build-release-zips.py",
+    "verify": "node tools/run-python.js tools/verify-release-zips.py",
+    "sync-firefox": "node tools/run-python.js tools/sync-firefox.py",
+    "sync-firefox:check": "node tools/run-python.js tools/sync-firefox.py --check"
+  }
+}
