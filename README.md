@@ -461,9 +461,14 @@ Bei einem Release anzupassen:
 
 - `znuny-helper-extension/manifest.json` (Feld `version`)
 - `znuny-helper-extension-firefox/manifest.json` (Feld `version`)
+- `package.json` (Feld `version`, nur Repo-Infrastruktur)
 - `CHANGELOG.md` (neuer Abschnitt)
 - `znuny-helper-extension/welcome/welcome.js` (Changelog-Array)
 - `NETWIKI-Znuny-Helper.md` und `NETWIKI-Znuny-Helper-dokuwiki.txt` (Versionszeile und Funktionen)
+
+Danach den Firefox-Baum abgleichen (`python tools/sync-firefox.py`), die Tests laufen
+lassen (`npm test`) und die drei Archive neu bauen und prüfen
+(`python tools/build-release-zips.py`, `python tools/verify-release-zips.py`).
 
 ## Dokumentation
 
