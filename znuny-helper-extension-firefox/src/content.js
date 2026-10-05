@@ -27,6 +27,9 @@
   // safe to leave in place either way.
   // Keep this in sync with isQuickReplyEligibleUrl in page-bridge.js.
   const QUICK_REPLY_ACTION_PATTERN = /Action=(?:AgentTicket(?:Compose|Forward|Owner|Priority|Note|Close|Merge)|AgentLinkObject)\b/i;
+  // Visible captions of the article actions whose hover bar is rebuilt (see
+  // markArticleActionLabel): localized Znuny names of reply and forward.
+  const ARTICLE_ACTION_LABEL_PATTERN = /^(?:Antworten|Allen antworten|Weiterleiten|Reply|Reply to all|Forward)$/i;
 
   const DEFAULT_SETTINGS = {
     popupTabs: true,
@@ -1229,7 +1232,82 @@
     container.style.display = "none";
     container.dataset.zhDirectActionHidden = "1";
     form.dataset.zhDirectActionPrepared = "1";
+
+    // The visible action text stays reachable, but it is not a Znuny link and therefore
+    // never got the orange hover bar of the action bar - add it here.
+    addArticleActionStyles(form.ownerDocument || document);
+    markArticleActionLabel(form, searchInput);
     return true;
+  }
+
+  function addArticleActionStyles(doc = document) {
+    addStyleToDocument(doc, "zh-article-action-style", `
+      .zh-direct-action-label { position: relative; cursor: pointer; }
+      .zh-direct-action-label::after { content: ""; position: absolute; left: 0; right: 0; bottom: -3px; height: 2px; border-radius: 1px; background: #ff9900; opacity: 0; transition: opacity .12s ease; pointer-events: none; }
+      .zh-direct-action-label:hover::after, .zh-direct-action-label:focus-within::after { opacity: 1; }
+      @media (prefers-reduced-motion: reduce) { .zh-direct-action-label::after { transition: none; } }
+    `);
+  }
+
+  function isRenderableArticleActionElement(element) {
+    if (!element || element.closest?.('[data-zh-direct-action-hidden="1"]')) return false;
+
+    const rect = element.getBoundingClientRect?.();
+    return Boolean(rect && rect.width > 0 && rect.height > 0);
+  }
+
+  // The visible "Antworten"/"Weiterleiten" text sits next to the (now hidden) search
+  // field. Depending on the Znuny version it is a label for that field, a label that
+  // wraps it or a label beside it - all shapes are collected here, then the first
+  // visible one is marked. A label carrying the action name is always preferred, so a
+  // shared wrapper never marks the wrong entry.
+  function markArticleActionLabel(form, searchInput) {
+    const container = searchInput.closest(".InputField_Container") || searchInput;
+    const candidates = [];
+
+    const collect = (node) => {
+      if (!node) return;
+      if (node.matches?.("label")) candidates.push(node);
+      candidates.push(node.querySelector?.("label"));
+    };
+
+    if (searchInput.id) {
+      collect(form.querySelector(`label[for="${searchInput.id}"]`));
+      collect(document.querySelector(`label[for="${searchInput.id}"]`));
+    }
+    collect(searchInput.closest("label"));
+
+    let before = container.previousElementSibling;
+    for (let hops = 0; before && hops < 3; hops += 1) {
+      collect(before);
+      before = before.previousElementSibling;
+    }
+
+    let after = container.nextElementSibling;
+    for (let hops = 0; after && hops < 3; hops += 1) {
+      collect(after);
+      after = after.nextElementSibling;
+    }
+
+    form.querySelectorAll("label").forEach((label) => candidates.push(label));
+
+    const unique = [...new Set(candidates)].filter(isRenderableArticleActionElement);
+    const label = unique.find((candidate) =>
+      ARTICLE_ACTION_LABEL_PATTERN.test(String(candidate.textContent || "").trim())
+    ) || unique[0];
+
+    if (!label) return null;
+
+    label.classList.add("zh-direct-action-label");
+    label.dataset.zhDirectActionLabel = "1";
+    return label;
+  }
+
+  function unmarkArticleActionLabels() {
+    document.querySelectorAll('[data-zh-direct-action-label="1"]').forEach((element) => {
+      element.classList.remove("zh-direct-action-label");
+      delete element.dataset.zhDirectActionLabel;
+    });
   }
 
   function buildArticleActionUrl(form) {
@@ -1295,6 +1373,8 @@
   }
 
   function disableDirectArticleActions() {
+    unmarkArticleActionLabels();
+
     document.querySelectorAll('[data-zh-direct-action-prepared="1"]').forEach((form) => {
       delete form.dataset.zhDirectActionPrepared;
 

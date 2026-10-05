@@ -134,6 +134,8 @@ Ist die Funktion **Antworten/Weiterleiten ohne Vorlagenklick** aktiv (Standard),
 
 Sobald mehr als eine Vorlage vorhanden ist, ändert das Addon nichts; die Auswahl bleibt wie gewohnt. Abschalten lässt sich die Funktion im Popup unter **Im geöffneten Ticket**.
 
+Weil die sichtbare Beschriftung dieser beiden Aktionen technisch keine Verlinkung ist, fehlt ihr der orange Balken, den Znuny beim Überfahren der übrigen Artikel-Aktionen zeigt. Das Addon ergänzt ihn für **Antworten** und **Weiterleiten** im selben Orange – als Pseudoelement, das nichts im Layout verschiebt, und auch bei Tastaturfokus.
+
 ## Schnellantwort
 
 Standardmäßig öffnen "Antworten" und "Allen antworten" (Artikel), "Besitzer" (Personen), "Notiz" (Kommunikation) sowie "Priorisierung", "Weiterleiten", "Schließen", "Verknüpfen" und "Zusammenfassen" die echte Znuny-Seite der jeweiligen Aktion (inklusive Editor, Signatur und aller Pflichtfelder) – je nach Einstellung **Popups als Tabs** entweder als Popup-Fenster oder als neuer Tab.

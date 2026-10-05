@@ -571,6 +571,110 @@ check("Feste Popup-Breite statt Inhaltsbreite", /body\s*\{[^}]*width:\s*360px/.t
   check(`Firefox-Spiegel identisch: ${file}`, firefox === chrome, true);
 });
 
+console.log("\n12) Artikelleiste: oranger Hover-Balken fuer Antworten/Weiterleiten");
+
+const ARTICLE_ACTION_LABEL_PATTERN_SOURCE = source.match(/const ARTICLE_ACTION_LABEL_PATTERN = .*;/)[0];
+const articleActionDocument = { querySelector: () => null };
+const markLabel = new Function(
+  "document",
+  `${ARTICLE_ACTION_LABEL_PATTERN_SOURCE}
+   ${extractDeclaration("isRenderableArticleActionElement")}
+   ${extractDeclaration("markArticleActionLabel")}
+   return markArticleActionLabel;`
+)(articleActionDocument);
+
+function makeLabelDouble(text, options = {}) {
+  const classes = [];
+  const { visible = true, insideHiddenContainer = false } = options;
+
+  return {
+    textContent: text,
+    dataset: {},
+    classes,
+    classList: { add: (name) => classes.push(name), remove: () => {} },
+    matches: (selector) => selector === "label",
+    closest: (selector) =>
+      (insideHiddenContainer && selector === '[data-zh-direct-action-hidden="1"]' ? {} : null),
+    querySelector: () => null,
+    getBoundingClientRect: () => (visible ? { width: 90, height: 16 } : { width: 0, height: 0 })
+  };
+}
+
+function makeActionFormDouble(labels, forLabel) {
+  return {
+    querySelector: (selector) => (selector.startsWith("label[for=") ? forLabel || null : null),
+    querySelectorAll: (selector) => (selector === "label" ? labels : [])
+  };
+}
+
+const articleActionContainer = { previousElementSibling: null, nextElementSibling: null };
+const articleActionSearchInput = {
+  id: "ResponseID738340_Search",
+  closest: (selector) => (selector === ".InputField_Container" ? articleActionContainer : null)
+};
+
+const replyLabel = makeLabelDouble("Antworten");
+const markedLabel = markLabel(
+  makeActionFormDouble([replyLabel, makeLabelDouble("Teilen")]),
+  articleActionSearchInput
+);
+check("Label mit Aktionsnamen wird bevorzugt", markedLabel === replyLabel, true);
+check("Label wird markiert", replyLabel.dataset.zhDirectActionLabel, "1");
+check("Markierung setzt die CSS-Klasse", replyLabel.classes.includes("zh-direct-action-label"), true);
+
+const forwardedLabel = makeLabelDouble("Weiterleiten");
+check("Weiterleiten wird ebenfalls erkannt",
+  markLabel(makeActionFormDouble(["x", forwardedLabel].map((entry) => (typeof entry === "string" ? makeLabelDouble(entry) : entry))), articleActionSearchInput) === forwardedLabel,
+  true);
+
+const forLabel = makeLabelDouble("Allen antworten");
+check("Label ueber for-Attribut wird gefunden",
+  markLabel(makeActionFormDouble([makeLabelDouble("Teilen")], forLabel), articleActionSearchInput) === forLabel,
+  true);
+
+check("unsichtbare Labels werden uebersprungen",
+  markLabel(makeActionFormDouble([makeLabelDouble("Antworten", { visible: false })]), articleActionSearchInput),
+  null);
+check("Labels im ausgeblendeten Feld zaehlen nicht",
+  markLabel(
+    makeActionFormDouble([makeLabelDouble("Antworten", { insideHiddenContainer: true })]),
+    articleActionSearchInput
+  ),
+  null);
+check("ohne passendes Label bleibt es unveraendert",
+  markLabel(makeActionFormDouble([]), articleActionSearchInput),
+  null);
+
+const labelPatternSource = source.match(/const ARTICLE_ACTION_LABEL_PATTERN = (\/.*\/[a-z]*);/)[1];
+const labelPattern = new Function(`return ${labelPatternSource};`)();
+check("Muster kennt die Aktionsnamen",
+  ["Antworten", "Allen antworten", "Weiterleiten"].map((name) => labelPattern.test(name)),
+  [true, true, true]);
+check("Muster ignoriert andere Aktionen", labelPattern.test("Teilen"), false);
+
+const styleCaptures = [];
+const applyArticleActionStyles = new Function(
+  "addStyleToDocument",
+  `${extractDeclaration("addArticleActionStyles")}\nreturn addArticleActionStyles;`
+)((doc, id, css) => styleCaptures.push({ id, css }));
+applyArticleActionStyles({});
+check("Stil wird unter eigener ID eingefuegt", styleCaptures[0]?.id, "zh-article-action-style");
+check("Balken nutzt Znuny-Orange", styleCaptures[0]?.css.includes("#ff9900"), true);
+check("Balken erscheint bei Hover und Fokus",
+  Boolean(styleCaptures[0]?.css.includes(":hover::after") && styleCaptures[0]?.css.includes(":focus-within::after")),
+  true);
+check("Balken verschiebt das Layout nicht",
+  Boolean(styleCaptures[0]?.css.includes("position: absolute") && styleCaptures[0]?.css.includes("pointer-events: none")),
+  true);
+
+const prepareSource = extractDeclaration("prepareArticleActionForm");
+check("Vorbereitung setzt Stil und Markierung",
+  Boolean(prepareSource.includes("addArticleActionStyles(") && prepareSource.includes("markArticleActionLabel(")),
+  true);
+check("Abschalten entfernt die Markierung",
+  extractDeclaration("disableDirectArticleActions").includes("unmarkArticleActionLabels()"),
+  true);
+
 console.log(`\nErgebnis: ${passed} bestanden, ${failures.length} fehlgeschlagen`);
 if (failures.length) {
   failures.forEach((failure) => console.log(`  - ${failure}`));

@@ -23,6 +23,7 @@
         "Neu: Über \"–\" lässt sich das Fenster minimieren, ohne den Formularinhalt zu verlieren.",
         "Neu: Angefangene Antworten gehen beim Schließen nicht mehr verloren – der Text wird als Entwurf gespeichert und beim nächsten Öffnen derselben Aktion wiederhergestellt (mit \"Entwurf verwerfen\"). Nach dem Übermitteln wird der Entwurf gelöscht.",
         "Neu: \"Antworten\" und \"Weiterleiten\" brauchen keinen Vorlagenklick mehr, wenn nur eine Vorlage vorhanden ist – der leere Suchkasten verschwindet und ein Klick auf die Aktion genügt.",
+        "Neu: Der orange Hover-Balken der Artikelleiste erscheint jetzt auch unter \"Antworten\" und \"Weiterleiten\" (gleiches Orange, ohne Layoutverschiebung, auch bei Tastaturfokus).",
         "Vorlagen und Kategorien werden jetzt sofort gespeichert: Das Schließen des Bearbeiten-Fensters verwirft keine Änderungen mehr.",
         "Die Warten-Schnellauswahl überschreibt kein bereits gewähltes Wartedatum mehr.",
         "Strg+Enter übermittelt bevorzugt das Formular, in dem gerade gearbeitet wird.",
