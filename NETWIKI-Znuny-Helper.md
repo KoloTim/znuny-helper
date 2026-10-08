@@ -21,7 +21,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 
 | Punkt | Beschreibung |
 | --- | --- |
-| Aktuelle Version | 1.6.0 (Stand: 02.10.2026) |
+| Aktuelle Version | 1.6.1 (Stand: 08.10.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` |
@@ -171,7 +171,7 @@ Das verhindert sehr große Suchläufe und sorgt trotzdem dafür, dass aktuelle u
 
 Außerdem merkt sich das Addon lokal die letzten Suchbegriffe und Ticketnummern als kleine Suchhistorie. Sie liegt im Speicher der Erweiterung – nicht im Seitenspeicher von Znuny.
 
-Unter den Suchfeldern steht dafür ein Block **Suchverlauf**: Er zeigt die zuletzt ausgeführten Suchen (neueste zuerst, bis zu acht von maximal fünfzehn gemerkten) mit Suchbegriff, Ticketnummer, dem verwendeten Zeitraum und der Uhrzeit („gerade eben", „vor 5 Min.", „gestern 16:40", sonst Datum und Uhrzeit).
+Unter den Suchfeldern steht dafür ein Block **Suchverlauf**: Er zeigt die zuletzt ausgeführten Suchen (neueste zuerst: fünf sichtbar, über **Alle n anzeigen** aufklappbar auf bis zu fünfzehn gemerkte) mit Suchbegriff, Ticketnummer, dem verwendeten Zeitraum und der Uhrzeit („gerade eben", „vor 5 Min.", „gestern 16:40", sonst Datum und Uhrzeit).
 
 - Ein Klick auf einen Eintrag übernimmt Suchbegriff, Ticketnummer **und** den damaligen Zeitraum zurück in die Felder. Gestartet wird die Suche wie gewohnt über **Suche starten**, weil die übrigen Filter (Vorlagen, zusätzliche Attribute) nicht Teil eines Eintrags sind.
 - Über **×** lässt sich ein einzelner Eintrag entfernen, über **Verlauf leeren** die ganze Liste.

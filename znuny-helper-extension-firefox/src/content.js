@@ -2407,7 +2407,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     if (form.dataset.zhSearchEnhanced === "1") {
       cleanupEnhancedSearchForm(form);
-      return;
+
+      // Znuny rebuilds the dialog through AJAX (for instance when the filter selection
+      // changes) and wipes the added rows with it. The marker on the form survives that,
+      // so the form would never be rebuilt - check the UI and enhance again if it is gone.
+      const primaryBlockPresent = document.getElementById("zh-search-primary-fields");
+      const historyBlockPresent = document.getElementById("zh-search-history-block");
+
+      if (primaryBlockPresent && historyBlockPresent) return;
+
+      delete form.dataset.zhSearchEnhanced;
     }
 
     addSearchModalStyles();
@@ -3612,7 +3621,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     window.__znunyHelperSearchHistoryBridge = "1";
 
     window.addEventListener("znuny-helper-ticketnumber-search", (event) => {
-      const ticketNumber = normalizeText(event.detail?.ticketNumber || "");
+      // The attribute is the transport that always survives the realm boundary.
+      const ticketNumber = normalizeText(
+        event.detail?.ticketNumber || document.documentElement.dataset.zhTicketnumberSearch || ""
+      );
+      delete document.documentElement.dataset.zhTicketnumberSearch;
       if (!ticketNumber) return;
 
       const controls = getVisibleSearchControls();
@@ -3642,6 +3655,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function handleVisibleTicketNumberOnlySearch(event) {
+    if (!settings.ticketNumberSearch) return false;
+
     const controls = getVisibleSearchControls();
     if (!controls) return false;
 
@@ -3681,6 +3696,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function handleSearchStartEvent(event) {
+    // Without the extended search there is nothing to remember, and the form must not be
+    // touched at all.
+    if (!settings.ticketNumberSearch) return;
     if (!isSearchSubmitControl(event.target)) return;
 
     const controls = getVisibleSearchControls();
@@ -3697,6 +3715,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function handleSearchFieldEnter(event) {
+    if (!settings.ticketNumberSearch) return;
     if (event.key !== "Enter") return;
 
     const form = event.target?.closest?.("form");
@@ -5525,7 +5544,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       fragment.appendChild(doc.createElement("br"));
       target.insertBefore(fragment, target.firstChild);
     } else {
-      target.replaceChildren(fragmentFromLines(value, doc));
+      // Same shape as a restored draft: real paragraphs keep the line structure, which
+      // some editors otherwise squeeze together.
+      insertPlainTextAsParagraphs(target, value);
+      return;
     }
     target.dispatchEvent(new Event("input", { bubbles: true }));
     target.dispatchEvent(new Event("change", { bubbles: true }));
@@ -8199,12 +8221,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const editor = findQuickReplyEditor(doc);
 
     if (editor.editable) {
-      insertDraftTextInto(editor.editable, text);
+      insertPlainTextAsParagraphs(editor.editable, text);
       return true;
     }
 
     if (editor.body) {
-      insertDraftTextInto(editor.body, text);
+      insertPlainTextAsParagraphs(editor.body, text);
       return true;
     }
 
@@ -8218,10 +8240,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return false;
   }
 
-  // Puts a draft back as real paragraphs instead of loose text with <br> in between:
+  // Puts plain text back as real paragraphs instead of loose text with <br> in between:
   // the rich text editors Znuny uses keep their structure then, and line breaks or
-  // paragraphs are not squeezed together by the editor's own clean-up.
-  function insertDraftTextInto(target, text) {
+  // paragraphs are not squeezed together by the editor's own clean-up. Used for restored
+  // drafts and for template text.
+  function insertPlainTextAsParagraphs(target, text) {
     const doc = target.ownerDocument || document;
     const lines = String(text || "").replace(/\r\n?/g, "\n").split("\n");
     const fragment = doc.createDocumentFragment();
@@ -9022,8 +9045,13 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function handleOpenQuickReplyEvent(event) {
     if (!settings.quickReply) return;
-    const url = event.detail?.url;
+
+    // Same as with the article actions: the attribute is the transport that always
+    // survives the boundary between the page and the content script.
+    const url = event.detail?.url || document.documentElement.dataset.zhQuickReplyUrl || "";
+    delete document.documentElement.dataset.zhQuickReplyUrl;
     if (!url) return;
+
     openQuickReplyDrawer(url);
   }
 

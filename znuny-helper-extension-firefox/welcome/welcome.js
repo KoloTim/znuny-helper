@@ -9,10 +9,8 @@
 
   const releases = [
     {
-      version: "1.6.0",
+      version: "1.6.1",
       items: [
-        "Neu: \"Weiterleiten\" läuft jetzt ebenfalls über die Schnellantwort – als Fenster direkt über dem Ticket.",
-        "Aufgeräumtes Popup: Einstellungen in abgerundeten Karten je Bereich, zusammengehörige Optionen wie die Warten-Schnellauswahl als eine Einheit (bei ausgeschaltetem Schalter gedimmt), Versionsanzeige im Kopf.",
         "Neu: Die Standard-Wartezeit ist im Popup unter \"Antworten und Warten\" einstellbar und steht jetzt auf 7 Tagen (vorher fest 3 Tage).",
         "Neu: Suchverlauf in der globalen Suche – die letzten Suchen mit Suchbegriff, Ticketnummer, Zeitraum und Uhrzeit. Angezeigt werden die letzten fünf, \"Alle anzeigen\" klappt auf bis zu 15 auf; ein Klick übernimmt alles zurück in die Felder, \"Verlauf leeren\" räumt auf.",
         "Behoben (Firefox): \"Antworten\"/\"Weiterleiten\" ohne Vorlagenklick tat gar nichts – die Adresse kam über die Weltgrenze nicht an. Jetzt öffnet sich die Aktion zuverlässig; scheitert Znunys Popup-Schicht, wird sie direkt geöffnet.",
@@ -21,6 +19,17 @@
         "Behoben: Der Suchverlauf blieb in anderen Znuny-Fenstern leer (der Suchdialog ist ein eigenes Fenster) – jedes Fenster folgt jetzt dem gespeicherten Verlauf, und eine Suche wird auch ganz ohne Klick erkannt.",
         "Die Überschrift \"Suchverlauf\" sitzt jetzt auf derselben Spalte wie die Suchfelder.",
         "Der Zeitraum-Knopf \"Letztes Jahr\" ist entfallen; die drei übrigen Knöpfe stehen jetzt in einer Reihe. Der automatische Standardzeitraum bleibt letztes Jahr bis heute.",
+        "Neu: Der orange Hover-Balken der Artikelleiste erscheint jetzt auch unter \"Antworten\" und \"Weiterleiten\" (gleiches Orange, ohne Layoutverschiebung, auch bei Tastaturfokus).",
+        "Behoben: Der Suchdialog wurde nach einem Neuaufbau durch Znuny nicht wieder ergänzt – Suchfelder und Verlauf fehlten danach dauerhaft. Die Oberfläche wird jetzt neu aufgebaut, wenn sie verschwunden ist.",
+        "Vorlagen-Texte werden wie wiederhergestellte Entwürfe als echte Absätze eingesetzt (kein Zusammenschieben der Zeilen mehr).",
+        "Transport von der Seite zum Addon zusätzlich per DOM-Attribut abgesichert (Ticketnummer-Suche, Schnellantwort)."
+      ]
+    },
+    {
+      version: "1.6.0",
+      items: [
+        "Neu: \"Weiterleiten\" läuft jetzt ebenfalls über die Schnellantwort – als Fenster direkt über dem Ticket.",
+        "Aufgeräumtes Popup: Einstellungen in abgerundeten Karten je Bereich, zusammengehörige Optionen wie die Warten-Schnellauswahl als eine Einheit (bei ausgeschaltetem Schalter gedimmt), Versionsanzeige im Kopf.",
         "Behoben: Antwort-Entwürfe wurden nicht gespeichert (es wurde das versteckte Editor-Feld statt des sichtbaren Editors gelesen). Jetzt wird auch beim Schließen des Tabs gesichert.",
         "Behoben: In Entwürfen steckte Editor-Quelltext (<br />, &nbsp;) – daraus wird jetzt lesbarer Text, auch bei bereits gespeicherten Entwürfen.",
         "Einstellungen wie die Standard-Wartezeit wirken jetzt sofort auf geöffnete Znuny-Seiten, ohne die Seite neu zu laden.",
@@ -30,7 +39,6 @@
         "Neu: Über \"–\" lässt sich das Fenster minimieren, ohne den Formularinhalt zu verlieren.",
         "Neu: Angefangene Antworten gehen beim Schließen nicht mehr verloren – der Text wird als Entwurf gespeichert und beim nächsten Öffnen derselben Aktion wiederhergestellt (mit \"Entwurf verwerfen\"). Nach dem Übermitteln wird der Entwurf gelöscht.",
         "Neu: \"Antworten\" und \"Weiterleiten\" brauchen keinen Vorlagenklick mehr, wenn nur eine Vorlage vorhanden ist – der leere Suchkasten verschwindet und ein Klick auf die Aktion genügt.",
-        "Neu: Der orange Hover-Balken der Artikelleiste erscheint jetzt auch unter \"Antworten\" und \"Weiterleiten\" (gleiches Orange, ohne Layoutverschiebung, auch bei Tastaturfokus).",
         "Vorlagen und Kategorien werden jetzt sofort gespeichert: Das Schließen des Bearbeiten-Fensters verwirft keine Änderungen mehr.",
         "Die Warten-Schnellauswahl überschreibt kein bereits gewähltes Wartedatum mehr.",
         "Strg+Enter übermittelt bevorzugt das Formular, in dem gerade gearbeitet wird.",

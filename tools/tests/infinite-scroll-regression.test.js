@@ -1051,13 +1051,19 @@ check("Markup wird weiterhin erkannt",
 
 check("Entwurf wird als Absaetze eingesetzt",
   Boolean(
-    extractDeclaration("insertDraftTextInto").includes('createElement("p")') &&
-    extractDeclaration("insertDraftTextInto").includes("replaceChildren(fragment)")
+    extractDeclaration("insertPlainTextAsParagraphs").includes('createElement("p")') &&
+    extractDeclaration("insertPlainTextAsParagraphs").includes("replaceChildren(fragment)")
   ),
   true);
 check("Einsetzen nutzt die Absatz-Variante",
-  extractDeclaration("writeQuickReplyText").split("insertDraftTextInto(").length - 1,
+  extractDeclaration("writeQuickReplyText").split("insertPlainTextAsParagraphs(").length - 1,
   2);
+check("Vorlagen-Texte nutzen die Absatz-Variante",
+  Boolean(
+    extractDeclaration("insertRichTextInto").includes("insertPlainTextAsParagraphs(target, value)") &&
+    extractDeclaration("insertRichTextInto").includes("fragmentFromLines(value, doc)")
+  ),
+  true);
 check("erster gefuellter Editor gewinnt",
   Boolean(
     extractDeclaration("readQuickReplyText").includes("find((text) => text.trim())") &&
@@ -1074,6 +1080,64 @@ const popupDefaultDays = Number(popupSource.match(/pendingDateDefaultDays:\s*(\d
 check("Standard-Wartezeit ist 7 Tage (Content-Script)", contentDefaultDays, 7);
 check("Standard-Wartezeit ist 7 Tage (Popup)", popupDefaultDays, 7);
 check("Standard-Wartezeit stimmt in beiden Dateien", popupDefaultDays, contentDefaultDays);
+
+console.log("\n15) Nachbesserungen und Release-Stand");
+
+// Znuny baut den Suchdialog per AJAX neu auf und entfernt dabei die eingefuegten Zeilen.
+// Die Markierung am Formular ueberlebt das - ohne Nachpruefung waere die Oberflaeche
+// dauerhaft weg.
+check("Suchdialog wird nach einem Neuaufbau wieder ergaenzt",
+  Boolean(
+    fixSearchSource.includes("zh-search-history-block") &&
+    fixSearchSource.includes("delete form.dataset.zhSearchEnhanced")
+  ),
+  true);
+
+check("Seite legt Werte zusaetzlich als Attribut ab",
+  Boolean(
+    bridgeCode.includes("dataset.zhTicketnumberSearch") &&
+    bridgeCode.includes("dataset.zhQuickReplyUrl")
+  ),
+  true);
+check("Content-Script liest die Attribute als Rueckfall",
+  Boolean(
+    source.includes("dataset.zhTicketnumberSearch") &&
+    source.includes("dataset.zhQuickReplyUrl")
+  ),
+  true);
+check("Globale Suche greift nur bei aktiver Funktion",
+  Boolean(
+    extractDeclaration("handleSearchStartEvent").includes("if (!settings.ticketNumberSearch) return;") &&
+    extractDeclaration("handleSearchFieldEnter").includes("if (!settings.ticketNumberSearch) return;") &&
+    extractDeclaration("handleVisibleTicketNumberOnlySearch").includes("if (!settings.ticketNumberSearch) return false;")
+  ),
+  true);
+
+const manifestVersion = JSON.parse(
+  fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
+).version;
+const firefoxManifestVersion = JSON.parse(
+  fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension-firefox", "manifest.json"), "utf8")
+).version;
+const packageVersion = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf8")).version;
+const changelogText = fs.readFileSync(path.join(REPO_ROOT, "CHANGELOG.md"), "utf8");
+const welcomeText = fs.readFileSync(
+  path.join(REPO_ROOT, "znuny-helper-extension", "welcome", "welcome.js"),
+  "utf8"
+);
+
+check("Addon-Version ist 1.6.1", manifestVersion, "1.6.1");
+check("Firefox-Manifest traegt dieselbe Version", firefoxManifestVersion, manifestVersion);
+check("Repo-Version passt zum Manifest", packageVersion, manifestVersion);
+check("Changelog hat einen Abschnitt fuer die Version",
+  changelogText.includes(`## [${manifestVersion}]`),
+  true);
+check("Addon-Changelog nennt die Version",
+  welcomeText.includes(`version: "${manifestVersion}"`),
+  true);
+check("Addon-Changelog beginnt mit der neuesten Version",
+  welcomeText.indexOf(`version: "${manifestVersion}"`) < welcomeText.indexOf('version: "1.6.0"'),
+  true);
 
 console.log(`\nErgebnis: ${passed} bestanden, ${failures.length} fehlgeschlagen`);
 if (failures.length) {

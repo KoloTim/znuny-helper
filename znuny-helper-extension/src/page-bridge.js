@@ -333,8 +333,11 @@
         // cannot reach - hand the number over so the content script can record it.
         const ticketControl = form.querySelector('[data-zh-ticketnumber-control="1"]') ||
           form.querySelector('[name="TicketNumber"], [name="TicketNumberRaw"]');
+        const ticketNumber = normalizeText(ticketControl?.value || "");
+        // The attribute is the transport that always survives the realm boundary.
+        document.documentElement.dataset.zhTicketnumberSearch = ticketNumber;
         window.dispatchEvent(new CustomEvent("znuny-helper-ticketnumber-search", {
-          detail: { ticketNumber: normalizeText(ticketControl?.value || "") }
+          detail: { ticketNumber }
         }));
         window.setTimeout(() => submitSearchDirectly(form), 0);
         return undefined;
@@ -351,6 +354,9 @@
       const normalizedUrl = normalizeZnunyUrl(url);
 
       if (settings.quickReply && isQuickReplyEligibleUrl(normalizedUrl)) {
+        // Attribute as well: the content script must be able to read the URL even if the
+        // object inside `detail` does not cross the world boundary.
+        document.documentElement.dataset.zhQuickReplyUrl = normalizedUrl;
         window.dispatchEvent(new CustomEvent("znuny-helper-open-quick-reply", { detail: { url: normalizedUrl } }));
         return window;
       }
