@@ -13,8 +13,10 @@
       items: [
         "Neu: \"Weiterleiten\" läuft jetzt ebenfalls über die Schnellantwort – als Fenster direkt über dem Ticket.",
         "Aufgeräumtes Popup: Einstellungen in abgerundeten Karten je Bereich, zusammengehörige Optionen wie die Warten-Schnellauswahl als eine Einheit (bei ausgeschaltetem Schalter gedimmt), Versionsanzeige im Kopf.",
-        "Neu: Die Standard-Wartezeit (bisher fest 3 Tage) ist im Popup unter \"Antworten und Warten\" einstellbar.",
-        "Neu: Suchverlauf in der globalen Suche – die letzten Suchen mit Suchbegriff, Ticketnummer, Zeitraum und Uhrzeit. Ein Klick übernimmt alles zurück in die Felder, \"Verlauf leeren\" räumt auf.",
+        "Neu: Die Standard-Wartezeit ist im Popup unter \"Antworten und Warten\" einstellbar und steht jetzt auf 7 Tagen (vorher fest 3 Tage).",
+        "Neu: Suchverlauf in der globalen Suche – die letzten Suchen mit Suchbegriff, Ticketnummer, Zeitraum und Uhrzeit. Angezeigt werden die letzten fünf, \"Alle anzeigen\" klappt auf bis zu 15 auf; ein Klick übernimmt alles zurück in die Felder, \"Verlauf leeren\" räumt auf.",
+        "Behoben (Firefox): \"Antworten\"/\"Weiterleiten\" ohne Vorlagenklick tat gar nichts – die Adresse kam über die Weltgrenze nicht an. Jetzt öffnet sich die Aktion zuverlässig; scheitert Znunys Popup-Schicht, wird sie direkt geöffnet.",
+        "Behoben (Firefox): Der gespeicherte Entwurfstext wurde zusammengepresst – Zeilenenden werden jetzt normalisiert und der Entwurf als echte Absätze zurückgegeben.",
         "Behoben: Der Suchverlauf speicherte nichts – die Suche wird jetzt schon beim Klick auf \"Suche starten\" gemerkt, auch wenn Znuny kein Formular-Absenden auslöst.",
         "Behoben: Der Suchverlauf blieb in anderen Znuny-Fenstern leer (der Suchdialog ist ein eigenes Fenster) – jedes Fenster folgt jetzt dem gespeicherten Verlauf, und eine Suche wird auch ganz ohne Klick erkannt.",
         "Die Überschrift \"Suchverlauf\" sitzt jetzt auf derselben Spalte wie die Suchfelder.",

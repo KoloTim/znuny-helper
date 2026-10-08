@@ -5,7 +5,7 @@
   const TICKET_STATE_KEY = "znunyHelperTicketState";
   const SEARCH_HISTORY_KEY = "znunyHelperSearchHistory";
   const SEARCH_HISTORY_LIMIT = 15;
-  const SEARCH_HISTORY_VISIBLE = 8;
+  const SEARCH_HISTORY_VISIBLE = 5;
   const CATEGORY_CONFIG_KEY = "znunyHelperCategoryConfig";
   const PRIORITY_TEMPLATE_CONFIG_KEY = "znunyHelperPriorityTemplateConfig";
   const TICKET_SOUND_CONFIG_KEY = "znunyHelperTicketSoundConfig";
@@ -46,7 +46,7 @@
     ticketCategories: true,
     ticketListInfiniteScroll: true,
     pendingDateButtons: true,
-    pendingDateDefaultDays: 3,
+    pendingDateDefaultDays: 7,
     keyboardShortcuts: true,
     assignedTicketSound: false,
     quickReply: false,
@@ -1354,9 +1354,12 @@
       delete form.dataset.zhDirectActionRunning;
     }, 1000);
 
-    // Run the action through the MAIN-world bridge, which uses Znuny's own popup
-    // layer - so quick reply, "Popups als Tabs" and real popups keep working.
-    window.dispatchEvent(new CustomEvent("znuny-helper-run-article-action", { detail: { url } }));
+    // The MAIN world bridge runs the action through Znuny's own popup layer - so quick
+    // reply, "Popups als Tabs" and real popups keep working. The URL travels as a plain
+    // string and additionally as a DOM attribute: Firefox content scripts live in their
+    // own realm, and an object in `detail` does not arrive readable on the page side.
+    document.documentElement.dataset.zhArticleActionUrl = url;
+    window.dispatchEvent(new CustomEvent("znuny-helper-run-article-action", { detail: url }));
   }
 
   function enableDirectArticleActions() {
@@ -3007,6 +3010,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   let searchHistoryLoaded = false;
   let lastSearchRecordSignature = "";
   let lastSearchRecordedAt = 0;
+  let searchHistoryExpanded = false;
 
   function searchHistorySignature(entry) {
     const range = Array.isArray(entry?.range) ? entry.range.join("-") : "";
@@ -3192,12 +3196,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function describeSearchHistoryEntry(entry) {
-    const parts = [];
-    if (entry?.fulltext) parts.push(`Volltext \u201e${entry.fulltext}\u201c`);
-    if (entry?.ticketNumber) parts.push(`Ticketnummer ${entry.ticketNumber}`);
-    if (!parts.length) parts.push("Zeitraum-Suche");
+    const parts = [entry?.fulltext, entry?.ticketNumber].filter(Boolean);
+    return parts.length ? parts.join(" \u00b7 ") : "Zeitraum-Suche";
+  }
 
-    return parts.join(" + ");
+  // Five entries are shown at once; more are only one click away, and nothing beyond
+  // the stored limit is ever kept.
+  function searchHistoryVisibleCount(total, expanded) {
+    const count = Number.isFinite(Number(total)) ? Math.max(0, Math.trunc(Number(total))) : 0;
+    return expanded ? count : Math.min(count, SEARCH_HISTORY_VISIBLE);
   }
 
   function describeSearchHistoryMeta(entry) {
@@ -3213,7 +3220,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const list = block.querySelector(".zh-search-history-list");
     if (!list) return;
 
-    const entries = getSearchHistory().entries.slice(0, SEARCH_HISTORY_VISIBLE);
+    const all = getSearchHistory().entries;
+    const entries = all.slice(0, searchHistoryVisibleCount(all.length, searchHistoryExpanded));
     list.replaceChildren();
 
     entries.forEach((entry) => {
@@ -3259,10 +3267,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       list.appendChild(item);
     });
 
-    block.dataset.empty = entries.length ? "0" : "1";
+    block.dataset.empty = all.length ? "0" : "1";
+
+    const toggle = block.querySelector(".zh-search-history-toggle");
+    if (toggle) {
+      toggle.hidden = all.length <= SEARCH_HISTORY_VISIBLE;
+      toggle.textContent = searchHistoryExpanded ? "Weniger anzeigen" : `Alle ${all.length} anzeigen`;
+    }
 
     const clear = block.querySelector(".zh-search-history-clear");
-    if (clear) clear.hidden = entries.length === 0;
+    if (clear) clear.hidden = all.length === 0;
   }
 
   // Puts a past search back into the fields - including the period - and leaves
@@ -3316,6 +3330,19 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       title.textContent = "Suchverlauf";
       head.appendChild(title);
 
+      const actions = document.createElement("span");
+      actions.className = "zh-search-history-actions";
+
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "zh-search-history-toggle";
+      toggle.addEventListener("click", (event) => {
+        stopEvent(event);
+        searchHistoryExpanded = !searchHistoryExpanded;
+        renderSearchHistoryBlock();
+      });
+      actions.appendChild(toggle);
+
       const clear = document.createElement("button");
       clear.type = "button";
       clear.className = "zh-search-history-clear";
@@ -3324,8 +3351,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         stopEvent(event);
         clearSearchHistory();
       });
-      head.appendChild(clear);
+      actions.appendChild(clear);
 
+      head.appendChild(actions);
       block.appendChild(head);
 
       const list = document.createElement("ul");
@@ -3822,7 +3850,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-search-primary-fields .zh-search-history-block { display: grid; grid-template-columns: minmax(130px, 1fr) 270px minmax(130px, 1fr); margin: 12px 0 2px; padding-top: 10px; border-top: 1px solid #e6e6e6; }
       #zh-search-primary-fields .zh-search-history-head { grid-column: 2 / 4; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 6px; }
       #zh-search-primary-fields .zh-search-history-title { color: #555; font-size: 12px; font-weight: 700; }
+      #zh-search-primary-fields .zh-search-history-actions { display: flex; align-items: baseline; gap: 10px; }
+      #zh-search-primary-fields .zh-search-history-toggle,
       #zh-search-primary-fields .zh-search-history-clear { padding: 0; border: 0; background: none; color: #1f5f9f; font-size: 11px; cursor: pointer; text-decoration: underline; }
+      #zh-search-primary-fields .zh-search-history-toggle[hidden],
       #zh-search-primary-fields .zh-search-history-clear[hidden] { display: none; }
       #zh-search-primary-fields .zh-search-history-list { grid-column: 2 / 4; display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
       #zh-search-primary-fields .zh-search-history-entry { display: flex; align-items: stretch; gap: 4px; }
@@ -8147,10 +8178,19 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     // The visible editor is authoritative: CKEditor only syncs its textarea on submit,
     // so that textarea can still hold the original (usually empty) text and must not
-    // win over what the agent actually typed.
-    if (editor.editable) return editor.editable.innerText || "";
-    if (editor.body) return editor.body.innerText || "";
-    return editor.textarea?.value || "";
+    // win over what the agent actually typed. Both rich variants are checked, because
+    // which one carries the text differs between browsers and editor modes.
+    const rich = [editor.editable, editor.body].filter(Boolean);
+
+    if (rich.length) {
+      const filled = rich
+        .map((element) => String(element.innerText || ""))
+        .find((text) => text.trim());
+
+      return String(filled || "").replace(/\r\n?/g, "\n");
+    }
+
+    return String(editor.textarea?.value || "").replace(/\r\n?/g, "\n");
   }
 
   // Drafts are kept as plain text: the editor formatting is not preserved, but what
@@ -8159,12 +8199,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const editor = findQuickReplyEditor(doc);
 
     if (editor.editable) {
-      insertRichTextInto(editor.editable, text, false);
+      insertDraftTextInto(editor.editable, text);
       return true;
     }
 
     if (editor.body) {
-      insertRichTextInto(editor.body, text, false);
+      insertDraftTextInto(editor.body, text);
       return true;
     }
 
@@ -8178,6 +8218,34 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return false;
   }
 
+  // Puts a draft back as real paragraphs instead of loose text with <br> in between:
+  // the rich text editors Znuny uses keep their structure then, and line breaks or
+  // paragraphs are not squeezed together by the editor's own clean-up.
+  function insertDraftTextInto(target, text) {
+    const doc = target.ownerDocument || document;
+    const lines = String(text || "").replace(/\r\n?/g, "\n").split("\n");
+    const fragment = doc.createDocumentFragment();
+    let paragraph = doc.createElement("p");
+
+    lines.forEach((line) => {
+      if (!line.trim()) {
+        // An empty line separates two paragraphs.
+        paragraph.appendChild(doc.createElement("br"));
+        fragment.appendChild(paragraph);
+        paragraph = doc.createElement("p");
+        return;
+      }
+
+      if (paragraph.childNodes.length) paragraph.appendChild(doc.createElement("br"));
+      paragraph.appendChild(doc.createTextNode(line));
+    });
+
+    fragment.appendChild(paragraph);
+    target.replaceChildren(fragment);
+    target.dispatchEvent(new Event("input", { bubbles: true }));
+    target.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
   // Editor "source" (HTML) that ended up in a draft - from an older version or from a
   // source-mode editor - must never be reinserted as literal markup. It is converted to
   // readable plain text instead.
@@ -8187,7 +8255,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function toPlainDraftText(text) {
-    const raw = String(text || "");
+    // Line endings are normalised for every draft: Firefox editors report \r\n, and a
+    // stray \r makes the editor collapse the line breaks when the draft comes back.
+    const raw = String(text || "").replace(/\r\n?/g, "\n");
     if (!looksLikeEditorMarkup(raw)) return raw;
 
     try {

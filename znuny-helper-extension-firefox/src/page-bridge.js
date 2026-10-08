@@ -404,24 +404,49 @@
   // The content script shortcuts article actions ("Antworten" / "Weiterleiten") that
   // offer only one template. Running them through Znuny's own popup layer keeps quick
   // reply, "Popups als Tabs" and real popups behaving exactly like a normal click.
+  //
+  // Keep the transport in sync with handleArticleActionClick in content.js: the URL
+  // arrives as a plain string (Firefox content scripts live in their own realm and an
+  // object inside `detail` is not readable here) and, as a fallback, as the
+  // data-zh-article-action-url attribute - older builds sent `detail.url`.
   window.addEventListener("znuny-helper-run-article-action", (event) => {
-    const url = event.detail?.url;
-    if (!url) return;
+    const detail = event.detail;
+    const url = (typeof detail === "string" ? detail : detail?.url) ||
+      document.documentElement.dataset.zhArticleActionUrl ||
+      "";
+    if (!url) {
+      console.warn("Znuny Helper: article action without a URL was ignored");
+      return;
+    }
 
+    delete document.documentElement.dataset.zhArticleActionUrl;
     readDomSettings();
 
-    const popup = window.Core?.UI?.Popup;
-    if (popup?.OpenPopup) {
-      popup.OpenPopup(url);
-      return;
+    // Never leave the click without an effect: if Znuny's popup layer fails for any
+    // reason, open the action the way the browser would.
+    try {
+      const popup = window.Core?.UI?.Popup;
+      if (popup?.OpenPopup) {
+        popup.OpenPopup(url);
+        return;
+      }
+    } catch (error) {
+      console.warn("Znuny Helper: Znuny popup layer failed, opening directly:", error);
     }
 
     window.open(url, "_blank");
   });
 
   window.addEventListener("znuny-helper-settings", (event) => {
-    readDomSettings();
-    settings = { ...settings, ...(event.detail || {}) };
+    // The data-zh-* attributes on <html> are authoritative: an object inside `detail`
+    // comes from the content script realm and may not be readable on the page side
+    // (Firefox), which must never stop the settings from being applied.
+    try {
+      if (event.detail) settings = { ...settings, ...event.detail };
+    } catch (error) {
+      // Unreadable cross-realm detail; readDomSettings() below carries the values.
+    }
+
     readDomSettings();
     patchZnunyPopupFunctions();
     runPageEnhancements();

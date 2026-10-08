@@ -16,7 +16,7 @@
     ticketListInfiniteScroll: true,
     pendingDateButtons: true,
     pendingDatePresets: [3, 7, 14],
-    pendingDateDefaultDays: 3,
+    pendingDateDefaultDays: 7,
     keyboardShortcuts: true,
     assignedTicketSound: false,
     quickReply: false,

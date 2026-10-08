@@ -694,7 +694,8 @@ const historyFunctionNames = [
   "describeSearchHistoryEntry",
   "describeSearchHistoryMeta",
   "getSameDateLastYear",
-  "isDefaultSearchDateRange"
+  "isDefaultSearchDateRange",
+  "searchHistoryVisibleCount"
 ];
 const historyApi = new Function(`
   ${source.match(/const SEARCH_HISTORY_KEY = "[^"]+";/)[0]}
@@ -838,15 +839,35 @@ check("Zeitangabe: aeltere Suche mit Datum",
   `${padNumber(olderSearch.getDate())}.${padNumber(olderSearch.getMonth() + 1)}.${olderSearch.getFullYear()} 09:05`);
 check("Zeitangabe fehlt ohne Zeitstempel", historyApi.formatSearchHistoryTime(0), "");
 
-check("Eintrag mit Suchbegriff und Ticketnummer",
+check("Eintrag zeigt nur den Suchbegriff",
   historyApi.describeSearchHistoryEntry({ fulltext: "Rechnung", ticketNumber: "86129100" }),
-  "Volltext \u201eRechnung\u201c + Ticketnummer 86129100");
+  "Rechnung \u00b7 86129100");
+check("Eintrag nur mit Suchbegriff",
+  historyApi.describeSearchHistoryEntry({ fulltext: "Rechnung" }),
+  "Rechnung");
 check("Eintrag nur mit Ticketnummer",
   historyApi.describeSearchHistoryEntry({ ticketNumber: "86129100" }),
-  "Ticketnummer 86129100");
+  "86129100");
 check("Eintrag ohne Suchbegriff",
   historyApi.describeSearchHistoryEntry({ range: [1, 9, 2026, 1, 10, 2026] }),
   "Zeitraum-Suche");
+check("kein Volltext-Vorsatz mehr",
+  historyApi.describeSearchHistoryEntry({ fulltext: "Rechnung" }).includes("Volltext"),
+  false);
+
+check("fuenf Eintraege sind sichtbar",
+  historyApi.searchHistoryVisibleCount(12, false),
+  Math.min(5, HISTORY_VISIBLE));
+check("aufgeklappt sind alle sichtbar",
+  historyApi.searchHistoryVisibleCount(12, true),
+  12);
+check("weniger als fuenf bleiben unveraendert",
+  historyApi.searchHistoryVisibleCount(3, false),
+  3);
+check("leerer Verlauf bleibt leer",
+  historyApi.searchHistoryVisibleCount(0, false),
+  0);
+check("sichtbare Anzahl folgt der Konstante", HISTORY_VISIBLE, 5);
 check("Zeitraum aus den Werten",
   historyApi.describeSearchHistoryRange({ range: [5, 9, 2026, 4, 10, 2026] }),
   "05.09.2026 \u2013 04.10.2026");
@@ -983,6 +1004,76 @@ check("Ueberschrift sitzt auf der Feldspalte",
     /\.zh-search-history-head \{[^}]*grid-column: 2 \/ 4/.test(searchStyles)
   ),
   true);
+
+console.log("\n14) Firefox: Weltgrenze, Entwurfstext und Standard-Wartezeit");
+
+const bridgeCode = fs.readFileSync(
+  path.join(REPO_ROOT, "znuny-helper-extension", "src", "page-bridge.js"),
+  "utf8"
+);
+
+// Firefox-Content-Scripts laufen in einer eigenen Welt: ein Objekt in `detail` ist auf
+// der Seite nicht lesbar, deshalb muss die Adresse auch als Zeichenkette/Attribut gehen.
+check("Adresse geht als Zeichenkette raus",
+  source.includes('new CustomEvent("znuny-helper-run-article-action", { detail: url })'),
+  true);
+check("Adresse liegt zusaetzlich als Attribut bereit",
+  source.includes("dataset.zhArticleActionUrl = url"),
+  true);
+check("Bruecke liest Zeichenkette und Attribut",
+  Boolean(bridgeCode.includes('typeof detail === "string"') && bridgeCode.includes("dataset.zhArticleActionUrl")),
+  true);
+check("Bruecke faellt auf window.open zurueck",
+  Boolean(bridgeCode.includes('window.open(url, "_blank")') && bridgeCode.includes("Znuny popup layer failed")),
+  true);
+check("Einstellungen ueberleben unlesbare detail-Angaben",
+  bridgeCode.includes("Unreadable cross-realm detail"),
+  true);
+
+const draftApi = new Function(`
+  ${extractDeclaration("looksLikeEditorMarkup")}
+  ${extractDeclaration("toPlainDraftText")}
+  return { looksLikeEditorMarkup, toPlainDraftText };
+`)();
+
+check("Firefox-Zeilenenden werden normalisiert",
+  draftApi.toPlainDraftText("Zeile 1\r\nZeile 2\rZeile 3"),
+  "Zeile 1\nZeile 2\nZeile 3");
+check("reiner Text wird nicht umformatiert",
+  draftApi.toPlainDraftText("Absatz  \n\n\nZeile mit Leerzeichen  "),
+  "Absatz  \n\n\nZeile mit Leerzeichen  ");
+check("Absaetze bleiben als Leerzeile erhalten",
+  draftApi.toPlainDraftText("Hallo\r\n\r\nWelt"),
+  "Hallo\n\nWelt");
+check("Markup wird weiterhin erkannt",
+  draftApi.looksLikeEditorMarkup("<p>Hallo</p>"),
+  true);
+
+check("Entwurf wird als Absaetze eingesetzt",
+  Boolean(
+    extractDeclaration("insertDraftTextInto").includes('createElement("p")') &&
+    extractDeclaration("insertDraftTextInto").includes("replaceChildren(fragment)")
+  ),
+  true);
+check("Einsetzen nutzt die Absatz-Variante",
+  extractDeclaration("writeQuickReplyText").split("insertDraftTextInto(").length - 1,
+  2);
+check("erster gefuellter Editor gewinnt",
+  Boolean(
+    extractDeclaration("readQuickReplyText").includes("find((text) => text.trim())") &&
+    extractDeclaration("readQuickReplyText").includes("/\\r\\n?/g")
+  ),
+  true);
+
+const popupSource = fs.readFileSync(
+  path.join(REPO_ROOT, "znuny-helper-extension", "popup", "popup.js"),
+  "utf8"
+);
+const contentDefaultDays = Number(source.match(/pendingDateDefaultDays:\s*(\d+)/)[1]);
+const popupDefaultDays = Number(popupSource.match(/pendingDateDefaultDays:\s*(\d+)/)[1]);
+check("Standard-Wartezeit ist 7 Tage (Content-Script)", contentDefaultDays, 7);
+check("Standard-Wartezeit ist 7 Tage (Popup)", popupDefaultDays, 7);
+check("Standard-Wartezeit stimmt in beiden Dateien", popupDefaultDays, contentDefaultDays);
 
 console.log(`\nErgebnis: ${passed} bestanden, ${failures.length} fehlgeschlagen`);
 if (failures.length) {
