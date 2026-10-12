@@ -8237,7 +8237,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   function normalizeQuickReplyDrafts(value, limit = QUICK_REPLY_DRAFT_LIMIT) {
     const entries = Object.entries(value && typeof value === "object" ? value : {})
       .filter(([, draft]) => draft && typeof draft.text === "string" && draft.text.trim())
-      .map(([key, draft]) => [key, { text: String(draft.text), savedAt: Number(draft.savedAt) || 0 }])
+      .map(([key, draft]) => {
+        const html = typeof draft.html === "string" ? draft.html.trim().slice(0, 20000) : "";
+        const entry = { text: String(draft.text), savedAt: Number(draft.savedAt) || 0 };
+        if (html) entry.html = html;
+        return [key, entry];
+      })
       .sort((left, right) => right[1].savedAt - left[1].savedAt)
       .slice(0, limit);
 
@@ -8285,6 +8290,42 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     }
 
     return { textarea: textarea || null, editable: editable || null, body };
+  }
+
+  // A draft is stored in two shapes: the editor's own HTML (keeps paragraphs, lists,
+  // bold and the signature) and the plain text (used to tell "empty" from "written" and
+  // as the fallback for drafts from older versions).
+  function readQuickReplyHtml(doc) {
+    const editor = findQuickReplyEditor(doc);
+    const rich = [editor.editable, editor.body].filter(Boolean);
+
+    for (const element of rich) {
+      const html = String(element.innerHTML || "").trim();
+      if (html) return html;
+    }
+
+    return "";
+  }
+
+  // The stored HTML comes from the agent's own editor, but it is written back into the
+  // page - so scripts, inline handlers and javascript: URLs are removed first.
+  function sanitizeDraftHtml(html) {
+    return String(html || "")
+      .replace(/<\s*(script|style|iframe|object|embed)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, "")
+      .replace(/<\s*(script|style|iframe|object|embed)\b[^>]*>/gi, "")
+      .replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+      .replace(/(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, "$1=\"#\"");
+  }
+
+  function insertQuickReplyHtml(doc, html) {
+    const editor = findQuickReplyEditor(doc);
+    const target = editor.editable || editor.body;
+    if (!target || !html) return false;
+
+    target.innerHTML = sanitizeDraftHtml(html);
+    target.dispatchEvent(new Event("input", { bubbles: true }));
+    target.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
   }
 
   function readQuickReplyText(doc) {
@@ -8418,20 +8459,33 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     }
 
     const text = toPlainDraftText(readQuickReplyText(doc)).trim();
+    const html = readQuickReplyHtml(doc);
+    const stored = quickReplyDrafts[key];
 
     if (!text) {
-      if (quickReplyDrafts[key]) {
+      if (stored) {
         dropQuickReplyDraft(url);
         logQuickReplyDraft("Entwurf verworfen: Editor ist leer", { key });
       }
       return;
     }
 
-    if (quickReplyDrafts[key]?.text === text) return;
+    // The editor's own markup is kept as well, so paragraphs, lists, bold text and the
+    // signature survive the round trip. Without markup the plain text is enough.
+    const keepHtml = looksLikeEditorMarkup(html) ? html : "";
 
-    quickReplyDrafts[key] = { text, savedAt: Date.now() };
+    if (stored?.text === text && String(stored?.html || "") === keepHtml) return;
+
+    quickReplyDrafts[key] = keepHtml
+      ? { text, html: keepHtml, savedAt: Date.now() }
+      : { text, savedAt: Date.now() };
+
     persistQuickReplyDrafts();
-    logQuickReplyDraft("Entwurf gespeichert", { key, zeichen: text.length });
+    logQuickReplyDraft("Entwurf gespeichert", {
+      key,
+      zeichen: text.length,
+      formatierung: keepHtml ? "mit" : "ohne"
+    });
   }
 
   const QUICK_REPLY_RESIZE_DIRECTIONS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
@@ -9005,13 +9059,23 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         persistQuickReplyDrafts();
       }
 
-      if (!writeQuickReplyText(doc, text)) {
+      // Drafts saved by this version keep the editor markup, so formatting ("bold",
+      // lists, signature) comes back as it was. Older drafts only have plain text.
+      const restored = draft.html
+        ? insertQuickReplyHtml(doc, draft.html)
+        : false;
+
+      if (!restored && !writeQuickReplyText(doc, text)) {
         logQuickReplyDraft("Entwurf gefunden, aber kein Editor zum Einsetzen", { draftKey });
         return;
       }
 
       draftRestored = true;
-      logQuickReplyDraft("Entwurf wiederhergestellt", { draftKey, zeichen: text.length });
+      logQuickReplyDraft("Entwurf wiederhergestellt", {
+        draftKey,
+        zeichen: text.length,
+        formatierung: restored ? "mit" : "ohne"
+      });
       const savedAt = new Date(draft.savedAt);
       draftNote.textContent = `Entwurf wiederhergestellt (${savedAt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })})`;
       draftNote.hidden = false;

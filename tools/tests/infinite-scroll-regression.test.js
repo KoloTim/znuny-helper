@@ -64,6 +64,19 @@ function extractDeclaration(name) {
         continue;
       }
 
+      // Comments may contain quotes and braces; skipping them keeps the counting sane.
+      if (ch === "/" && source[i + 1] === "/") {
+        while (i < source.length && source[i] !== "\n") i += 1;
+        continue;
+      }
+
+      if (ch === "/" && source[i + 1] === "*") {
+        i += 2;
+        while (i < source.length && !(source[i] === "*" && source[i + 1] === "/")) i += 1;
+        i += 1;
+        continue;
+      }
+
       if (ch === '"' || ch === "'" || ch === "`") {
         quote = ch;
         continue;
@@ -91,6 +104,20 @@ function extractDeclaration(name) {
       if (escaped) escaped = false;
       else if (ch === "\\") escaped = true;
       else if (ch === quote) quote = null;
+      continue;
+    }
+
+    // Comments may contain quotes and braces (for instance "the page's own ..."),
+    // which would otherwise throw off the counting.
+    if (ch === "/" && source[i + 1] === "/") {
+      while (i < source.length && source[i] !== "\n") i += 1;
+      continue;
+    }
+
+    if (ch === "/" && source[i + 1] === "*") {
+      i += 2;
+      while (i < source.length && !(source[i] === "*" && source[i + 1] === "/")) i += 1;
+      i += 1;
       continue;
     }
 
@@ -1448,6 +1475,74 @@ check("ohne Ticketlink bleibt es bei -1",
   -1);
 check("Kategorien nutzen die gefundene Spalte",
   extractDeclaration("applyTicketCategories").includes("resolveTicketColumnIndex(table, indexes)"),
+  true);
+
+console.log("\n18) Entwuerfe behalten die Formatierung");
+
+const draftHelpers = new Function(`
+  ${source.match(/const QUICK_REPLY_DRAFT_LIMIT = \d+;/)[0]}
+  ${extractDeclaration("normalizeQuickReplyDrafts")}
+  ${extractDeclaration("sanitizeDraftHtml")}
+  return { normalizeQuickReplyDrafts, sanitizeDraftHtml };
+`)();
+
+const keptHtml = draftHelpers.normalizeQuickReplyDrafts({
+  "AgentTicketCompose|1": {
+    text: "Hallo Welt",
+    html: "<p>Hallo <strong>Welt</strong></p>",
+    savedAt: 20
+  },
+  "AgentTicketNote|2": { text: "ohne Formatierung", savedAt: 10 }
+});
+check("Editor-Markup wird mitgespeichert",
+  keptHtml["AgentTicketCompose|1"].html,
+  "<p>Hallo <strong>Welt</strong></p>");
+check("Entwuerfe ohne Markup bleiben schlank",
+  Object.prototype.hasOwnProperty.call(keptHtml["AgentTicketNote|2"], "html"),
+  false);
+check("Markup wird in der Laenge begrenzt",
+  draftHelpers.normalizeQuickReplyDrafts({
+    "a|1": { text: "x", html: "<p>" + "y".repeat(30000) + "</p>", savedAt: 1 }
+  })["a|1"].html.length,
+  20000);
+check("kaputte Markup-Angaben werden verworfen",
+  Object.prototype.hasOwnProperty.call(
+    draftHelpers.normalizeQuickReplyDrafts({ "a|1": { text: "x", html: 42, savedAt: 1 } })["a|1"],
+    "html"
+  ),
+  false);
+
+check("Skripte werden entfernt",
+  draftHelpers.sanitizeDraftHtml('<p>Hallo</p><script>alert(1)</script>'),
+  "<p>Hallo</p>");
+check("Inline-Handler werden entfernt",
+  draftHelpers.sanitizeDraftHtml('<p onclick="alert(1)">Hallo</p>'),
+  "<p>Hallo</p>");
+check("javascript-Links werden entschaerft",
+  draftHelpers.sanitizeDraftHtml('<a href="javascript:alert(1)">x</a>'),
+  '<a href="#">x</a>');
+check("normale Formatierung bleibt erhalten",
+  draftHelpers.sanitizeDraftHtml("<p>Hallo <strong>Welt</strong></p>"),
+  "<p>Hallo <strong>Welt</strong></p>");
+
+check("Entwurf speichert den Editor-Inhalt",
+  Boolean(
+    extractDeclaration("saveQuickReplyDraftFromDrawer").includes("readQuickReplyHtml(doc)") &&
+    extractDeclaration("saveQuickReplyDraftFromDrawer").includes("html: keepHtml")
+  ),
+  true);
+check("Wiederherstellung bevorzugt den Editor-Inhalt",
+  Boolean(
+    extractDeclaration("restoreQuickReplyDraft").includes("draft.html") &&
+    extractDeclaration("restoreQuickReplyDraft").includes("insertQuickReplyHtml(doc, draft.html)") &&
+    extractDeclaration("restoreQuickReplyDraft").includes("writeQuickReplyText(doc, text)")
+  ),
+  true);
+check("Markup wird nur bei echtem Markup gespeichert",
+  extractDeclaration("saveQuickReplyDraftFromDrawer").includes("looksLikeEditorMarkup(html)"),
+  true);
+check("Eingesetztes Markup wird entschaerft",
+  extractDeclaration("insertQuickReplyHtml").includes("sanitizeDraftHtml(html)"),
   true);
 
 console.log(`\nErgebnis: ${passed} bestanden, ${failures.length} fehlgeschlagen`);

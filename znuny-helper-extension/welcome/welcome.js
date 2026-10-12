@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.6.5",
+      items: [
+        "Behoben: Entwürfe in der Schnellantwort behalten jetzt die Formatierung – Absätze, Fettungen, Listen und Signatur werden als Editor-Inhalt gespeichert und unverändert wiederhergestellt."
+      ]
+    },
+    {
       version: "1.6.4",
       items: [
         "Behoben: Strg+Enter im Schnellantwort-Fenster – die Content-Scripts laufen nur im obersten Frame, deshalb wird das Fenster jetzt von der Hauptseite aus gebunden. Gilt für alle Aktionen (Antworten, Weiterleiten, Priorität, Notiz, Schließen …)."

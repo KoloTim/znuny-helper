@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.5] – 2026-10-08
+
+### Fixed
+- **Entwürfe behalten jetzt die Formatierung:** Bisher wurde nur der reine Text gespeichert. Absätze, Fettungen, Listen und die Signatur kamen deshalb zusammengeschoben und ohne Auszeichnung zurück – in Firefox besonders auffällig, weil dort die Zeilenumbrüche über den Text-Weg zusätzlich verloren gingen. Ein Entwurf wird jetzt **als Editor-Inhalt** gespeichert (`html`) und unverändert wieder eingesetzt; die Textfassung bleibt zusätzlich erhalten, damit „leer“ von „geschrieben“ unterschieden werden kann und Entwürfe aus älteren Versionen weiter funktionieren. Beim Einsetzen werden Skripte, Inline-Handler und `javascript:`-Adressen entfernt; das Markup wird auf 20.000 Zeichen begrenzt.
+- **Klarere Rückmeldung in der Konsole:** „Entwurf gespeichert“ und „Entwurf wiederhergestellt“ nennen jetzt zusätzlich, ob Formatierung dabei war (`formatierung: mit/ohne`).
+
 ## [1.6.4] – 2026-10-08
 
 ### Fixed

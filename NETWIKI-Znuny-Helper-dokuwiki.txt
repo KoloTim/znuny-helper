@@ -20,7 +20,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 ===== Technische Grundlage =====
 
 ^ Punkt ^ Beschreibung ^
-| Aktuelle Version | 1.6.4 (Stand: 08.10.2026) |
+| Aktuelle Version | 1.6.5 (Stand: 08.10.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | ''%%https://otrs.staff.hsrw/otrs/index.pl*%%'' |
@@ -146,7 +146,7 @@ Ist **Schnellantwort** aktiviert, öffnet sich diese Seite stattdessen als klein
 
 Das Fenster lässt sich am Kopfbereich mit der Maus verschieben und an allen Rändern und Ecken in der Größe ändern; ein Doppelklick auf den Kopfbereich schaltet zwischen der gemerkten Größe und dem Vollbild um. Größe und Position werden gespeichert und beim nächsten Öffnen wiederhergestellt. **Ansicht zurücksetzen** stellt die Standardansicht wieder her, **Esc** schließt das Fenster (außer während man gerade in einem Textfeld tippt).
 
-Über **–** lässt sich das Fenster minimieren, ohne den Formularinhalt zu verlieren. **Schließen** beendet es, aber der geschriebene Text geht nicht verloren: Er wird als Entwurf gespeichert und beim nächsten Öffnen derselben Aktion für dasselbe Ticket wieder eingesetzt – mit Hinweis und dem Knopf **Entwurf verwerfen**. Nach dem Übermitteln und bei **Abbrechen und Schließen** wird der Entwurf gelöscht. Gespeichert wird nur der Text, nicht die Formatierung; Absätze und Zeilenumbrüche bleiben dabei erhalten. Entwürfe liegen im Erweiterungsspeicher (höchstens zehn, die ältesten fallen heraus).
+Über **–** lässt sich das Fenster minimieren, ohne den Formularinhalt zu verlieren. **Schließen** beendet es, aber der geschriebene Text geht nicht verloren: Er wird als Entwurf gespeichert und beim nächsten Öffnen derselben Aktion für dasselbe Ticket wieder eingesetzt – mit Hinweis und dem Knopf **Entwurf verwerfen**. Nach dem Übermitteln und bei **Abbrechen und Schließen** wird der Entwurf gelöscht. Der Entwurf wird als Editor-Inhalt gespeichert: Absätze, Fettungen, Listen und die Signatur bleiben erhalten. Entwürfe aus älteren Versionen (reiner Text) werden weiterhin eingesetzt. Entwürfe liegen im Erweiterungsspeicher (höchstens zehn, die ältesten fallen heraus).
 
 Nach dem Absenden schließt sich das Fenster automatisch und das Ticket wird aktualisiert, damit die Änderung sofort sichtbar ist. Über den Knopf **Schließen** oben rechts im Fenster lässt sich das jederzeit verwerfen, ohne etwas zu übermitteln.
 
