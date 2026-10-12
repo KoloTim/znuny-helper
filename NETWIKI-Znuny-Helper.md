@@ -21,7 +21,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 
 | Punkt | Beschreibung |
 | --- | --- |
-| Aktuelle Version | 1.6.2 (Stand: 08.10.2026) |
+| Aktuelle Version | 1.6.3 (Stand: 08.10.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` |
@@ -208,7 +208,7 @@ Im geöffneten Ticket wird die Case-/Ticketnummer oben links in der Überschrift
 
 ## Ticket-Kategorien
 
-Die Funktion **Ticket-Kategorien** erweitert bestimmte Ticketlisten um eine lokale Kategorisierung – in den Agenten-Ansichten **Besitzer** und **Gesperrte Tickets** sowie im **Kundenportal** (`customer.pl`, z. B. **Meine Tickets** und **Firmentickets**).
+Die Funktion **Ticket-Kategorien** erweitert bestimmte Ticketlisten um eine lokale Kategorisierung – in den Agenten-Ansichten **Besitzer** und **Gesperrte Tickets** sowie im **Kundenportal** (dort sind Kategorien, Notizen und die Kategorienverwaltung genauso bearbeitbar) (`customer.pl`, z. B. **Meine Tickets** und **Firmentickets**).
 
 Standardkategorien sind sechs Themen-Kategorien plus "Ohne Kategorie":
 
@@ -315,7 +315,7 @@ Ein Klick auf einen anderen Knopf überschreibt die Vorbelegung jederzeit. Eine 
 
 ## Tastenkürzel
 
-**Strg+Enter** übermittelt das aktuell offene Formular (Antwort, Notiz, Schließen, Priorität, ...), egal ob der Cursor gerade im normalen Formular oder im Text-Editor steht. Danach greift wie gewohnt die Funktion **Popups als Tabs**: Ist die Aktion in einem eigenen Tab geöffnet, schließt sich dieser automatisch und die Ursprungsseite wird aktualisiert.
+**Strg+Enter** übermittelt das aktuell offene Formular (Antwort, Notiz, Schließen, Priorität, ...), egal ob der Cursor gerade im normalen Formular oder im Text-Editor steht – auch im Fenster der Schnellantwort. Danach greift wie gewohnt die Funktion **Popups als Tabs**: Ist die Aktion in einem eigenen Tab geöffnet, schließt sich dieser automatisch und die Ursprungsseite wird aktualisiert.
 
 > **Wichtig:** Das automatische Schließen betrifft ausschließlich Tabs, die das Addon für eine Aktion geöffnet hat (also per **Popups als Tabs**). Das Ticket selbst, von Hand geöffnete Tabs und die **Schnellantwort** – bei der die Aktion eingebettet im Ticket läuft – bleiben immer offen.
 

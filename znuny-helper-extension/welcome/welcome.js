@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.3",
+      items: [
+        "Behoben: Strg+Enter zum Senden funktionierte in der Schnellantwort nicht – das eingebettete Fenster bindet das Tastenkürzel jetzt selbst.",
+        "Kundenportal: Die Kategoriespalte wird auch ohne Spaltenkopf „Ticket“ gefunden – Auswahl, Notiz und „Kategorien bearbeiten“ sind dort nutzbar."
+      ]
+    },
+    {
       version: "1.6.2",
       items: [
         "Neu: Ticket-Kategorien jetzt auch im Kundenportal (customer.pl) – Meine Tickets, Firmentickets und die Kundensuche mit automatischer Erkennung, Farben und Notizen; Kategorien und Notizen gelten pro Ticket in beiden Oberflächen.",

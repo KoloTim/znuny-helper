@@ -926,29 +926,42 @@
     control.click();
   }
 
+  // Documents inside iframes belong to another realm: a property written on them from
+  // here is not readable again (Firefox) and can even make the whole binding fail. The
+  // "already bound" markers therefore live in this realm.
+  const submitShortcutBoundDocuments = new WeakSet();
+  const quickReplyShortcutBoundDocuments = new WeakSet();
+  const quickReplyChangeBoundDocuments = new WeakSet();
+
   function bindSubmitShortcutToDocument(doc) {
-    if (!doc || doc.__zhSubmitShortcutBound) return;
+    if (!doc || submitShortcutBoundDocuments.has(doc)) return;
 
     try {
-      doc.__zhSubmitShortcutBound = true;
+      submitShortcutBoundDocuments.add(doc);
       doc.addEventListener("keydown", handleSubmitShortcutKeydown, true);
     } catch (error) {
       // Cross-origin document access can fail; nothing to bind in that case.
     }
   }
 
+  // The quick-reply drawer embeds an action page in a same-origin iframe. Inside it the
+  // shortcut has to work as well, and that frame's own content script may bind its own
+  // document - which is more reliable than reaching into the frame from here.
+  function isQuickReplyFrame() {
+    try {
+      return Boolean(window.parent?.document?.getElementById("zh-quick-reply-drawer"));
+    } catch (error) {
+      return false;
+    }
+  }
+
   function enableSubmitShortcut() {
-    if (window.top !== window.self) return;
+    if (window.top !== window.self) {
+      if (isQuickReplyFrame()) bindSubmitShortcutToDocument(document);
+      return;
+    }
 
     bindSubmitShortcutToDocument(document);
-
-    document.querySelectorAll("iframe").forEach((iframe) => {
-      try {
-        if (iframe.contentDocument) bindSubmitShortcutToDocument(iframe.contentDocument);
-      } catch (error) {
-        // Cross-origin iframe; the page's own shortcuts still apply there.
-      }
-    });
   }
 
   function findArticleWidget(doc = document) {
@@ -6825,7 +6838,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function findTicketTable(doc = document, options = {}) {
-    const candidates = [...doc.querySelectorAll("table")].filter((table) => tableLooksLikeTicketList(table, options));    if (!candidates.length) return null;
+    const candidates = [...doc.querySelectorAll("table")].filter((table) => tableLooksLikeTicketList(table, options));
+    if (!candidates.length) return null;
+
     // A page can hold several small tables; the real list has the most rows /
     // ticket links. Picking the best candidate avoids scrolling a widget table.
     candidates.sort((left, right) => ticketTableScore(right) - ticketTableScore(left));
@@ -6843,6 +6858,27 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       status: headers.findIndex((header) => header.includes("STATUS")),
       customer: headers.findIndex((header) => header.includes("KUNDENNUMMER") || header.includes("CUSTOMER"))
     };
+  }
+
+  // The customer portal's overview sometimes has no "Ticket"/"Case" column header. Then
+  // the column carrying the ticket link is the ticket column - without it the category
+  // control (badge, selection, note) would have nowhere to go and could not be edited.
+  function resolveTicketColumnIndex(table, indexes) {
+    if (indexes.case >= 0) return indexes.case;
+
+    const rows = [...table.querySelectorAll("tbody tr")];
+    const cellCount = rows.reduce((max, row) => Math.max(max, row.querySelectorAll("td").length), 0);
+
+    for (let index = 0; index < cellCount; index += 1) {
+      const hasTicketLink = rows.some((row) => {
+        const cell = row.querySelectorAll("td")[index];
+        return Boolean(cell?.querySelector?.('a[href*="TicketID="], a[href*="TicketNumber="]'));
+      });
+
+      if (hasTicketLink) return index;
+    }
+
+    return -1;
   }
 
   function getCellText(row, index) {
@@ -8067,6 +8103,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     ensureCategoryManageButton(table);
 
     const indexes = getIndexes(table);
+    indexes.case = resolveTicketColumnIndex(table, indexes);
     const tbody = table.querySelector("tbody");
     if (!tbody || indexes.case < 0) return;
 
@@ -8786,35 +8823,20 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return Boolean(href) && href !== "about:blank";
   }
 
-  function findSubmitControlInDocument(doc) {
-    const candidates = [...doc.querySelectorAll('button, input[type="submit"], input[type="button"]')]
-      .filter(isVisibleFormControl);
-    return candidates.find(isTransmitSubmitControl) || null;
-  }
-
   function bindQuickReplyKeyboardShortcut(doc) {
-    if (!doc || doc.__zhQuickReplyShortcutBound) return;
+    if (!doc || quickReplyShortcutBoundDocuments.has(doc)) return;
 
     try {
-      doc.__zhQuickReplyShortcutBound = true;
+      quickReplyShortcutBoundDocuments.add(doc);
       doc.addEventListener("keydown", (event) => {
-        // Escape closes the drawer, but not while a field is being edited.
+        // Escape closes the drawer, but not while a field is being edited. Ctrl+Enter is
+        // deliberately not handled here: the frame's own content script binds it in its
+        // own realm, and handling it twice would submit twice.
         if (event.key === "Escape") {
           if (isEditableQuickReplyTarget(event.target)) return;
           event.preventDefault();
           closeQuickReplyDrawer();
-          return;
         }
-
-        if (!settings.keyboardShortcuts) return;
-        if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
-
-        const control = findSubmitControlInDocument(doc);
-        if (!control) return;
-
-        event.preventDefault();
-        event.stopPropagation();
-        control.click();
       }, true);
 
       doc.querySelectorAll("iframe").forEach((nestedFrame) => {
@@ -9024,8 +9046,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
       try {
         const doc = iframe.contentDocument;
-        if (doc && !doc.__zhQuickReplyChangeBound) {
-          doc.__zhQuickReplyChangeBound = true;
+        if (doc && !quickReplyChangeBoundDocuments.has(doc)) {
+          quickReplyChangeBoundDocuments.add(doc);
           // Reacts when the agent switches "Nächster Status" to a pending
           // state after the form has already loaded (e.g. the date fields
           // only appear once "warten auf ..." is selected).

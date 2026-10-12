@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.3] – 2026-10-08
+
+### Fixed
+- **Strg+Enter tat in der Schnellantwort nichts:** Die Bindung des Tastenkürzels markierte das eingebettete Dokument mit einer eigenen Eigenschaft (`doc.__zh…`). Ein Dokument aus einem anderen Frame gehört zu einer eigenen Welt – in Firefox geht eine solche Markierung verloren und die Bindung scheiterte ganz, im Schnellantwort-Fenster passierte deshalb nichts. Die Markierungen liegen jetzt in `WeakSet`s der eigenen Welt, und der eingebettete Rahmen bindet sein Dokument **selbst** (erkannt über `zh-quick-reply-drawer`), statt vom übergeordneten Dokument aus angesteuert zu werden. Doppeltes Auslösen ist ausgeschlossen: Strg+Enter wird nur noch an einer Stelle behandelt, die Escape-Behandlung bleibt wie sie war.
+- **Kundenportal: keine Bearbeitung, wenn die Ticketspalte keinen Spaltenkopf hat:** Hieß die erste Spalte nicht „Ticket“/„Case“ (z. B. „Nr.“), fand die Kategorien-Logik keine Ticketspalte und ließ den Bereich komplett weg – es gab also nichts auszuwählen. Die Spalte wird jetzt ersatzweise über den Ticketlink bestimmt; Badge, Auswahl, lokale Notiz und **Kategorien bearbeiten** funktionieren damit auch dort.
+
 ## [1.6.2] – 2026-10-08
 
 ### Added

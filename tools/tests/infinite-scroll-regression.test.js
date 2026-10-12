@@ -151,7 +151,8 @@ const NEEDED = [
   "tableColumnSignature",
   "getTicketRowCellCount",
   "getIndexes",
-  "getTicketId"
+  "getTicketId",
+  "resolveTicketColumnIndex"
 ];
 
 /* ---------- Minimale DOM-Attrappe ---------- */
@@ -1183,8 +1184,17 @@ check("Addon-Changelog beginnt mit der neuesten Version",
 
 console.log("\n16) Kundenportal: Ticket-Kategorien in customer.pl");
 
-function makeCustomerCell(text) {
-  return { tagName: "TD", textContent: text, innerText: text, style: {}, dataset: {}, classList: { add() {}, remove() {}, toggle() {} } };
+function makeCustomerCell(text, link = null) {
+  return {
+    tagName: "TD",
+    textContent: text,
+    innerText: text,
+    style: {},
+    dataset: {},
+    classList: { add() {}, remove() {}, toggle() {} },
+    querySelector: (selector) => (link && selector.includes("TicketID") ? link : null),
+    querySelectorAll: () => []
+  };
 }
 
 function makeCustomerRow(cells, links) {
@@ -1358,6 +1368,66 @@ check("Seitenbruecke haelt sich aus dem Kundenportal",
     /function runPageEnhancements\(\) \{\s*if \(IS_CUSTOMER_PORTAL\) return;/.test(bridgeCode) &&
     /window\.open = function \(url, target, features\) \{\s*if \(IS_CUSTOMER_PORTAL\) return originalOpen/.test(bridgeCode)
   ),
+  true);
+
+console.log("\n17) Bearbeitbarkeit: Strg+Enter in der Schnellantwort und Ticketspalte");
+
+// Eine Rahmen-Markierung (doc.__zh...) geht in Firefox ueber die Realm-Grenze verloren
+// und liess die Bindung scheitern - Strg+Enter tat in der Schnellantwort nichts.
+check("keine Markierungen am fremden Dokument",
+  Boolean(
+    !/doc\.__zh/.test(source) &&
+    source.includes("submitShortcutBoundDocuments = new WeakSet()") &&
+    source.includes("quickReplyShortcutBoundDocuments = new WeakSet()") &&
+    source.includes("quickReplyChangeBoundDocuments = new WeakSet()")
+  ),
+  true);
+check("Strg+Enter greift im Schnellantwort-Rahmen",
+  Boolean(
+    extractDeclaration("enableSubmitShortcut").includes("isQuickReplyFrame()") &&
+    extractDeclaration("enableSubmitShortcut").includes("bindSubmitShortcutToDocument(document)") &&
+    extractDeclaration("isQuickReplyFrame").includes("zh-quick-reply-drawer")
+  ),
+  true);
+check("Strg+Enter wird im Rahmen nicht doppelt ausgeloest",
+  Boolean(
+    !extractDeclaration("bindQuickReplyKeyboardShortcut").includes("ctrlKey") &&
+    extractDeclaration("bindQuickReplyKeyboardShortcut").includes('event.key === "Escape"')
+  ),
+  true);
+check("Hauptseite bindet Strg+Enter weiterhin",
+  extractDeclaration("enableSubmitShortcut").includes("bindSubmitShortcutToDocument(document)"),
+  true);
+
+// Kundenportal-Tabellen ohne Spaltenkopf "Ticket": die Spalte mit dem Ticketlink ist die
+// Ticketspalte, sonst gaebe es dort nichts zu bearbeiten.
+const noTicketHeaderRows = [
+  makeCustomerRow(
+    [makeCustomerCell("2026100812345690", customerLink("2026100812345690")), makeCustomerCell("Drucker"), makeCustomerCell("offen")],
+    [customerLink("2026100812345690")]
+  ),
+  makeCustomerRow(
+    [makeCustomerCell("2026100812345691", customerLink("2026100812345691")), makeCustomerCell("WLan"), makeCustomerCell("neu")],
+    [customerLink("2026100812345691")]
+  )
+];
+const noTicketHeaderTable = makeCustomerTable(["Nr.", "Betreff", "Status"], noTicketHeaderRows);
+const headerlessIndexes = api.getIndexes(noTicketHeaderTable);
+check("ohne Ticket-Spaltenkopf wird keine gefunden", headerlessIndexes.case, -1);
+check("Ticketspalte wird ueber den Link gefunden",
+  api.resolveTicketColumnIndex(noTicketHeaderTable, headerlessIndexes),
+  0);
+check("vorhandene Ticketspalte bleibt unveraendert",
+  api.resolveTicketColumnIndex(customerTable, customerIndexes),
+  customerIndexes.case);
+check("ohne Ticketlink bleibt es bei -1",
+  api.resolveTicketColumnIndex(makeCustomerTable(["Nr.", "Betreff"], [
+    makeCustomerRow([makeCustomerCell("1"), makeCustomerCell("x")], []),
+    makeCustomerRow([makeCustomerCell("2"), makeCustomerCell("y")], [])
+  ]), { case: -1 }),
+  -1);
+check("Kategorien nutzen die gefundene Spalte",
+  extractDeclaration("applyTicketCategories").includes("resolveTicketColumnIndex(table, indexes)"),
   true);
 
 console.log(`\nErgebnis: ${passed} bestanden, ${failures.length} fehlgeschlagen`);
