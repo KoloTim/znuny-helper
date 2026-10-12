@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.6.4",
+      items: [
+        "Behoben: Strg+Enter im Schnellantwort-Fenster – die Content-Scripts laufen nur im obersten Frame, deshalb wird das Fenster jetzt von der Hauptseite aus gebunden. Gilt für alle Aktionen (Antworten, Weiterleiten, Priorität, Notiz, Schließen …)."
+      ]
+    },
+    {
       version: "1.6.3",
       items: [
         "Behoben: Strg+Enter zum Senden funktionierte in der Schnellantwort nicht – das eingebettete Fenster bindet das Tastenkürzel jetzt selbst.",

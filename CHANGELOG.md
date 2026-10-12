@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.4] – 2026-10-08
+
+### Fixed
+- **Strg+Enter im Schnellantwort-Fenster (Fortsetzung von 1.6.3):** 1.6.3 hat die Bindung repariert, sie aber am eingebetteten Rahmen selbst angebracht. Die Content-Scripts laufen jedoch **nur im obersten Frame** (`all_frames` ist nicht gesetzt) – in diesem Rahmen gibt es also gar kein Skript, das die Tastenkombination hätte aufgreifen können. Das Dokument des Rahmens wird jetzt wieder vom Hauptfenster aus gebunden (so wie Escape), und die Suche nach dem „Übermitteln“-Knopf richtet sich nach dem Dokument, aus dem die Taste kam. Steht der Cursor in einem Editor-Rahmen ohne eigenen Knopf, greift die Suche zuerst im Schnellantwort-Fenster und erst danach auf der Seite – damit nicht versehentlich ein Knopf der Ticketseite gedrückt wird. Das gilt für alle Aktionen im Fenster (Antworten, Weiterleiten, Priorität, Notiz, Schließen, …), und dank der gemeinsamen Markierung wird jedes Dokument nur einmal gebunden.
+- **1.6.3 nachgeschärft:** Der dortige Eintrag beschreibt weiterhin die realm-sichere Markierung; die Bindung selbst erfolgt jetzt an der richtigen Stelle.
+
 ## [1.6.3] – 2026-10-08
 
 ### Fixed

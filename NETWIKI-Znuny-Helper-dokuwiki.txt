@@ -20,7 +20,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 ===== Technische Grundlage =====
 
 ^ Punkt ^ Beschreibung ^
-| Aktuelle Version | 1.6.3 (Stand: 08.10.2026) |
+| Aktuelle Version | 1.6.4 (Stand: 08.10.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | ''%%https://otrs.staff.hsrw/otrs/index.pl*%%'' |

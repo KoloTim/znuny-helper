@@ -890,8 +890,18 @@
     }, 400);
   }
 
-  function findSubmitShortcutControl() {
-    const candidates = [...document.querySelectorAll('button, input[type="submit"], input[type="button"]')]
+  // Which document an event came from. Needed because the quick-reply window embeds the
+  // action page in a frame that has no content script of its own (content scripts run in
+  // the top frame only) - the shortcut therefore has to be handled from here, for the
+  // frame's document.
+  function getEventDocument(event, fallback = document) {
+    const target = event?.target;
+    const doc = target?.nodeType === 9 ? target : target?.ownerDocument;
+    return doc?.querySelectorAll ? doc : fallback;
+  }
+
+  function findSubmitShortcutControl(doc = document) {
+    const candidates = [...doc.querySelectorAll('button, input[type="submit"], input[type="button"]')]
       .filter(isVisibleFormControl)
       .filter((control) => !control.closest("#zh-priority-template-toolbar, .zh-priority-modal, .zh-category-modal-backdrop, .zh-note-popup, .zh-pending-date-row"))
       .filter(isTransmitSubmitControl);
@@ -901,7 +911,7 @@
     // Prefer the form the agent is actually working in: a page can hold several
     // forms, and blindly taking the first "Übermitteln" button could submit the
     // wrong one.
-    const activeForm = document.activeElement?.closest?.("form") || null;
+    const activeForm = doc.activeElement?.closest?.("form") || null;
     if (activeForm) {
       const inActiveForm = candidates.find((control) => control.closest("form") === activeForm);
       if (inActiveForm) return inActiveForm;
@@ -913,12 +923,28 @@
     }) || candidates[0];
   }
 
+  // A rich text editor can live in a nested frame without a submit button of its own.
+  // Then the window the agent is working in decides: first the quick-reply drawer (the
+  // ticket page itself also has "Übermitteln" buttons in its widgets).
+  function findFallbackSubmitControl(eventDocument) {
+    if (eventDocument === document) return null;
+
+    const drawerDoc = getQuickReplyDocument(document.getElementById("zh-quick-reply-drawer"));
+    if (drawerDoc) {
+      const inDrawer = findSubmitShortcutControl(drawerDoc);
+      if (inDrawer) return inDrawer;
+    }
+
+    return findSubmitShortcutControl(document);
+  }
+
   function handleSubmitShortcutKeydown(event) {
     if (!settings.keyboardShortcuts) return;
     if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
     if (event.target?.closest?.("#zh-priority-template-toolbar, .zh-priority-modal, .zh-category-modal-backdrop, .zh-note-popup")) return;
 
-    const control = findSubmitShortcutControl();
+    const eventDocument = getEventDocument(event);
+    const control = findSubmitShortcutControl(eventDocument) || findFallbackSubmitControl(eventDocument);
     if (!control) return;
 
     event.preventDefault();
@@ -944,24 +970,21 @@
     }
   }
 
-  // The quick-reply drawer embeds an action page in a same-origin iframe. Inside it the
-  // shortcut has to work as well, and that frame's own content script may bind its own
-  // document - which is more reliable than reaching into the frame from here.
-  function isQuickReplyFrame() {
-    try {
-      return Boolean(window.parent?.document?.getElementById("zh-quick-reply-drawer"));
-    } catch (error) {
-      return false;
-    }
-  }
-
   function enableSubmitShortcut() {
-    if (window.top !== window.self) {
-      if (isQuickReplyFrame()) bindSubmitShortcutToDocument(document);
-      return;
-    }
+    // Content scripts run in the top frame only, so the frame documents (including the
+    // quick-reply window) are bound from here. The shared marker set keeps every
+    // document bound exactly once.
+    if (window.top !== window.self) return;
 
     bindSubmitShortcutToDocument(document);
+
+    document.querySelectorAll("iframe").forEach((iframe) => {
+      try {
+        if (iframe.contentDocument) bindSubmitShortcutToDocument(iframe.contentDocument);
+      } catch (error) {
+        // Cross-origin iframe; the page's own shortcuts still apply there.
+      }
+    });
   }
 
   function findArticleWidget(doc = document) {
@@ -8824,19 +8847,21 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function bindQuickReplyKeyboardShortcut(doc) {
+    // Ctrl+Enter is handled by the shared submit shortcut, which is bound to this
+    // document here as well - the frame has no content script of its own.
+    bindSubmitShortcutToDocument(doc);
+
     if (!doc || quickReplyShortcutBoundDocuments.has(doc)) return;
 
     try {
       quickReplyShortcutBoundDocuments.add(doc);
       doc.addEventListener("keydown", (event) => {
-        // Escape closes the drawer, but not while a field is being edited. Ctrl+Enter is
-        // deliberately not handled here: the frame's own content script binds it in its
-        // own realm, and handling it twice would submit twice.
-        if (event.key === "Escape") {
-          if (isEditableQuickReplyTarget(event.target)) return;
-          event.preventDefault();
-          closeQuickReplyDrawer();
-        }
+        // Escape closes the drawer, but not while a field is being edited.
+        if (event.key !== "Escape") return;
+        if (isEditableQuickReplyTarget(event.target)) return;
+
+        event.preventDefault();
+        closeQuickReplyDrawer();
       }, true);
 
       doc.querySelectorAll("iframe").forEach((nestedFrame) => {

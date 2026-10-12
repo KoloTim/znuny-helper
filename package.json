@@ -1,6 +1,6 @@
 {
   "name": "znuny-helper",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "private": true,
   "description": "Repo-Infrastruktur fuer die Browser-Erweiterung Znuny Helper (Chrome/Edge und Firefox)",
   "license": "UNLICENSED",

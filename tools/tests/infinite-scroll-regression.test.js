@@ -1384,15 +1384,35 @@ check("keine Markierungen am fremden Dokument",
   true);
 check("Strg+Enter greift im Schnellantwort-Rahmen",
   Boolean(
-    extractDeclaration("enableSubmitShortcut").includes("isQuickReplyFrame()") &&
-    extractDeclaration("enableSubmitShortcut").includes("bindSubmitShortcutToDocument(document)") &&
-    extractDeclaration("isQuickReplyFrame").includes("zh-quick-reply-drawer")
+    extractDeclaration("bindQuickReplyKeyboardShortcut").includes("bindSubmitShortcutToDocument(doc)") &&
+    extractDeclaration("enableSubmitShortcut").includes('document.querySelectorAll("iframe")')
   ),
   true);
-check("Strg+Enter wird im Rahmen nicht doppelt ausgeloest",
+check("Strg+Enter wird nur einmal behandelt",
   Boolean(
-    !extractDeclaration("bindQuickReplyKeyboardShortcut").includes("ctrlKey") &&
-    extractDeclaration("bindQuickReplyKeyboardShortcut").includes('event.key === "Escape"')
+    (source.match(/ctrlKey/g) || []).length === 1 &&
+    extractDeclaration("handleSubmitShortcutKeydown").includes("getEventDocument(event)")
+  ),
+  true);
+check("Rahmen-Dokumente werden nur einmal gebunden",
+  Boolean(
+    source.includes("submitShortcutBoundDocuments = new WeakSet()") &&
+    extractDeclaration("bindSubmitShortcutToDocument").includes("submitShortcutBoundDocuments.has(doc)") &&
+    extractDeclaration("bindSubmitShortcutToDocument").includes("submitShortcutBoundDocuments.add(doc)")
+  ),
+  true);
+check("Ereignis-Dokument wird aus dem Ziel abgeleitet",
+  Boolean(
+    extractDeclaration("getEventDocument").includes("target?.nodeType === 9") &&
+    extractDeclaration("findSubmitShortcutControl").includes("doc = document") &&
+    extractDeclaration("findSubmitShortcutControl").includes("doc.activeElement")
+  ),
+  true);
+check("Editor-Frame faellt auf den Schnellantwort-Rahmen zurueck",
+  Boolean(
+    extractDeclaration("findFallbackSubmitControl").includes("getQuickReplyDocument") &&
+    extractDeclaration("findFallbackSubmitControl").indexOf("zh-quick-reply-drawer") >= 0 &&
+    extractDeclaration("handleSubmitShortcutKeydown").includes("findFallbackSubmitControl(eventDocument)")
   ),
   true);
 check("Hauptseite bindet Strg+Enter weiterhin",
