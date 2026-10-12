@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Znuny Helper",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "Consolidated Znuny helper features with per-feature toggles.",
   "action": {
     "default_title": "Znuny Helper",
@@ -15,7 +15,8 @@
     "service_worker": "src/background.js"
   },
   "host_permissions": [
-    "https://otrs.staff.hsrw/otrs/index.pl*"
+    "https://otrs.staff.hsrw/otrs/index.pl*",
+    "https://otrs.staff.hsrw/otrs/customer.pl*"
   ],
   "web_accessible_resources": [
     {
@@ -31,7 +32,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://otrs.staff.hsrw/otrs/index.pl*"
+        "https://otrs.staff.hsrw/otrs/index.pl*",
+        "https://otrs.staff.hsrw/otrs/customer.pl*"
       ],
       "js": [
         "src/page-bridge.js"
@@ -41,7 +43,8 @@
     },
     {
       "matches": [
-        "https://otrs.staff.hsrw/otrs/index.pl*"
+        "https://otrs.staff.hsrw/otrs/index.pl*",
+        "https://otrs.staff.hsrw/otrs/customer.pl*"
       ],
       "js": [
         "vendor/mammoth.browser.min.js",

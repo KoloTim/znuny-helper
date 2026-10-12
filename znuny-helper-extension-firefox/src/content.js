@@ -610,8 +610,30 @@
     return window.location.href.includes("Action=AgentTicketZoom");
   }
 
+  // The customer portal (customer.pl) is a separate interface with its own actions. The
+  // addon only enhances the local ticket categories there - everything else (agent action
+  // URLs, priority templates, quick reply, ...) belongs to the agent interface.
+  function isCustomerPortal() {
+    return /\/customer\.pl(?:$|[?;])/i.test(window.location.href);
+  }
+
+  // MyTickets / CompanyTickets overviews and the customer search results.
+  const CUSTOMER_TICKET_LIST_ACTION_PATTERN = /Action=CustomerTicket(?:Overview|Search)\b/i;
+
+  function isCustomerTicketListPage() {
+    const href = decodeUrlSeparators(window.location.href);
+    if (CUSTOMER_TICKET_LIST_ACTION_PATTERN.test(href)) return true;
+
+    // customer.pl without an action renders the same overview.
+    return isCustomerPortal() && !getActionFromUrl(href);
+  }
+
   function isCategoryTicketListPage() {
-    return /Action=AgentTicket(?:Owner|Locked)View/i.test(window.location.href);
+    if (/Action=AgentTicket(?:Owner|Locked)View/i.test(window.location.href)) return true;
+
+    // Same feature in the customer portal: local categories, colours and notes for
+    // "Meine Tickets" / "Firmentickets".
+    return isCustomerTicketListPage();
   }
 
   function isPriorityTicketPage(href = window.location.href) {
@@ -1402,7 +1424,7 @@
   }
 
   function handleDocumentMutation() {
-    const form = settings.ticketNumberSearch ? findVisibleSearchForm() : null;
+    const form = settings.ticketNumberSearch && !isCustomerPortal() ? findVisibleSearchForm() : null;
 
     if (form?.dataset.zhSearchEnhanced === "1") {
       window.setTimeout(() => cleanupEnhancedSearchForm(form), 0);
@@ -6756,7 +6778,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return false;
   }
 
-  function tableLooksLikeTicketList(table) {
+  // `relaxed` additionally accepts a creation date as a list column. The customer
+  // portal's overview has fewer columns than the agent list (no age, sometimes no
+  // status), so the strict rule would not recognise it. Only the local ticket
+  // categories use the relaxed check - pagination and the sound check stay strict.
+  function tableLooksLikeTicketList(table, options = {}) {
     if (isKnownWidgetTable(table)) return false;
 
     // Strong, language-independent signal: several table rows link to the
@@ -6772,8 +6798,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const headers = [...table.querySelectorAll("th")].map((th) => getElementText(th).toUpperCase());
     if (!headers.length) {
       const text = getElementText(table).toUpperCase();
-      return text.includes("CASE") && text.includes("ALTER") &&
-        (text.includes("SENDER") || text.includes("TITEL") || text.includes("BETREFF"));
+      if (text.includes("CASE") && text.includes("ALTER") &&
+        (text.includes("SENDER") || text.includes("TITEL") || text.includes("BETREFF"))) {
+        return true;
+      }
+
+      // Customer portal tables sometimes come without a <th> row at all.
+      return Boolean(options.relaxed) && text.includes("TICKET") &&
+        (text.includes("TITEL") || text.includes("BETREFF") || text.includes("ERSTELLT") || text.includes("DATUM"));
     }
 
     if (!headers.some((header) => header.includes("CASE") || header.includes("TICKET"))) return false;
@@ -6784,6 +6816,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (has(["SENDER", "VON", "FROM", "ABSENDER"])) score += 1;
     if (has(["TITEL", "BETREFF", "SUBJECT"])) score += 1;
     if (has(["STATUS"])) score += 1;
+    if (options.relaxed && has(["ERSTELLT", "CREATED", "DATUM"])) score += 1;
     return score >= 2;
   }
 
@@ -6791,9 +6824,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return table.querySelectorAll("tbody tr").length + countTicketRowLinks(table) * 3;
   }
 
-  function findTicketTable(doc = document) {
-    const candidates = [...doc.querySelectorAll("table")].filter(tableLooksLikeTicketList);
-    if (!candidates.length) return null;
+  function findTicketTable(doc = document, options = {}) {
+    const candidates = [...doc.querySelectorAll("table")].filter((table) => tableLooksLikeTicketList(table, options));    if (!candidates.length) return null;
     // A page can hold several small tables; the real list has the most rows /
     // ticket links. Picking the best candidate avoids scrolling a widget table.
     candidates.sort((left, right) => ticketTableScore(right) - ticketTableScore(left));
@@ -8028,7 +8060,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       return;
     }
 
-    const table = findTicketTable();
+    const table = findTicketTable(document, { relaxed: true });
     if (!table) return;
 
     addTicketCategoryStyles();
@@ -8106,7 +8138,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     document.getElementById("zh-toolbar")?.remove();
     document.querySelectorAll(".zh-category-tools").forEach((element) => element.remove());
 
-    const table = findTicketTable();
+    const table = findTicketTable(document, { relaxed: true });
     const tbody = table?.querySelector("tbody");
     if (!tbody) return;
 
@@ -9071,9 +9103,22 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     removeStyle("zh-quick-reply-style");
   }
 
+  // The customer portal only gets the local ticket categories: every other feature is
+  // built around the agent interface (agent action URLs, priority pages, queue views).
+  // Switching the setting off therefore has to clean up here as well.
+  function runCustomerPortalFeatures() {
+    if (settings.ticketCategories) applyTicketCategories();
+    else disableTicketCategories();
+  }
+
   function runEnabledFeatures() {
     suppressMutationScanUntil = Date.now() + 500;
     dispatchPageSettings();
+
+    if (isCustomerPortal()) {
+      runCustomerPortalFeatures();
+      return;
+    }
 
     if (settings.attachmentPreview) enableAttachmentPreview();
     else disableAttachmentPreview();

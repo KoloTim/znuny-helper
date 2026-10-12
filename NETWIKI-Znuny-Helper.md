@@ -21,7 +21,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 
 | Punkt | Beschreibung |
 | --- | --- |
-| Aktuelle Version | 1.6.1 (Stand: 08.10.2026) |
+| Aktuelle Version | 1.6.2 (Stand: 08.10.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` |
@@ -87,7 +87,7 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Ton bei neuem Ticket**
 | Suchen | Ticketnummer-Suche | Globale Suche um ein direktes Ticketnummer-Feld erweitern |
 | Suchen | Ticketinhalt-Suche | Innerhalb eines geöffneten Tickets suchen |
 | Suchen | Case-Nummer kopieren | Die Case-/Ticketnummer oben links im geöffneten Ticket per Klick kopieren |
-| Ticketlisten | Ticket-Kategorien | Tickets lokal gruppieren, markieren und notieren |
+| Ticketlisten | Ticket-Kategorien | Tickets lokal gruppieren, markieren und notieren – in den Agenten-Ansichten und im Kundenportal (`customer.pl`) |
 | Ticketlisten | Infinite Scroll | Weitere Ticketlistenseiten beim Scrollen automatisch laden (die Seitenzahlen bleiben als Fallback sichtbar) |
 | ServiceDesk | EB Helper | Empfangsbestätigungen aus Hardware-Tickets vorbereiten |
 | ServiceDesk | Prioritäts-Vorlagen | Prioritäts-, Besitzer- und Neues-Telefon-Ticket-Seiten mit anpassbaren Schnellbuttons vorbefüllen (inkl. Priorität und Auswirkung) |
@@ -208,7 +208,7 @@ Im geöffneten Ticket wird die Case-/Ticketnummer oben links in der Überschrift
 
 ## Ticket-Kategorien
 
-Die Funktion **Ticket-Kategorien** erweitert bestimmte Ticketlisten um eine lokale Kategorisierung.
+Die Funktion **Ticket-Kategorien** erweitert bestimmte Ticketlisten um eine lokale Kategorisierung – in den Agenten-Ansichten **Besitzer** und **Gesperrte Tickets** sowie im **Kundenportal** (`customer.pl`, z. B. **Meine Tickets** und **Firmentickets**).
 
 Standardkategorien sind sechs Themen-Kategorien plus "Ohne Kategorie":
 
@@ -267,6 +267,13 @@ Zu Tickets können lokale Notizen ergänzt werden. Diese Notizen werden im Brows
 
 Wichtig: Lokale Notizen sind nicht für andere Personen sichtbar und ersetzen keine interne Notiz im Znuny-Ticket.
 
+## Kundenportal (customer.pl)
+
+Im Kundenportal (`https://otrs.staff.hsrw/otrs/customer.pl`) ist bewusst nur **eine** Funktion aktiv: **Ticket-Kategorien**. Übersichten wie **Meine Tickets** oder **Firmentickets** bekommen damit dieselbe lokale Kategorisierung, farbige Markierung, automatische Erkennung und Notizfunktion wie die Agenten-Listen.
+
+Kategorien und Notizen liegen im Erweiterungsspeicher und gelten pro Ticket – eine im Agenten-Interface gesetzte Kategorie ist also auch im Kundenportal sichtbar (und umgekehrt).
+
+Alle übrigen Funktionen bleiben dem Agenten-Interface vorbehalten: Sie hängen an Agenten-Aktionsnamen (`AgentTicket…`), an Agenten-Ansichten oder an Znunys Popup-Schicht. Im Kundenportal fasst das Addon deshalb weder `window.open` noch Suchformulare oder Popups an.
 ## Infinite Scroll
 
 Wenn **Infinite Scroll** aktiv ist, lädt das Addon in Ticketlisten automatisch weitere Ergebnisse nach, sobald man nach unten scrollt.

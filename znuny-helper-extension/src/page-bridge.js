@@ -13,6 +13,11 @@
   let settings = { ...DEFAULT_SETTINGS };
   const originalOpen = window.open;
 
+  // The customer portal is only enhanced with the local ticket categories, and that
+  // runs entirely in the content script. Everything in this bridge belongs to the agent
+  // interface, so it stays out of customer.pl.
+  const IS_CUSTOMER_PORTAL = /\/customer\.pl(?:$|[?;])/i.test(window.location.href);
+
   function readDomSettings() {
     const root = document.documentElement;
 
@@ -348,6 +353,8 @@
   }
 
   window.open = function (url, target, features) {
+    if (IS_CUSTOMER_PORTAL) return originalOpen.apply(window, arguments);
+
     readDomSettings();
 
     if (isZnunyUrl(url)) {
@@ -375,6 +382,8 @@
   };
 
   function patchZnunyPopupFunctions() {
+    if (IS_CUSTOMER_PORTAL) return;
+
     try {
       const popup = window.Core?.UI?.Popup;
 
@@ -401,6 +410,8 @@
   }
 
   function runPageEnhancements() {
+    if (IS_CUSTOMER_PORTAL) return;
+
     readDomSettings();
     installSearchResultNewTabs();
     installSearchFormNewTab();
@@ -416,6 +427,8 @@
   // object inside `detail` is not readable here) and, as a fallback, as the
   // data-zh-article-action-url attribute - older builds sent `detail.url`.
   window.addEventListener("znuny-helper-run-article-action", (event) => {
+    if (IS_CUSTOMER_PORTAL) return;
+
     const detail = event.detail;
     const url = (typeof detail === "string" ? detail : detail?.url) ||
       document.documentElement.dataset.zhArticleActionUrl ||

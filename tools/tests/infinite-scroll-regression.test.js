@@ -49,6 +49,41 @@ function extractDeclaration(name) {
   let seenBrace = false;
   let i = start;
 
+  // A parameter list can contain braces (default values such as `options = {}`).
+  // Skip it first, so they are not mistaken for the function body.
+  if (!isConst) {
+    let paren = 0;
+
+    for (; i < source.length; i += 1) {
+      const ch = source[i];
+
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === quote) quote = null;
+        continue;
+      }
+
+      if (ch === '"' || ch === "'" || ch === "`") {
+        quote = ch;
+        continue;
+      }
+
+      if (ch === "(") {
+        paren += 1;
+        continue;
+      }
+
+      if (ch === ")") {
+        paren -= 1;
+        if (paren === 0) {
+          i += 1;
+          break;
+        }
+      }
+    }
+  }
+
   for (; i < source.length; i += 1) {
     const ch = source[i];
 
@@ -84,6 +119,10 @@ function extractDeclaration(name) {
 
   const snippet = source.slice(start, i);
   if (!snippet.includes(name)) throw new Error(`Extraktion fehlgeschlagen: ${name}`);
+  // Running into the end of the file means the brace counting was thrown off (a regex
+  // literal containing a quote, for instance). Fail loudly instead of comparing a
+  // silently wrong snippet.
+  if (snippet.includes("})();")) throw new Error(`Ueberextraktion bei ${name}`);
   return snippet;
 }
 
@@ -110,7 +149,9 @@ const NEEDED = [
   "normalizeListUrl",
   "isTrustedNextPageUrl",
   "tableColumnSignature",
-  "getTicketRowCellCount"
+  "getTicketRowCellCount",
+  "getIndexes",
+  "getTicketId"
 ];
 
 /* ---------- Minimale DOM-Attrappe ---------- */
@@ -123,6 +164,7 @@ const LINK_SELECTOR =
 
 const isLinkSelector = (selector) =>
   selector === LINK_SELECTOR ||
+  (selector.includes("TicketID") && selector.includes("TicketNumber")) ||
   (selector.includes("AgentTicketZoom") && selector.includes("TicketNumber"));
 
 function makeAnchor(href) {
@@ -1126,7 +1168,7 @@ const welcomeText = fs.readFileSync(
   "utf8"
 );
 
-check("Addon-Version ist 1.6.1", manifestVersion, "1.6.1");
+check("Addon-Version ist gesetzt", /^\d+\.\d+\.\d+$/.test(manifestVersion), true);
 check("Firefox-Manifest traegt dieselbe Version", firefoxManifestVersion, manifestVersion);
 check("Repo-Version passt zum Manifest", packageVersion, manifestVersion);
 check("Changelog hat einen Abschnitt fuer die Version",
@@ -1137,6 +1179,185 @@ check("Addon-Changelog nennt die Version",
   true);
 check("Addon-Changelog beginnt mit der neuesten Version",
   welcomeText.indexOf(`version: "${manifestVersion}"`) < welcomeText.indexOf('version: "1.6.0"'),
+  true);
+
+console.log("\n16) Kundenportal: Ticket-Kategorien in customer.pl");
+
+function makeCustomerCell(text) {
+  return { tagName: "TD", textContent: text, innerText: text, style: {}, dataset: {}, classList: { add() {}, remove() {}, toggle() {} } };
+}
+
+function makeCustomerRow(cells, links) {
+  return {
+    tagName: "TR",
+    cells,
+    links,
+    textContent: cells.map((cell) => cell.textContent).join(" "),
+    querySelectorAll: (selector) => {
+      if (selector === "td") return cells;
+      if (isLinkSelector(selector)) return links;
+      return [];
+    },
+    querySelector: (selector) => (isLinkSelector(selector) ? links[0] || null : null)
+  };
+}
+
+function makeCustomerTable(headers, rows) {
+  return {
+    tagName: "TABLE",
+    className: "Overview",
+    textContent: `${headers.join(" ")} ${rows.map((row) => row.textContent).join(" ")}`,
+    parentElement: { tagName: "DIV", className: "Content", parentElement: null },
+    querySelectorAll(selector) {
+      if (selector === "th") return headers.map((header) => ({ textContent: header, innerText: header }));
+      if (selector === "tbody tr") return rows;
+      if (isLinkSelector(selector)) return rows.flatMap((row) => row.links);
+      return [];
+    },
+    querySelector(selector) {
+      if (selector === "tbody tr") return rows[0] || null;
+      if (selector === "th") return { textContent: headers[0] };
+      return null;
+    }
+  };
+}
+
+const customerLink = (id) =>
+  makeAnchor(`https://otrs.staff.hsrw/otrs/customer.pl?Action=CustomerTicketZoom;TicketID=${id}`);
+
+// "Meine Tickets" im Kundenportal: Ticket#, Titel, Alter, Status
+const customerRows = [
+  makeCustomerRow(
+    [makeCustomerCell("2026100812345678"), makeCustomerCell("Drucker defekt"), makeCustomerCell("3 h"), makeCustomerCell("offen")],
+    [customerLink("2026100812345678")]
+  ),
+  makeCustomerRow(
+    [makeCustomerCell("2026100812345679"), makeCustomerCell("Zugang WLan"), makeCustomerCell("1 d"), makeCustomerCell("neu")],
+    [customerLink("2026100812345679")]
+  )
+];
+const customerTable = makeCustomerTable(["Ticket#", "Titel", "Alter", "Status"], customerRows);
+
+check("Kundentabelle wird als Ticketliste erkannt",
+  api.tableLooksLikeTicketList(customerTable),
+  true);
+
+const customerIndexes = api.getIndexes(customerTable);
+check("Spalten des Kundenportals werden gefunden",
+  [customerIndexes.case, customerIndexes.age, customerIndexes.title, customerIndexes.status],
+  [0, 2, 1, 3]);
+check("Ticket-ID aus dem Kundenlink",
+  api.getTicketId(customerRows[0], customerIndexes),
+  "2026100812345678");
+
+// Schlanke Kundentabelle ohne Alters-/Statusspalte: streng nicht, grosszuegig schon.
+const slimRows = [
+  makeCustomerRow([makeCustomerCell("2026100812345680"), makeCustomerCell("Antrag"), makeCustomerCell("02.10.2026")], []),
+  makeCustomerRow([makeCustomerCell("2026100812345681"), makeCustomerCell("Umzug"), makeCustomerCell("01.10.2026")], [])
+];
+const slimTable = makeCustomerTable(["Ticket#", "Titel", "Erstellt"], slimRows);
+check("schlanke Kundentabelle bleibt streng unerkannt",
+  api.tableLooksLikeTicketList(slimTable),
+  false);
+check("fuer die Kategorien wird sie erkannt",
+  api.tableLooksLikeTicketList(slimTable, { relaxed: true }),
+  true);
+check("Ticket-ID notfalls aus dem Zelltext",
+  api.getTicketId(slimRows[0], api.getIndexes(slimTable)),
+  "2026100812345680");
+
+// Manche Kundentabellen haben keine <th>-Kopfzeile, sondern eine Kopfzeile aus <td>.
+const headerlessRows = [
+  makeCustomerRow([makeCustomerCell("2026100812345682"), makeCustomerCell("Telefon"), makeCustomerCell("30.09.2026")], []),
+  makeCustomerRow([makeCustomerCell("2026100812345683"), makeCustomerCell("Beamer"), makeCustomerCell("29.09.2026")], [])
+];
+const headerlessTable = makeCustomerTable([], headerlessRows);
+// Ohne <th> zaehlt der sichtbare Text der Kopfzeile.
+headerlessTable.textContent = `Ticket# Titel Erstellt ${headerlessRows.map((row) => row.textContent).join(" ")}`;
+check("Kundentabelle ohne Kopfzeile bleibt streng unerkannt",
+  api.tableLooksLikeTicketList(headerlessTable),
+  false);
+check("Kundentabelle ohne Kopfzeile wird grosszuegig erkannt",
+  api.tableLooksLikeTicketList(headerlessTable, { relaxed: true }),
+  true);
+
+const categoryWindow = { location: { href: "" } };
+const isCategoryPage = new Function(
+  "window",
+  `${source.match(/const CUSTOMER_TICKET_LIST_ACTION_PATTERN = .*;/)[0]}
+   ${extractDeclaration("decodeUrlSeparators")}
+   ${extractDeclaration("getActionFromUrl")}
+   ${extractDeclaration("isCustomerPortal")}
+   ${extractDeclaration("isCustomerTicketListPage")}
+   ${extractDeclaration("isCategoryTicketListPage")}
+   return isCategoryTicketListPage;`
+)(categoryWindow);
+const categoryPageFor = (href) => {
+  categoryWindow.location.href = href;
+  return isCategoryPage();
+};
+
+check("Kundenportal MyTickets ist Kategorienseite",
+  categoryPageFor("https://otrs.staff.hsrw/otrs/customer.pl?Action=CustomerTicketOverview;Subaction=MyTickets"),
+  true);
+check("Kundenportal Firmentickets ist Kategorienseite",
+  categoryPageFor("https://otrs.staff.hsrw/otrs/customer.pl?Action=CustomerTicketOverview;Subaction=CompanyTickets"),
+  true);
+check("Kundenportal ohne Aktion ist Kategorienseite",
+  categoryPageFor("https://otrs.staff.hsrw/otrs/customer.pl?"),
+  true);
+check("Kundenportal Kundensuche ist Kategorienseite",
+  categoryPageFor("https://otrs.staff.hsrw/otrs/customer.pl?Action=CustomerTicketSearch"),
+  true);
+check("Kunden-Ticketansicht ist keine Kategorienseite",
+  categoryPageFor("https://otrs.staff.hsrw/otrs/customer.pl?Action=CustomerTicketZoom;TicketID=2026100812345678"),
+  false);
+check("Agenten-Ansicht bleibt Kategorienseite",
+  categoryPageFor("https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketLockedView"),
+  true);
+check("Queue-Ansicht bleibt ohne Kategorien",
+  categoryPageFor("https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketQueue"),
+  false);
+
+check("Kundenportal nutzt die grosszuegige Tabellensuche",
+  extractDeclaration("applyTicketCategories").includes("findTicketTable(document, { relaxed: true })"),
+  true);
+check("Nachladen bleibt bei der strengen Pruefung",
+  Boolean(
+    extractDeclaration("findTicketTable").includes("options = {}") &&
+    !extractDeclaration("loadNextTicketListPage").includes("relaxed: true") &&
+    (source.match(/relaxed: true/g) || []).length === 2
+  ),
+  true);
+
+const chromeManifest = JSON.parse(
+  fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
+);
+const firefoxManifest = JSON.parse(
+  fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension-firefox", "manifest.json"), "utf8")
+);
+const everyScriptMatchesCustomer = (manifest) =>
+  manifest.content_scripts.every((entry) => entry.matches.some((pattern) => pattern.includes("customer.pl")));
+
+check("Kundenportal in beiden Varianten freigeschaltet",
+  everyScriptMatchesCustomer(chromeManifest) && everyScriptMatchesCustomer(firefoxManifest),
+  true);
+check("Kundenportal auch in den Host-Berechtigungen",
+  chromeManifest.host_permissions.some((pattern) => pattern.includes("customer.pl")),
+  true);
+check("Kundenportal laeuft nur mit den Kategorien",
+  Boolean(
+    extractDeclaration("runCustomerPortalFeatures").includes("applyTicketCategories()") &&
+    !extractDeclaration("runCustomerPortalFeatures").includes("enableQuickReply") &&
+    extractDeclaration("runEnabledFeatures").includes("runCustomerPortalFeatures()")
+  ),
+  true);
+check("Seitenbruecke haelt sich aus dem Kundenportal",
+  Boolean(
+    bridgeCode.includes("IS_CUSTOMER_PORTAL") &&
+    /function runPageEnhancements\(\) \{\s*if \(IS_CUSTOMER_PORTAL\) return;/.test(bridgeCode) &&
+    /window\.open = function \(url, target, features\) \{\s*if \(IS_CUSTOMER_PORTAL\) return originalOpen/.test(bridgeCode)
+  ),
   true);
 
 console.log(`\nErgebnis: ${passed} bestanden, ${failures.length} fehlgeschlagen`);

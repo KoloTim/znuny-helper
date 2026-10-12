@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.2] – 2026-10-08
+
+### Added
+- **Ticket-Kategorien jetzt auch im Kundenportal:** `customer.pl` – **Meine Tickets**, **Firmentickets**, die Kundensuche und die Startseite des Kundenportals – bekommt dieselbe lokale Kategorisierung wie die Agenten-Listen: automatische Erkennung über Stichwörter, farbige Markierung, **Kategorien bearbeiten** und lokale Notizen. Kategorien und Notizen hängen am Ticket, sind also in beiden Oberflächen identisch sichtbar.
+
+### Changed
+- **Im Kundenportal läuft bewusst nur diese eine Funktion:** Alle übrigen hängen an Agenten-Aktionsnamen (`AgentTicket…`), an Agenten-Ansichten oder an Znunys Popup-Schicht. Die Seitenbrücke (MAIN-Welt) hält sich dort deshalb komplett heraus – kein Eingriff in `window.open`, Suchformulare, Popups oder Alarme. Freigeschaltet ist `customer.pl` über die Manifest-Übereinstimmungen in beiden Varianten.
+- **Ticketlisten-Erkennung in zwei Stufen:** Die Prüfung „ist das eine Ticketliste?“ kennt jetzt eine zweite, etwas großzügigere Stufe (zusätzlich die Spalte **Erstellt**), die nur die Ticket-Kategorien nutzen – die Kundentabellen haben weniger Spalten als die Agenten-Listen. Nachladen (Infinite Scroll) und die Ticket-Ton-Prüfung bleiben bei der strengen Variante, damit dort weiterhin nichts Fremdes angefasst wird.
+
 ## [1.6.1] – 2026-10-08
 
 ### Added

@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.2",
+      items: [
+        "Neu: Ticket-Kategorien jetzt auch im Kundenportal (customer.pl) – Meine Tickets, Firmentickets und die Kundensuche mit automatischer Erkennung, Farben und Notizen; Kategorien und Notizen gelten pro Ticket in beiden Oberflächen.",
+        "Im Kundenportal läuft bewusst nur diese Funktion – die Seitenbrücke hält sich dort komplett heraus (kein Eingriff in window.open, Suchformulare oder Popups)."
+      ]
+    },
+    {
       version: "1.6.1",
       items: [
         "Neu: Die Standard-Wartezeit ist im Popup unter \"Antworten und Warten\" einstellbar und steht jetzt auf 7 Tagen (vorher fest 3 Tage).",
