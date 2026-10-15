@@ -423,6 +423,7 @@ znuny-helper-extension-firefox/  Firefox-Version (inhaltlich identisch)
 CHANGELOG.md                     Versionshistorie
 NETWIKI-Znuny-Helper.md          Ausführliche Dokumentation
 NETWIKI-Znuny-Helper-dokuwiki.txt  Dieselbe Doku im DokuWiki-Format
+NETWIKI-Znuny-Helper-dokuwiki-absatzform.txt  Dieselbe Doku in Absatzform (jede Zeile ein eigener Absatz)
 audio/                           Rohe Sound-Quelldateien
 tools/                           Hilfsskripte für Abgleich, Test und Release
   sync-firefox.py                Firefox-Ordner abgleichen und prüfen
@@ -480,7 +481,7 @@ Bei einem Release anzupassen:
 - `package.json` (Feld `version`, nur Repo-Infrastruktur)
 - `CHANGELOG.md` (neuer Abschnitt)
 - `znuny-helper-extension/welcome/welcome.js` (Changelog-Array)
-- `NETWIKI-Znuny-Helper.md` und `NETWIKI-Znuny-Helper-dokuwiki.txt` (Versionszeile und Funktionen)
+- `NETWIKI-Znuny-Helper.md`, `NETWIKI-Znuny-Helper-dokuwiki.txt` und `NETWIKI-Znuny-Helper-dokuwiki-absatzform.txt` (Versionszeile und Funktionen)
 
 Danach den Firefox-Baum abgleichen (`python tools/sync-firefox.py`), die Tests laufen
 lassen (`npm test`) und die drei Archive neu bauen und prüfen
@@ -491,6 +492,7 @@ lassen (`npm test`) und die drei Archive neu bauen und prüfen
 - [CHANGELOG.md](CHANGELOG.md) – Versionshistorie
 - [NETWIKI-Znuny-Helper.md](NETWIKI-Znuny-Helper.md) – vollständige Dokumentation
 - [NETWIKI-Znuny-Helper-dokuwiki.txt](NETWIKI-Znuny-Helper-dokuwiki.txt) – dieselbe Doku im DokuWiki-Format
+- [NETWIKI-Znuny-Helper-dokuwiki-absatzform.txt](NETWIKI-Znuny-Helper-dokuwiki-absatzform.txt) – dieselbe Doku in Absatzform (für Wikis, die beim Einfügen Zeilenumbrüche innerhalb eines Blocks verlieren)
 
 ## Zuständigkeit und Pflege
 
