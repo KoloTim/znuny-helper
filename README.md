@@ -429,6 +429,7 @@ tools/                           Hilfsskripte für Abgleich, Test und Release
   sync-firefox.py                Firefox-Ordner abgleichen und prüfen
   build-release-zips.py          Store-Archive bauen
   verify-release-zips.py         Archive gegen die Quelldateien prüfen
+  make-netwiki-absatzform.py     Absatzfassung der NetWiki-Doku erzeugen
   tests/                         Regressionstests (Node, ohne Zusatzpakete)
 package.json                     npm-Scripts (test, build, verify, sync-firefox)
 .github/workflows/ci.yml         Automatische Prüfung bei push und pull_request
@@ -486,6 +487,9 @@ Bei einem Release anzupassen:
 Danach den Firefox-Baum abgleichen (`python tools/sync-firefox.py`), die Tests laufen
 lassen (`npm test`) und die drei Archive neu bauen und prüfen
 (`python tools/build-release-zips.py`, `python tools/verify-release-zips.py`).
+
+Die Absatzfassung der NetWiki-Doku wird aus der DokuWiki-Fassung erzeugt und nach
+jeder Textänderung neu gebaut: `python tools/make-netwiki-absatzform.py`.
 
 ## Dokumentation
 
