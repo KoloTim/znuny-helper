@@ -1,5 +1,7 @@
 ====== Znuny Helper ======
 
+siehe auch: [[https://github.com/KoloTim/znuny-helper|GitHub-Repository]]
+
 ===== Kurzbeschreibung =====
 
 Der **Znuny Helper** ist eine Browser-Erweiterung für unser Znuny-/OTRS-Ticketsystem. Das Addon fasst mehrere bisher einzeln genutzte Tampermonkey-Hilfsfunktionen in einer zentral verwaltbaren Erweiterung zusammen.
@@ -12,10 +14,10 @@ Die Erweiterung steht für Google Chrome, Microsoft Edge und Firefox (ab Version
 
 Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem arbeiten, insbesondere:
 
-  * ServiceDesk
-  * 1st- und 2nd-Level-Support
-  * Mitarbeitende mit vielen Ticketlisten und Ticketrecherchen
-  * Personen, die Empfangsbestätigungen für Hardwareübergaben vorbereiten
+* ServiceDesk
+* 1st- und 2nd-Level-Support
+* Mitarbeitende mit vielen Ticketlisten und Ticketrecherchen
+* Personen, die Empfangsbestätigungen für Hardwareübergaben vorbereiten
 
 ===== Technische Grundlage =====
 
@@ -23,7 +25,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 | Aktuelle Version | 1.6.5 (Stand: 08.10.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
-| Zielsystem | ''%%https://otrs.staff.hsrw/otrs/index.pl*%%'' |
+| Zielsystem | ''%%https://otrs.staff.hsrw/otrs/index.pl*%%'' und ''%%https://otrs.staff.hsrw/otrs/customer.pl*%%'' (Kundenportal) |
 | Speicherung | Browserspeicher der Erweiterung |
 | Externe Server | Nur für EB Helper: lokale EB-Seite ''%%https://digi-eb.staff.hsrw/new%%'' |
 | Tampermonkey nötig | Nein |
@@ -34,9 +36,9 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 
 Über den offiziellen Store installierte Erweiterungen aktualisieren sich automatisch, sobald eine neue Version veröffentlicht wird.
 
-  * **Edge:** [[https://microsoftedge.microsoft.com/addons/detail/znuny-helper/hklflemenkhibeeljjdnimmcefdldhl|Znuny Helper im Edge Add-ons Store]]
-  * **Chrome:** [[https://chromewebstore.google.com/detail/znuny-helper/minjlaeigjamojdmolnadadpmiempcnd|Znuny Helper im Chrome Web Store]]
-  * **Firefox:** [[https://addons.mozilla.org/de/firefox/addon/znuny-helper/|Znuny Helper auf addons.mozilla.org]]
+* **Edge:** [[https://microsoftedge.microsoft.com/addons/detail/znuny-helper/hklflemenkhibeeljjdnimmcefdldhl|Znuny Helper im Edge Add-ons Store]]
+* **Chrome:** [[https://chromewebstore.google.com/detail/znuny-helper/minjlaeigjamojdmolnadadpmiempcnd|Znuny Helper im Chrome Web Store]]
+* **Firefox:** [[https://addons.mozilla.org/de/firefox/addon/znuny-helper/|Znuny Helper auf addons.mozilla.org]]
 
 Alle drei Einträge sind als **nicht gelistet** eingestellt: kein Auftauchen in der Store-Suche, Installation nur über den direkten Link.
 
@@ -44,25 +46,25 @@ Alle drei Einträge sind als **nicht gelistet** eingestellt: kein Auftauchen in 
 
 **Chrome oder Edge:**
 
-  - Addon-Ordner lokal bereitstellen (''znuny-helper-extension'').
-  - Browser öffnen.
-  - Erweiterungsseite öffnen:
-    * Chrome: ''chrome://extensions''
-    * Edge: ''edge://extensions''
-  - Entwicklermodus aktivieren.
-  - **Entpackte Erweiterung laden** auswählen.
-  - Den Ordner ''znuny-helper-extension'' auswählen.
-  - Znuny-Seite neu laden.
+- Addon-Ordner lokal bereitstellen (''znuny-helper-extension'').
+- Browser öffnen.
+- Erweiterungsseite öffnen:
+  * Chrome: ''chrome://extensions''
+  * Edge: ''edge://extensions''
+- Entwicklermodus aktivieren.
+- **Entpackte Erweiterung laden** auswählen.
+- Den Ordner ''znuny-helper-extension'' auswählen.
+- Znuny-Seite neu laden.
 
 Nach Änderungen am Addon muss die Erweiterung auf der Erweiterungsseite neu geladen werden. Danach sollte auch der Znuny-Tab aktualisiert werden.
 
 **Firefox:**
 
-  - Addon-Ordner lokal bereitstellen (''znuny-helper-extension-firefox'').
-  - ''about:debugging#/runtime/this-firefox'' aufrufen.
-  - **Temporäres Add-on laden…** anklicken.
-  - Die Datei ''manifest.json'' aus dem Ordner ''znuny-helper-extension-firefox'' auswählen.
-  - Znuny-Seite neu laden.
+- Addon-Ordner lokal bereitstellen (''znuny-helper-extension-firefox'').
+- ''about:debugging#/runtime/this-firefox'' aufrufen.
+- **Temporäres Add-on laden…** anklicken.
+- Die Datei ''manifest.json'' aus dem Ordner ''znuny-helper-extension-firefox'' auswählen.
+- Znuny-Seite neu laden.
 
 <note>
 Temporär geladene Firefox-Erweiterungen verschwinden beim Neustart des Browsers und müssen dann erneut geladen werden. Für eine dauerhafte Installation ist eine von Mozilla signierte Version aus dem addons.mozilla.org-Store nötig.
@@ -101,12 +103,12 @@ Die Anhang-Vorschau ergänzt erkannte Anhänge im Ticket um einen Button **Vorsc
 
 Unterstützt werden:
 
-  * **PDF-Dateien** – Anzeige im eingebetteten PDF-Viewer des Browsers.
-  * **Bilder** (PNG, JPG/JPEG, GIF, WebP, BMP, SVG, AVIF).
-  * **Textdateien** (TXT, LOG) – als reiner Text, bei sehr großen Dateien wird nur der Anfang angezeigt.
-  * **E-Mails** (EML) – Absender, Empfänger, Betreff und Datum werden aufbereitet dargestellt, darunter der E-Mail-Text.
-  * **Word-Dokumente** (DOCX) – Inhalt wird in lesbares HTML umgewandelt; Hinweise der Konvertierung (z. B. nicht unterstützte Formatierungen) werden bei Bedarf eingeblendet.
-  * **Tabellen** (XLSX, XLSM, XLSB, XLS, ODS) – Anzeige als statische Tabelle (begrenzt auf die ersten 1000 Zeilen und 80 Spalten je Tabellenblatt).
+* **PDF-Dateien** – Anzeige im eingebetteten PDF-Viewer des Browsers.
+* **Bilder** (PNG, JPG/JPEG, GIF, WebP, BMP, SVG, AVIF).
+* **Textdateien** (TXT, LOG) – als reiner Text, bei sehr großen Dateien wird nur der Anfang angezeigt.
+* **E-Mails** (EML) – Absender, Empfänger, Betreff und Datum werden aufbereitet dargestellt, darunter der E-Mail-Text.
+* **Word-Dokumente** (DOCX) – Inhalt wird in lesbares HTML umgewandelt; Hinweise der Konvertierung (z. B. nicht unterstützte Formatierungen) werden bei Bedarf eingeblendet.
+* **Tabellen** (XLSX, XLSM, XLSB, XLS, ODS) – Anzeige als statische Tabelle (begrenzt auf die ersten 1000 Zeilen und 80 Spalten je Tabellenblatt).
 
 <note>
 Alte DOC-Dateien (Word 97–2003) werden nicht direkt unterstützt; hier bleibt nur der normale Download-Link. Für alle anderen, nicht erkannten Dateitypen gilt dasselbe.
@@ -124,9 +126,9 @@ Einige Znuny-Aktionen öffnen standardmäßig kleine Popup-Fenster. Die Funktion
 
 Vorteile:
 
-  * bessere Übersicht
-  * einfacheres Wechseln zwischen Ticket und Aktion
-  * weniger Probleme mit blockierten oder verdeckten Popup-Fenstern
+* bessere Übersicht
+* einfacheres Wechseln zwischen Ticket und Aktion
+* weniger Probleme mit blockierten oder verdeckten Popup-Fenstern
 
 ===== Antworten und Weiterleiten ohne Vorlagenklick =====
 
@@ -166,8 +168,8 @@ Die globale Znuny-Suche wird um ein gut sichtbares Feld **Ticketnummer** ergänz
 
 Zusätzlich setzt das Addon automatisch einen Zeitraumfilter:
 
-  * Attribut: **Letzte Ticket-Änderungszeit (zwischen)**
-  * Zeitraum: **letztes Jahr bis heute**
+* Attribut: **Letzte Ticket-Änderungszeit (zwischen)**
+* Zeitraum: **letztes Jahr bis heute**
 
 Beispiel: Am ''02.07.2026'' wird automatisch von ''02.07.2025'' bis ''02.07.2026'' gesucht.
 
@@ -177,17 +179,17 @@ Außerdem merkt sich das Addon lokal die letzten Suchbegriffe und Ticketnummern 
 
 Unter den Suchfeldern steht dafür ein Block **Suchverlauf**: Er zeigt die zuletzt ausgeführten Suchen (neueste zuerst: fünf sichtbar, über **Alle n anzeigen** aufklappbar auf bis zu fünfzehn gemerkte) mit Suchbegriff, Ticketnummer, dem verwendeten Zeitraum und der Uhrzeit („gerade eben", „vor 5 Min.", „gestern 16:40", sonst Datum und Uhrzeit).
 
-  * Ein Klick auf einen Eintrag übernimmt Suchbegriff, Ticketnummer **und** den damaligen Zeitraum zurück in die Felder. Gestartet wird die Suche wie gewohnt über **Suche starten**, weil die übrigen Filter (Vorlagen, zusätzliche Attribute) nicht Teil eines Eintrags sind.
-  * Über **×** lässt sich ein einzelner Eintrag entfernen, über **Verlauf leeren** die ganze Liste.
-  * Der Zeitraum wird nur mitgespeichert, wenn er wirklich gesetzt wurde (Schnellknopf oder Auswahl in den Datumsfeldern) – die Standardwerte der Dropdowns erscheinen nicht in jedem Eintrag.
-  * Unter den einzelnen Feldern stehen weiterhin die kleinen Vorschlags-Knöpfe (letzte fünf Begriffe bzw. Nummern), die nur das jeweilige Feld füllen; die Felder bieten diese Werte zusätzlich als Autovervollständigung an.
-  * Eine Historie aus einer älteren Version (zwei Listen aus reinen Texten) wird beim ersten Laden automatisch übernommen.
+* Ein Klick auf einen Eintrag übernimmt Suchbegriff, Ticketnummer **und** den damaligen Zeitraum zurück in die Felder. Gestartet wird die Suche wie gewohnt über **Suche starten**, weil die übrigen Filter (Vorlagen, zusätzliche Attribute) nicht Teil eines Eintrags sind.
+* Über **×** lässt sich ein einzelner Eintrag entfernen, über **Verlauf leeren** die ganze Liste.
+* Der Zeitraum wird nur mitgespeichert, wenn er wirklich gesetzt wurde (Schnellknopf oder Auswahl in den Datumsfeldern) – die Standardwerte der Dropdowns erscheinen nicht in jedem Eintrag.
+* Unter den einzelnen Feldern stehen weiterhin die kleinen Vorschlags-Knöpfe (letzte fünf Begriffe bzw. Nummern), die nur das jeweilige Feld füllen; die Felder bieten diese Werte zusätzlich als Autovervollständigung an.
+* Eine Historie aus einer älteren Version (zwei Listen aus reinen Texten) wird beim ersten Laden automatisch übernommen.
 
 Zusätzlich gibt es Schnellknöpfe, um den Zeitraum mit einem Klick umzustellen. Sie stehen in einer Reihe:
 
-  * Letzte Woche
-  * Letzter Monat
-  * Letztes Quartal
+* Letzte Woche
+* Letzter Monat
+* Letztes Quartal
 
 Ein Klick setzt nur den Zeitraum neu; die Suche muss danach wie gewohnt gestartet werden. Ohne Klick bleibt der automatische Standard (letztes Jahr bis heute) bestehen.
 
@@ -197,10 +199,10 @@ In geöffneten Tickets ergänzt das Addon oben im Ticket ein Suchfeld. Damit kan
 
 Durchsucht werden:
 
-  * Artikelübersicht
-  * Betreffzeilen
-  * sichtbare Artikeltexte
-  * bereits geladene Ticketartikel
+* Artikelübersicht
+* Betreffzeilen
+* sichtbare Artikeltexte
+* bereits geladene Ticketartikel
 
 Die Suche ist nicht auf Groß-/Kleinschreibung festgelegt. Treffer werden markiert, und bei mehreren Treffern kann durch die Treffer navigiert werden.
 
@@ -218,13 +220,13 @@ Die Funktion **Ticket-Kategorien** erweitert bestimmte Ticketlisten um eine loka
 
 Standardkategorien sind sechs Themen-Kategorien plus "Ohne Kategorie":
 
-  * Ohne Kategorie
-  * Dringend / Störung (pastellrot)
-  * Externe Zuständigkeit (pastelllila)
-  * Software / Zugang (pastellblau)
-  * Hardware / Abholung (pastellorange)
-  * Studis (pastellgrün)
-  * Warten / Rückmeldung (pastellgelb)
+* Ohne Kategorie
+* Dringend / Störung (pastellrot)
+* Externe Zuständigkeit (pastelllila)
+* Software / Zugang (pastellblau)
+* Hardware / Abholung (pastellorange)
+* Studis (pastellgrün)
+* Warten / Rückmeldung (pastellgelb)
 
 Tickets können dadurch übersichtlicher gruppiert und schneller wiedergefunden werden. Die Zuordnung verändert keine offiziellen Znuny-Daten und bleibt ausschließlich lokal im Browser gespeichert.
 
@@ -238,12 +240,12 @@ Der Vorschlag ist keine Bestätigung: automatisch erkannte Kategorien sind immer
 
 Passt der Ticketinhalt auf mehrere Kategorien gleichzeitig, gewinnt die Kategorie, die in der Liste weiter oben steht. Die Standardreihenfolge (= Prüfreihenfolge) ist bewusst so gewählt:
 
-  - **Dringend / Störung** – muss zuerst auffallen, auch wenn der Text sonst nach Software oder Hardware aussieht.
-  - **Externe Zuständigkeit** – Tickets, die eigentlich an eine andere Stelle gehören, sollen nicht erst als IT-Thema einsortiert werden.
-  - **Software / Zugang** – die häufigsten, meist schnell lösbaren Anfragen.
-  - **Hardware / Abholung** – planbare Aufgaben (Abholung, Reparatur, Beschaffung).
-  - **Studis** – Themen rund um Studierende, die nicht bereits als dringend/extern/Software/Hardware erkannt wurden.
-  - **Warten / Rückmeldung** – niedrigste Priorität, da es eher ein Status als ein Thema ist.
+- **Dringend / Störung** – muss zuerst auffallen, auch wenn der Text sonst nach Software oder Hardware aussieht.
+- **Externe Zuständigkeit** – Tickets, die eigentlich an eine andere Stelle gehören, sollen nicht erst als IT-Thema einsortiert werden.
+- **Software / Zugang** – die häufigsten, meist schnell lösbaren Anfragen.
+- **Hardware / Abholung** – planbare Aufgaben (Abholung, Reparatur, Beschaffung).
+- **Studis** – Themen rund um Studierende, die nicht bereits als dringend/extern/Software/Hardware erkannt wurden.
+- **Warten / Rückmeldung** – niedrigste Priorität, da es eher ein Status als ein Thema ist.
 
 Über **Auto (Vorschlag)** im Kategorie-Feld lässt sich eine manuelle Auswahl jederzeit wieder auf automatische Erkennung zurückstellen.
 
@@ -251,15 +253,15 @@ Passt der Ticketinhalt auf mehrere Kategorien gleichzeitig, gewinnt die Kategori
 
 Über **Kategorien bearbeiten** können Nutzerinnen und Nutzer das Kategoriesystem anpassen:
 
-  * Kategorien anlegen
-  * Kategorien umbenennen
-  * Kurzbezeichnungen ändern
-  * Farben anpassen
-  * Reihenfolge ändern (bestimmt zugleich die Priorität bei der automatischen Erkennung)
-  * Keywords für die automatische Erkennung pflegen
-  * Standard wiederherstellen
-  * Kategorien als Datei exportieren, um sie mit Kolleginnen und Kollegen zu teilen
-  * Kategorien aus einer Datei importieren
+* Kategorien anlegen
+* Kategorien umbenennen
+* Kurzbezeichnungen ändern
+* Farben anpassen
+* Reihenfolge ändern (bestimmt zugleich die Priorität bei der automatischen Erkennung)
+* Keywords für die automatische Erkennung pflegen
+* Standard wiederherstellen
+* Kategorien als Datei exportieren, um sie mit Kolleginnen und Kollegen zu teilen
+* Kategorien aus einer Datei importieren
 
 Manuelle Anpassungen bleiben lokal gespeichert.
 
@@ -305,12 +307,12 @@ Die Funktion **Prioritäts-Vorlagen** ist standardmäßig aktiv und ergänzt Pri
 
 Über die Vorlagenverwaltung können Nutzerinnen und Nutzer außerdem:
 
-  * Vorlagen anlegen, umbenennen und löschen
-  * Feldwerte je Vorlage anpassen
-  * Vorlagen einer **Gruppe** zuordnen; die Schnellbuttons werden dann nach diesen Gruppen sortiert angeordnet (Gruppen alphabetisch, Vorlagen ohne Gruppe zuletzt)
-  * die Reihenfolge der Schnellbuttons mit **Hoch/Runter** ändern
-  * Vorlagen als Datei exportieren, um sie mit Kolleginnen und Kollegen zu teilen
-  * Vorlagen aus einer Datei importieren
+* Vorlagen anlegen, umbenennen und löschen
+* Feldwerte je Vorlage anpassen
+* Vorlagen einer **Gruppe** zuordnen; die Schnellbuttons werden dann nach diesen Gruppen sortiert angeordnet (Gruppen alphabetisch, Vorlagen ohne Gruppe zuletzt)
+* die Reihenfolge der Schnellbuttons mit **Hoch/Runter** ändern
+* Vorlagen als Datei exportieren, um sie mit Kolleginnen und Kollegen zu teilen
+* Vorlagen aus einer Datei importieren
 
 Zusätzlich zeigt das Addon auf Prioritätsseiten einen Warnhinweis an, wenn ein Ticket einer erkennbar externen Kundenadresse zugeordnet ist oder im Titel als extern markiert wurde. Das soll daran erinnern, die Ticketdaten vor dem Übermitteln zu prüfen.
 
@@ -318,9 +320,9 @@ Zusätzlich zeigt das Addon auf Prioritätsseiten einen Warnhinweis an, wenn ein
 
 Wo immer beim Setzen eines "Warten"-Status ein Datum verlangt wird, ergänzt das Addon Schnellknöpfe für das Wartedatum:
 
-  * +3 Tage
-  * +7 Tage (wird beim Erscheinen des Datumsfelds automatisch vorbelegt, solange die Standard-Wartezeit 7 Tage beträgt)
-  * +14 Tage
+* +3 Tage
+* +7 Tage (wird beim Erscheinen des Datumsfelds automatisch vorbelegt, solange die Standard-Wartezeit 7 Tage beträgt)
+* +14 Tage
 
 Die Tage lassen sich im Popup unter **Antworten und Warten → Tage der Schnellknöpfe** frei einstellen (kommagetrennt, z. B. ''1, 3, 7, 14''). Welche Wartezeit automatisch vorbelegt wird, steht direkt darunter unter **Standard-Wartezeit (Tage)** – voreingestellt sind 7 Tage; der zugehörige Schnellknopf ist mit "(Standard)" gekennzeichnet.
 
@@ -346,9 +348,9 @@ Die automatische Aktualisierung betrifft nur Ticketlisten-/Übersichtsseiten. Is
 
 Im Addon-Popup lässt sich unter **Benachrichtigung**:
 
-  * der gewünschte Sound aus einer Liste auswählen und per Knopf vorab anhören,
-  * ein eigener Sound per Datei-Upload hinzufügen,
-  * ein selbst hinzugefügter Sound wieder entfernen.
+* der gewünschte Sound aus einer Liste auswählen und per Knopf vorab anhören,
+* ein eigener Sound per Datei-Upload hinzufügen,
+* ein selbst hinzugefügter Sound wieder entfernen.
 
 Zehn Sounds sind bereits eingebaut: drei dezente Standardtöne (Sanfter Ping, Zwei-Ton-Chime, Weicher Klick – Sanfter Ping ist voreingestellt), zwei dezente Benachrichtigungstöne (Dezenter Ping, Neue Nachricht) sowie ICQ, iPhone, Minecraft Huhn 1, Minecraft Huhn 2 und WhatsApp.
 
@@ -368,10 +370,10 @@ https://digi-eb.staff.hsrw/new
 
 Erkannt werden z. B.:
 
-  * Gerätebezeichnungen
-  * Inventarnummern
-  * Seriennummern
-  * einfache Hardwarelisten
+* Gerätebezeichnungen
+* Inventarnummern
+* Seriennummern
+* einfache Hardwarelisten
 
 Falls der Text nicht automatisch erkannt wird, kann ein Hardwaretext manuell eingefügt werden.
 
@@ -383,23 +385,23 @@ Das Addon hat bewusst **keinen öffentlichen Meldeweg** im Popup: Da es über di
 
 Für eine hilfreiche Fehlermeldung bitte notieren:
 
-  * verwendeter Browser
-  * betroffene Znuny-Seite
-  * Ticketnummer, falls sinnvoll
-  * was erwartet wurde
-  * was tatsächlich passiert ist
+* verwendeter Browser
+* betroffene Znuny-Seite
+* Ticketnummer, falls sinnvoll
+* was erwartet wurde
+* was tatsächlich passiert ist
 
 ===== Datenschutz und Speicherung =====
 
 Das Addon speichert bestimmte Informationen lokal im Browser:
 
-  * aktivierte/deaktivierte Funktionen
-  * lokale Ticketkategorien
-  * lokale Ticketnotizen
-  * Suchhistorie
-  * Antwort-Entwürfe aus der Schnellantwort (nur der Text, ohne Formatierung)
-  * Liste der zuletzt bekannten gesperrten Ticketnummern (für "Ton bei neuem Ticket")
-  * ausgewählter bzw. selbst hochgeladener Benachrichtigungston
+* aktivierte/deaktivierte Funktionen
+* lokale Ticketkategorien
+* lokale Ticketnotizen
+* Suchhistorie
+* Antwort-Entwürfe aus der Schnellantwort (als Editor-Inhalt, inklusive Formatierung)
+* Liste der zuletzt bekannten gesperrten Ticketnummern (für "Ton bei neuem Ticket")
+* ausgewählter bzw. selbst hochgeladener Benachrichtigungston
 
 Diese Informationen werden nicht automatisch in Znuny geschrieben und nicht automatisch an andere Personen übertragen.
 
@@ -407,12 +409,12 @@ Ausnahme: Beim EB Helper werden erkannte Hardwaredaten an die lokale EB-Seite ü
 
 ===== Grenzen und bekannte Hinweise =====
 
-  * Das Addon verändert die Znuny-Oberfläche im Browser, nicht das Znuny-System selbst.
-  * Lokale Kategorien und Notizen sind nur im jeweiligen Browserprofil verfügbar.
-  * Nach Addon-Updates sollte die Erweiterung neu geladen und die Znuny-Seite aktualisiert werden.
-  * Wenn Znuny seine HTML-Struktur ändert, können einzelne Funktionen Anpassungen benötigen.
-  * Manuell geladene Firefox-Erweiterungen sind nur temporär aktiv (siehe Installation); für Dauerbetrieb wird die Store-Version benötigt.
-  * "Ton bei neuem Ticket" funktioniert nur, solange ein Znuny-Tab in einem Browser mit installierter Erweiterung geöffnet ist; bei komplett geschlossenem Browser gibt es keine Benachrichtigung.
+* Das Addon verändert die Znuny-Oberfläche im Browser, nicht das Znuny-System selbst.
+* Lokale Kategorien und Notizen sind nur im jeweiligen Browserprofil verfügbar.
+* Nach Addon-Updates sollte die Erweiterung neu geladen und die Znuny-Seite aktualisiert werden.
+* Wenn Znuny seine HTML-Struktur ändert, können einzelne Funktionen Anpassungen benötigen.
+* Manuell geladene Firefox-Erweiterungen sind nur temporär aktiv (siehe Installation); für Dauerbetrieb wird die Store-Version benötigt.
+* "Ton bei neuem Ticket" funktioniert nur, solange ein Znuny-Tab in einem Browser mit installierter Erweiterung geöffnet ist; bei komplett geschlossenem Browser gibt es keine Benachrichtigung.
 
 ===== Deaktivieren einzelner Funktionen =====
 
@@ -420,10 +422,10 @@ Alle Hauptfunktionen können im Addon-Popup einzeln ein- oder ausgeschaltet werd
 
 Empfehlung bei Problemen:
 
-  - Betroffene Funktion im Popup deaktivieren.
-  - Znuny-Seite neu laden.
-  - Prüfen, ob das Problem weiterhin besteht.
-  - Problem intern melden.
+- Betroffene Funktion im Popup deaktivieren.
+- Znuny-Seite neu laden.
+- Prüfen, ob das Problem weiterhin besteht.
+- Problem intern melden.
 
 ===== Zuständigkeit und Pflege =====
 

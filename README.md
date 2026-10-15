@@ -24,7 +24,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 | Aktuelle Version | 1.6.5 (Stand: 08.10.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
-| Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` |
+| Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` und `https://otrs.staff.hsrw/otrs/customer.pl*` (Kundenportal) |
 | Speicherung | Browserspeicher der Erweiterung |
 | Externe Server | Nur für EB Helper: lokale EB-Seite `https://digi-eb.staff.hsrw/new` |
 | Tampermonkey nötig | Nein |
@@ -376,7 +376,7 @@ Das Addon speichert bestimmte Informationen lokal im Browser:
 - lokale Ticketkategorien
 - lokale Ticketnotizen
 - Suchhistorie
-- Antwort-Entwürfe aus der Schnellantwort (nur der Text, ohne Formatierung)
+- Antwort-Entwürfe aus der Schnellantwort (als Editor-Inhalt, inklusive Formatierung)
 - Liste der zuletzt bekannten gesperrten Ticketnummern (für "Ton bei neuem Ticket")
 - ausgewählter bzw. selbst hochgeladener Benachrichtigungston
 
