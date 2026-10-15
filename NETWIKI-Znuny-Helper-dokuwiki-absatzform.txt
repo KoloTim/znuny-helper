@@ -44,7 +44,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 
 Über den offiziellen Store installierte Erweiterungen aktualisieren sich automatisch, sobald eine neue Version veröffentlicht wird.
 
-* **Edge:** [[https://microsoftedge.microsoft.com/addons/detail/znuny-helper/hklflemenkhibeeljjdnimmcefdldhl|Znuny Helper im Edge Add-ons Store]]
+* **Edge:** [[https://microsoftedge.microsoft.com/addons/detail/znuny-helper/hklflemenkhibeeljjdnimmcefdlddhl|Znuny Helper im Edge Add-ons Store]]
 
 * **Chrome:** [[https://chromewebstore.google.com/detail/znuny-helper/minjlaeigjamojdmolnadadpmiempcnd|Znuny Helper im Chrome Web Store]]
 
