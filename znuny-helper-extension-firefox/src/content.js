@@ -10130,6 +10130,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-pinball .zh-pin-mark { height: 30px; width: auto; display: block; }
       #zh-pinball .zh-pin-word { font-size: 19px; font-weight: 800; letter-spacing: .6px; color: #eef4ff; }
       #zh-pinball .zh-pin-title { font-size: 20px; font-weight: 800; letter-spacing: .5px; }
+      #zh-pinball .zh-pin-level { font-size: 13px; color: #a8c4ea; font-weight: 600; }
       #zh-pinball .zh-pin-score {
         font-size: 24px; font-weight: 800; color: #ffd479; min-width: 84px; text-align: right;
         text-shadow: 0 0 16px rgba(255,212,121,.45);
@@ -10220,6 +10221,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       <div class="zh-pin-top">
         ${pinballBrand()}
         <div class="zh-pin-title">Pinball</div>
+        <div class="zh-pin-level" id="zh-pin-level">Level 1</div>
         <div class="zh-pin-score" id="zh-pin-score">0</div>
       </div>
       <canvas id="zh-pin-board" width="${breite}" height="${hoehe}"></canvas>
@@ -10233,7 +10235,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           ${pinballElf()}
           <h2>Oh, du hast eine kleine Auszeit verdient.</h2>
           <p>Weihnachten ist eine sch\u00f6ne, aber oft stressige Zeit.
-             Wie w\u00e4re es mit ein paar Minuten Pinball? Geschenke sind hier gratis.</p>
+             Wie w\u00e4re es mit ein paar Minuten Pinball? Vier Level, jeden Durchlauf neu gemischt.</p>
           <button id="zh-pin-start">Bisschen Pinball</button>
         </div>
       </div>
@@ -10243,6 +10245,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const canvas = host.querySelector("#zh-pin-board");
     const ctx = canvas.getContext("2d");
     const punkteAnzeige = host.querySelector("#zh-pin-score");
+    const levelAnzeige = host.querySelector("#zh-pin-level");
     const intro = host.querySelector("#zh-pin-intro");
 
     const W = canvas.width;
@@ -10252,60 +10255,157 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const GOLD = "#ffd479";
     const ROT = "#e0492f";
 
+    // ---------------- Zustand ----------------
     let punkte = 0;
+    let levelPunkte = 0;
+    let stufe = 0;
+    let ziel = 0;
     let laeuft = true;
     let spielLaeuft = false;
     let letzterFrame = 0;
+    let akkumulator = 0;
     let flipperL = 0;
     let flipperR = 0;
-    let flipperLAlt = 0;
-    let flipperRAlt = 0;
     let power = 0;
     let powerLaeuft = false;
-
     let schuetteln = 0;
+    let banner = null;
+    let linksGedrueckt = false;
+    let rechtsGedrueckt = false;
 
-    const kugel = { x: W - 34, y: H - 46, vx: 0, vy: 0, r: 7, imStart: true };
+    // Feste Schrittweite: 240 Hz. Damit ist die Bewegung unabhaengig von der
+    // Bildrate und die Kugel springt nicht durch duenne Hindernisse.
+    const SCHRITT = 1 / 240;
+    const GRAVITATION = 820;
+    const DAEMPFUNG = 0.55;
+
+    const kugel = { x: W - 36, y: H - 52, vx: 0, vy: 0, r: 7, imStart: true };
     const spur = [];
     const popups = [];
     const blitze = [];
 
-    // ---------------- Geometrie ----------------
     const wandLinks = 20;
     const wandRechts = W - 20;
-    const bahnWand = W - 58; // Trennwand der Abschussrampe
-    const bahnOben = 96;
+    const bahnWand = W - 60;
+    const bahnOben = 104;
 
-    // Pins als Kapseln im Stil der HSRW-Y-Striche: Laenge + Radius ergeben
-    // exakt die gezeichnete Form, damit Treffer passen.
+    // ---------------- Level ----------------
+    // Jede Karte hat wenige, grosse Hindernisse und wird pro Durchlauf leicht
+    // verschoben und gedreht - dadurch spielt sich kein Level wie das andere.
+    const KARTEN = [
+      {
+        name: "Y-Kreuz",
+        ziel: 120,
+        bauen: (add) => {
+          add(W * 0.42, H * 0.3, -1.05, 118, 13, NAVY, 50);
+          add(W * 0.58, H * 0.3, -1.95, 118, 13, BLAU, 50);
+          add(W * 0.5, H * 0.62, 0.1, 52, 9, GOLD, 30);
+        }
+      },
+      {
+        name: "Stern",
+        ziel: 150,
+        bauen: (add) => {
+          const n = 5;
+          const radius = Math.min(W, H) * 0.17;
+          for (let i = 0; i < n; i += 1) {
+            const winkel = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+            add(
+              W * 0.5 + Math.cos(winkel) * radius,
+              H * 0.4 + Math.sin(winkel) * radius,
+              winkel + Math.PI / 2,
+              58,
+              10,
+              i % 2 === 0 ? BLAU : NAVY,
+              35
+            );
+          }
+        }
+      },
+      {
+        name: "Zickzack",
+        ziel: 180,
+        bauen: (add) => {
+          for (let reihe = 0; reihe < 3; reihe += 1) {
+            for (let i = 0; i < 2; i += 1) {
+              add(
+                W * (0.3 + i * 0.4) + (reihe % 2 === 0 ? -W * 0.06 : W * 0.06),
+                H * (0.26 + reihe * 0.17),
+                reihe % 2 === 0 ? 0.6 : -0.6,
+                52,
+                9,
+                reihe % 2 === 0 ? NAVY : BLAU,
+                30
+              );
+            }
+          }
+        }
+      },
+      {
+        name: "Tannenbaum",
+        ziel: 200,
+        bauen: (add) => {
+          const stufen = 4;
+          for (let i = 0; i < stufen; i += 1) {
+            const breite = W * (0.1 + i * 0.05);
+            add(W * 0.5 - breite, H * (0.26 + i * 0.13), 0.35, 46, 8, BLAU, 25);
+            add(W * 0.5 + breite, H * (0.26 + i * 0.13), -0.35, 46, 8, NAVY, 25);
+          }
+          add(W * 0.5, H * 0.72, Math.PI / 2, 44, 9, GOLD, 45);
+        }
+      }
+    ];
+
     const pins = [];
-    const pinSetzen = (x, y, a, len, r, farbe, wert) => {
-      pins.push({ x, y, a, len, r, farbe, wert });
+    const zufall = (() => {
+      let saat = (Date.now() ^ Math.floor(Math.random() * 0xffff)) >>> 0;
+      return () => {
+        saat ^= saat << 13;
+        saat >>>= 0;
+        saat ^= saat >> 17;
+        saat ^= saat << 5;
+        saat >>>= 0;
+        return saat / 0xffffffff;
+      };
+    })();
+
+    const slings = () => [
+      { x1: wandLinks + 10, y1: H - 150, x2: W * 0.3 - 44, y2: H - 94 },
+      { x1: bahnWand - 12, y1: H - 150, x2: W * 0.7 + 34, y2: H - 94 }
+    ];
+    let slingL = slings()[0];
+    let slingR = slings()[1];
+
+    const levelAufbau = () => {
+      const karte = KARTEN[stufe % KARTEN.length];
+      pins.length = 0;
+      const jitterX = W * 0.03;
+      const jitterY = H * 0.02;
+      karte.bauen((x, y, a, len, r, farbe, wert) => {
+        pins.push({
+          x: x + (zufall() - 0.5) * jitterX * 2,
+          y: y + (zufall() - 0.5) * jitterY * 2,
+          a: a + (zufall() - 0.5) * 0.26,
+          len,
+          r,
+          farbe,
+          wert
+        });
+      });
+      [slingL, slingR] = slings();
+      ziel = karte.ziel;
+      levelPunkte = 0;
+      levelAnzeige.textContent = `Level ${stufe + 1}/${KARTEN.length} · ${karte.name}`;
+      banner = { text: `Level ${stufe + 1}: ${karte.name}`, leben: 1 };
+      kugel.imStart = true;
+      kugel.x = W - 36;
+      kugel.y = H - 52;
+      kugel.vx = 0;
+      kugel.vy = 0;
+      power = 0;
     };
-    // Zwei grosse Y-Striche in der Mitte (Logo-Motiv)
-    pinSetzen(W * 0.42, H * 0.3, -1.05, 96, 11, NAVY, 50);
-    pinSetzen(W * 0.58, H * 0.3, -1.95, 96, 11, BLAU, 50);
-    // Umlaufende kleine Striche
-    pinSetzen(W * 0.24, H * 0.44, 0.5, 52, 8, BLAU, 25);
-    pinSetzen(W * 0.76, H * 0.44, 2.6, 52, 8, NAVY, 25);
-    pinSetzen(W * 0.33, H * 0.62, -0.7, 44, 7, NAVY, 20);
-    pinSetzen(W * 0.67, H * 0.62, -2.4, 44, 7, BLAU, 20);
-    pinSetzen(W * 0.5, H * 0.7, 0.06, 40, 7, GOLD, 30);
-    pinSetzen(W * 0.32, H * 0.24, 1.1, 46, 7.5, BLAU, 20);
-    pinSetzen(W * 0.68, H * 0.24, 2.0, 46, 7.5, NAVY, 20);
-    pinSetzen(W * 0.5, H * 0.52, 1.57, 40, 7, BLAU, 35);
 
-    // Umlenkung oben: leitet die Kugel aus der Rampe nach links ins Feld.
-    // Slingshots ueber den Flippern (Dreiecke)
-    const slingL = { x1: wandLinks + 8, y1: H - 150, x2: W * 0.3 - 42, y2: H - 92 };
-    const slingR = { x1: bahnWand - 10, y1: H - 150, x2: W * 0.7 + 30, y2: H - 92 };
-
-    const flipperGeom = () => ({
-      links: { px: W * 0.32, py: H - 74, len: Math.min(96, W * 0.16), r: 9, ruhe: 0.42, aktiv: -0.32 },
-      rechts: { px: W * 0.68, py: H - 74, len: Math.min(96, W * 0.16), r: 9, ruhe: Math.PI - 0.42, aktiv: Math.PI + 0.32 }
-    });
-
-    // ---------------- Helfer ----------------
+    // ---------------- Kollision ----------------
     const naechsterPunkt = (px, py, x1, y1, x2, y2) => {
       const dx = x2 - x1;
       const dy = y2 - y1;
@@ -10315,7 +10415,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       return { x: x1 + t2 * dx, y: y1 + t2 * dy };
     };
 
-    // Kapsel-Kollision: exakt dieselbe Form, die gezeichnet wird.
+    const treffer = (wert, x, y) => {
+      punkte += wert;
+      levelPunkte += wert;
+      popups.push({ x, y, text: `+${wert}`, leben: 1 });
+      blitze.push({ x, y, leben: 1 });
+      schuetteln = Math.min(5, schuetteln + 1.2);
+    };
+
     const kapsel = (x1, y1, x2, y2, radius, elastisch, wert) => {
       const cp = naechsterPunkt(kugel.x, kugel.y, x1, y1, x2, y2);
       const dx = kugel.x - cp.x;
@@ -10329,131 +10436,113 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       kugel.x = cp.x + nx * grenze;
       kugel.y = cp.y + ny * grenze;
       const dot = kugel.vx * nx + kugel.vy * ny;
-      kugel.vx -= (1 + elastisch) * dot * nx;
-      kugel.vy -= (1 + elastisch) * dot * ny;
+      if (dot < 0) {
+        kugel.vx -= (1 + elastisch) * dot * nx;
+        kugel.vy -= (1 + elastisch) * dot * ny;
+      }
       if (wert) treffer(wert, cp.x, cp.y);
       return true;
     };
 
-    const treffer = (wert, x, y) => {
-      punkte += wert;
-      popups.push({ x, y, text: `+${wert}`, leben: 1 });
-      blitze.push({ x, y, leben: 1 });
-      schuetteln = Math.min(6, schuetteln + 1.6);
-    };
+    // ---------------- Physik ----------------
+    const bewege = (dt) => {
+      const zielL = linksGedrueckt ? 1 : 0;
+      const zielR = rechtsGedrueckt ? 1 : 0;
+      flipperL += (zielL - flipperL) * Math.min(1, dt * 26);
+      flipperR += (zielR - flipperR) * Math.min(1, dt * 26);
 
-    // ---------------- Simulation ----------------
-    const schrittPhysik = (dt) => {
-      const sch = Math.min(dt, 24) / 16.67;
+      if (kugel.imStart) {
+        if (powerLaeuft) power = Math.min(1, power + dt * 1.35);
+        return;
+      }
+
+      kugel.vy += GRAVITATION * dt;
+      const daempfung = Math.max(0, 1 - DAEMPFUNG * dt);
+      kugel.vx *= daempfung;
+      kugel.vy *= daempfung;
+      kugel.x += kugel.vx * dt;
+      kugel.y += kugel.vy * dt;
+
+      // Waende
+      if (kugel.x - kugel.r < wandLinks) {
+        kugel.x = wandLinks + kugel.r;
+        kugel.vx = Math.abs(kugel.vx) * 0.92;
+      }
+      if (kugel.x + kugel.r > wandRechts) {
+        kugel.x = wandRechts - kugel.r;
+        kugel.vx = -Math.abs(kugel.vx) * 0.92;
+      }
+      if (kugel.y - kugel.r < 24) {
+        kugel.y = 24 + kugel.r;
+        kugel.vy = Math.abs(kugel.vy) * 0.9;
+      }
+
+      // Trennwand der Rampe
+      if (kugel.y > bahnOben) kapsel(bahnWand, bahnOben, bahnWand, H - 24, 3, 0.75, 0);
+
+      // Aus der Rampe ins Feld
+      if (kugel.x > bahnWand && kugel.y < bahnOben + 44 && kugel.vy < 0) {
+        kugel.vx = -Math.max(620, Math.abs(kugel.vy) * 0.55);
+        kugel.vy = -180;
+      }
+
+      // Pins
+      for (const p of pins) {
+        const dx = Math.cos(p.a) * p.len / 2;
+        const dy = Math.sin(p.a) * p.len / 2;
+        kapsel(p.x - dx, p.y - dy, p.x + dx, p.y + dy, p.r, 0.88, p.wert);
+      }
+
+      // Slingshots
+      kapsel(slingL.x1, slingL.y1, slingL.x2, slingL.y2, 5, 0.9, 15);
+      kapsel(slingR.x1, slingR.y1, slingR.x2, slingR.y2, 5, 0.9, 15);
 
       // Flipper
-      flipperLAlt = flipperL;
-      flipperRAlt = flipperR;
-      const zielL = tastenLinks() ? 1 : 0;
-      const zielR = tastenRechts() ? 1 : 0;
-      flipperL += (zielL - flipperL) * 0.42 * sch;
-      flipperR += (zielR - flipperR) * 0.42 * sch;
+      const flipper = (px, py, len, radius, ruhe, aktiv, stellung) => {
+        const winkel = ruhe + (aktiv - ruhe) * stellung;
+        const x2 = px + Math.cos(winkel) * len;
+        const y2 = py + Math.sin(winkel) * len;
+        const getroffen = kapsel(px, py, x2, y2, radius, 0.55, 0);
+        if (!getroffen) return;
 
-      if (!kugel.imStart) {
-        kugel.vy += 0.2 * sch;
-        kugel.x += kugel.vx * sch;
-        kugel.y += kugel.vy * sch;
+        const nx = kugel.x - px;
+        const ny = kugel.y - py;
+        const ab = Math.sqrt(nx * nx + ny * ny) || 1;
+        const schlag = 300 + stellung * 620;
+        kugel.vx += (nx / ab) * schlag * 0.55 - Math.sin(winkel) * schlag * 0.5;
+        kugel.vy += (ny / ab) * schlag * 0.55 + Math.cos(winkel) * schlag * 0.5 - 120;
+      };
+      const len = Math.min(112, W * 0.17);
+      flipper(W * 0.335, H - 76, len, 9.5, 0.34, -0.46, flipperL);
+      flipper(W * 0.665, H - 76, len, 9.5, Math.PI - 0.34, Math.PI + 0.46, flipperR);
 
-
-        // Waende
-        if (kugel.x - kugel.r < wandLinks) { kugel.x = wandLinks + kugel.r; kugel.vx = Math.abs(kugel.vx) * 0.96; }
-        if (kugel.x + kugel.r > wandRechts) { kugel.x = wandRechts - kugel.r; kugel.vx = -Math.abs(kugel.vx) * 0.96; }
-        if (kugel.y - kugel.r < 22) { kugel.y = 22 + kugel.r; kugel.vy = Math.abs(kugel.vy) * 0.96; }
-
-        // Bahnwand (Trennwand der Abschussrampe)
-        if (kugel.y > bahnOben) {
-          kapsel(bahnWand, bahnOben, bahnWand, H - 20, 3, 0.7, 0);
-        }
-
-        // Aus der Abschussrampe ins Spielfeld: oben ueber die Trennwand
-        // hinweg nach links (die Kurve ist nur Optik).
-        if (kugel.x > bahnWand && kugel.y < bahnOben + 46 && kugel.vy < 0) {
-          kugel.vx = -8.4;
-          kugel.vy = -4.2;
-        }
-
-        // Pins
-        for (const p of pins) {
-          const dx = Math.cos(p.a) * p.len / 2;
-          const dy = Math.sin(p.a) * p.len / 2;
-          kapsel(p.x - dx, p.y - dy, p.x + dx, p.y + dy, p.r, 0.92, p.wert);
-        }
-
-        // Slingshots
-        kapsel(slingL.x1, slingL.y1, slingL.x2, slingL.y2, 5, 0.95, 15);
-        kapsel(slingR.x1, slingR.y1, slingR.x2, slingR.y2, 5, 0.95, 15);
-
-        // Flipper als Kapseln
-        const g = flipperGeom();
-        const flipperStoss = (f, stellung, alt) => {
-          const winkel = f.ruhe + (f.aktiv - f.ruhe) * stellung;
-          const altWinkel = f.ruhe + (f.aktiv - f.ruhe) * alt;
-          const x2 = f.px + Math.cos(winkel) * f.len;
-          const y2 = f.py + Math.sin(winkel) * f.len;
-          const getroffen = kapsel(f.px, f.py, x2, y2, f.r, 0.55, 0);
-          if (getroffen) {
-            const w = (winkel - altWinkel) * 22;
-            kugel.vx += -Math.sin(winkel) * w;
-            kugel.vy += Math.cos(winkel) * w;
-            const kraft = 4.6 + Math.abs(w) * 0.5;
-            const nx = kugel.x - f.px;
-            const ny = kugel.y - f.py;
-            const ab = Math.sqrt(nx * nx + ny * ny) || 1;
-            kugel.vx += (nx / ab) * kraft * 0.35;
-            kugel.vy += (ny / ab) * kraft * 0.35 - 1.4;
-            popups.push({ x: kugel.x, y: kugel.y, text: "", leben: 0.6 });
-          }
-        };
-        flipperStoss(g.links, flipperL, flipperLAlt);
-        flipperStoss(g.rechts, flipperR, flipperRAlt);
-
-        // Ball ins Aus
-        if (kugel.y > H + 20) {
-          kugel.imStart = true;
-          kugel.x = W - 34;
-          kugel.y = H - 46;
-          kugel.vx = 0;
-          kugel.vy = 0;
-          power = 0;
-          punkte = Math.max(0, punkte - 15);
-        }
-
-        // Spur
-        spur.push({ x: kugel.x, y: kugel.y, leben: 1 });
-        if (spur.length > 14) spur.shift();
+      // Aus
+      if (kugel.y > H + 30) {
+        kugel.imStart = true;
+        kugel.x = W - 36;
+        kugel.y = H - 52;
+        kugel.vx = 0;
+        kugel.vy = 0;
+        power = 0;
+        punkte = Math.max(0, punkte - 20);
+        levelPunkte = Math.max(0, levelPunkte - 20);
       }
+    };
 
-      // Abschuss
-      if (kugel.imStart) {
-        if (powerLaeuft) power = Math.min(1, power + 0.022 * sch);
-      }
-
-      for (const s of spur) s.leben -= 0.05 * sch;
-      for (let i = popups.length - 1; i >= 0; i -= 1) {
-        popups[i].leben -= 0.018 * sch;
-        popups[i].y -= 0.7 * sch;
-        if (popups[i].leben <= 0) popups.splice(i, 1);
-      }
-      for (let i = blitze.length - 1; i >= 0; i -= 1) {
-        blitze[i].leben -= 0.05 * sch;
-        if (blitze[i].leben <= 0) blitze.splice(i, 1);
-      }
-      schuetteln *= 0.9;
-
-      punkteAnzeige.textContent = String(punkte);
+    const abschiessen = () => {
+      powerLaeuft = false;
+      if (!kugel.imStart) return;
+      kugel.imStart = false;
+      kugel.vx = -120;
+      kugel.vy = -(760 + power * 620);
+      power = 0;
+      schuetteln = 3;
     };
 
     // ---------------- Zeichnen ----------------
     const zeichne = () => {
       ctx.save();
-      const sx = (Math.random() - 0.5) * schuetteln;
-      const sy = (Math.random() - 0.5) * schuetteln;
-      ctx.translate(sx, sy);
+      ctx.translate((zufall() - 0.5) * schuetteln, (zufall() - 0.5) * schuetteln);
 
       const grund = ctx.createLinearGradient(0, 0, 0, H);
       grund.addColorStop(0, "#1b1a3d");
@@ -10462,13 +10551,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       ctx.fillStyle = grund;
       ctx.fillRect(-10, -10, W + 20, H + 20);
 
-      // Wasserzeichen: HSRW-Marke (Logo-Form)
+      // Wasserzeichen
       ctx.save();
-      ctx.globalAlpha = 0.1;
-      const mx = W * 0.5;
-      const my = H * 0.46;
-      const sk = Math.min(W, H) / 220 * 0.9;
-      ctx.translate(mx, my);
+      ctx.globalAlpha = 0.05;
+      const sk = Math.min(W, H) / 220 * 0.62;
+      ctx.translate(W * 0.5, H * 0.42);
       ctx.scale(sk, sk);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -10506,10 +10593,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       ctx.stroke();
       for (let i = 0; i < 9; i += 1) {
         const t2 = i / 8;
-        const x = wandLinks + (wandRechts - wandLinks) * t2;
-        const y = 18 + Math.sin(Math.PI * t2) * 33;
         ctx.beginPath();
-        ctx.arc(x, y + 5, 3.4, 0, Math.PI * 2);
+        ctx.arc(wandLinks + (wandRechts - wandLinks) * t2, 18 + Math.sin(Math.PI * t2) * 33 + 5, 3.4, 0, Math.PI * 2);
         ctx.fillStyle = i % 3 === 0 ? GOLD : i % 3 === 1 ? "#ff8f7a" : "#8fd3a8";
         ctx.shadowColor = ctx.fillStyle;
         ctx.shadowBlur = 10;
@@ -10517,7 +10602,20 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         ctx.shadowBlur = 0;
       }
 
-      // Pins: Kapsel-Strich wie im Logo (Zeichnung entspricht der Hitbox)
+      // Levelanzeige
+      ctx.textAlign = "left";
+      ctx.fillStyle = "rgba(233,240,252,.85)";
+      ctx.font = "700 14px system-ui, Segoe UI";
+      const karte = KARTEN[stufe % KARTEN.length];
+      ctx.fillText(`Level ${stufe + 1}/${KARTEN.length} · ${karte.name}`, 26, 84);
+      ctx.fillText(`${levelPunkte} / ${ziel}`, 26, 102);
+      const balken = Math.min(1, ziel ? levelPunkte / ziel : 0);
+      ctx.fillStyle = "rgba(255,255,255,.14)";
+      ctx.fillRect(26, 108, W * 0.36, 5);
+      ctx.fillStyle = GOLD;
+      ctx.fillRect(26, 108, W * 0.36 * balken, 5);
+
+      // Pins
       for (const p of pins) {
         const dx = Math.cos(p.a) * p.len / 2;
         const dy = Math.sin(p.a) * p.len / 2;
@@ -10528,118 +10626,110 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         ctx.moveTo(p.x - dx, p.y - dy);
         ctx.lineTo(p.x + dx, p.y + dy);
         ctx.stroke();
-        // Glanzkante
-        ctx.strokeStyle = "rgba(255,255,255,.22)";
-        ctx.lineWidth = Math.max(1.6, p.r * 0.34);
+        ctx.strokeStyle = "rgba(255,255,255,.2)";
+        ctx.lineWidth = Math.max(1.6, p.r * 0.3);
         ctx.beginPath();
-        ctx.moveTo(p.x - dx * 0.72 - 2, p.y - dy * 0.72 - 3);
-        ctx.lineTo(p.x + dx * 0.72 - 2, p.y + dy * 0.72 - 3);
+        ctx.moveTo(p.x - dx * 0.7 - 2, p.y - dy * 0.7 - 3);
+        ctx.lineTo(p.x + dx * 0.7 - 2, p.y + dy * 0.7 - 3);
         ctx.stroke();
       }
 
       // Slingshots
-      const sling = (s) => {
+      for (const s of [slingL, slingR]) {
         ctx.beginPath();
         ctx.moveTo(s.x1, s.y1);
         ctx.lineTo(s.x2, s.y2);
         ctx.lineTo(s.x1, s.y2);
         ctx.closePath();
-        ctx.fillStyle = "rgba(224,73,47,.16)";
+        ctx.fillStyle = "rgba(224,73,47,.12)";
         ctx.fill();
-        ctx.strokeStyle = "rgba(224,73,47,.75)";
+        ctx.strokeStyle = "rgba(224,73,47,.7)";
         ctx.lineWidth = 5;
         ctx.lineCap = "round";
         ctx.beginPath();
         ctx.moveTo(s.x1, s.y1);
         ctx.lineTo(s.x2, s.y2);
         ctx.stroke();
-      };
-      sling(slingL);
-      sling(slingR);
+      }
 
-      // Bahnkurve oben rechts (nur Optik)
+      // Rampe + Power
       ctx.strokeStyle = "rgba(211,168,98,.5)";
-      ctx.lineWidth = 6;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(bahnWand, bahnOben);
+      ctx.lineTo(bahnWand, H - 24);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(211,168,98,.45)";
+      ctx.lineWidth = 5;
       ctx.lineCap = "round";
       ctx.beginPath();
       ctx.moveTo(W - 24, 168);
       ctx.quadraticCurveTo(W - 34, 74, W * 0.64, 40);
       ctx.stroke();
-
-      // Abschussrampe
-      ctx.strokeStyle = "rgba(211,168,98,.5)";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(bahnWand, bahnOben);
-      ctx.lineTo(bahnWand, H - 20);
-      ctx.stroke();
       if (kugel.imStart) {
-        const bh = (H - 60) * power;
+        const bh = (H - 120) * power;
         ctx.fillStyle = "rgba(255,212,121,.85)";
-        ctx.fillRect(W - 30, H - 40 - bh, 8, bh);
-        ctx.strokeStyle = "rgba(255,212,121,.35)";
-        ctx.lineWidth = 1.4;
-        ctx.strokeRect(W - 31.5, H - 41 - (H - 60), 11, H - 60);
+        ctx.fillRect(W - 34, H - 62 - bh, 8, bh);
       }
 
       // Flipper
-      const g = flipperGeom();
-      const zeichneFlipper = (f, stellung) => {
-        const winkel = f.ruhe + (f.aktiv - f.ruhe) * stellung;
-        const x2 = f.px + Math.cos(winkel) * f.len;
-        const y2 = f.py + Math.sin(winkel) * f.len;
+      const flipperZeichnen = (px, py, len, radius, ruhe, aktiv, stellung) => {
+        const winkel = ruhe + (aktiv - ruhe) * stellung;
+        const x2 = px + Math.cos(winkel) * len;
+        const y2 = py + Math.sin(winkel) * len;
         ctx.lineCap = "round";
         ctx.strokeStyle = ROT;
-        ctx.lineWidth = f.r * 2;
+        ctx.lineWidth = radius * 2;
         ctx.beginPath();
-        ctx.moveTo(f.px, f.py);
+        ctx.moveTo(px, py);
         ctx.lineTo(x2, y2);
         ctx.stroke();
-        ctx.strokeStyle = "rgba(255,255,255,.35)";
-        ctx.lineWidth = Math.max(1.5, f.r * 0.3);
+        ctx.strokeStyle = "rgba(255,255,255,.32)";
+        ctx.lineWidth = Math.max(1.5, radius * 0.3);
         ctx.beginPath();
-        ctx.moveTo(f.px + 2, f.py - 2);
+        ctx.moveTo(px + 2, py - 2);
         ctx.lineTo(x2 + 2, y2 - 2);
         ctx.stroke();
         ctx.beginPath();
-        ctx.arc(f.px, f.py, 4.6, 0, Math.PI * 2);
+        ctx.arc(px, py, 4.6, 0, Math.PI * 2);
         ctx.fillStyle = GOLD;
         ctx.fill();
       };
-      zeichneFlipper(g.links, flipperL);
-      zeichneFlipper(g.rechts, flipperR);
+      const flen = Math.min(112, W * 0.17);
+      flipperZeichnen(W * 0.335, H - 76, flen, 9.5, 0.34, -0.46, flipperL);
+      flipperZeichnen(W * 0.665, H - 76, flen, 9.5, Math.PI - 0.34, Math.PI + 0.46, flipperR);
 
       // Spur
       for (const s of spur) {
         if (s.leben <= 0) continue;
         ctx.beginPath();
-        ctx.arc(s.x, s.y, kugel.r * s.leben * 0.85, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(127,179,255,${0.16 * s.leben})`;
+        ctx.arc(s.x, s.y, kugel.r * s.leben * 0.8, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(127,179,255,${0.15 * s.leben})`;
         ctx.fill();
       }
 
       // Kugel
-      ctx.beginPath();
-      ctx.arc(kugel.x, kugel.y, kugel.r, 0, Math.PI * 2);
-      const kg = ctx.createRadialGradient(kugel.x - 2.4, kugel.y - 2.6, 0.6, kugel.x, kugel.y, kugel.r);
-      kg.addColorStop(0, "#ffffff");
-      kg.addColorStop(1, "#9fbde3");
-      ctx.fillStyle = kg;
-      ctx.shadowColor = "#8fbfff";
-      ctx.shadowBlur = 14;
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      if (!kugel.imStart || true) {
+        ctx.beginPath();
+        ctx.arc(kugel.x, kugel.y, kugel.r, 0, Math.PI * 2);
+        const kg = ctx.createRadialGradient(kugel.x - 2.4, kugel.y - 2.6, 0.6, kugel.x, kugel.y, kugel.r);
+        kg.addColorStop(0, "#ffffff");
+        kg.addColorStop(1, "#9fbde3");
+        ctx.fillStyle = kg;
+        ctx.shadowColor = "#8fbfff";
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
 
-      // Trefferblitze
       for (const b of blitze) {
         ctx.beginPath();
-        ctx.arc(b.x, b.y, (1 - b.leben) * 30 + 6, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(255,212,121,${b.leben * 0.55})`;
-        ctx.lineWidth = 2.4;
+        ctx.arc(b.x, b.y, (1 - b.leben) * 28 + 6, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,212,121,${b.leben * 0.5})`;
+        ctx.lineWidth = 2.2;
         ctx.stroke();
       }
 
-      // Punkte-Popups
       ctx.textAlign = "center";
       for (const p of popups) {
         if (!p.text) continue;
@@ -10648,28 +10738,72 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         ctx.fillText(p.text, p.x, p.y);
       }
 
-      // Rahmen
+      if (banner) {
+        ctx.globalAlpha = Math.min(1, banner.leben);
+        ctx.fillStyle = "rgba(0,0,0,.45)";
+        ctx.fillRect(0, H * 0.42, W, 58);
+        ctx.fillStyle = GOLD;
+        ctx.font = "800 24px system-ui, Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText(banner.text, W / 2, H * 0.42 + 37);
+        ctx.globalAlpha = 1;
+      }
+
       ctx.strokeStyle = "rgba(211,168,98,.8)";
       ctx.lineWidth = 3;
       ctx.strokeRect(4.5, 4.5, W - 9, H - 9);
       ctx.restore();
     };
 
-    // ---------------- Tasten ----------------
-    let linksGedrueckt = false;
-    let rechtsGedrueckt = false;
-    const tastenLinks = () => linksGedrueckt;
-    const tastenRechts = () => rechtsGedrueckt;
-
+    // ---------------- Schleife ----------------
     const frame = (zeit) => {
       if (!laeuft) return;
-      const dt = letzterFrame ? zeit - letzterFrame : 16;
-
+      const dt = letzterFrame ? Math.min(50, zeit - letzterFrame) / 1000 : SCHRITT;
       letzterFrame = zeit;
+
       if (spielLaeuft) {
-        schrittPhysik(dt / 2);
-        schrittPhysik(dt / 2);
+        akkumulator += dt;
+        let schritte = 0;
+        while (akkumulator >= SCHRITT && schritte < 24) {
+          bewege(SCHRITT);
+          akkumulator -= SCHRITT;
+          schritte += 1;
+        }
+
+        // Level geschafft?
+        if (levelPunkte >= ziel) {
+          stufe += 1;
+          if (stufe >= KARTEN.length) {
+            stufe = 0;
+            punkte += 200;
+            banner = { text: "Alle Level geschafft - Bonus 200", leben: 1.6 };
+          }
+          levelAufbau();
+        }
+
+        // Spur
+        if (!kugel.imStart) {
+          spur.push({ x: kugel.x, y: kugel.y, leben: 1 });
+          if (spur.length > 14) spur.shift();
+        }
+        for (const s of spur) s.leben -= dt * 2.6;
+        for (let i = popups.length - 1; i >= 0; i -= 1) {
+          popups[i].leben -= dt * 1.1;
+          popups[i].y -= dt * 42;
+          if (popups[i].leben <= 0) popups.splice(i, 1);
+        }
+        for (let i = blitze.length - 1; i >= 0; i -= 1) {
+          blitze[i].leben -= dt * 3;
+          if (blitze[i].leben <= 0) blitze.splice(i, 1);
+        }
+        if (banner) {
+          banner.leben -= dt * 0.8;
+          if (banner.leben <= 0) banner = null;
+        }
+        schuetteln *= Math.max(0, 1 - dt * 8);
       }
+
+      punkteAnzeige.textContent = String(punkte);
       zeichne();
       requestAnimationFrame(frame);
     };
@@ -10685,18 +10819,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         if (unten && kugel.imStart) powerLaeuft = true;
         if (!unten && powerLaeuft) abschiessen();
       }
-    };
-
-    const abschiessen = () => {
-      powerLaeuft = false;
-      if (!kugel.imStart) return;
-      const kraft = 13 + power * 12;
-      kugel.imStart = false;
-      kugel.vx = -1.8;
-      kugel.vy = -kraft;
-
-      power = 0;
-      schuetteln = 3;
     };
 
     let geschlossen = false;
@@ -10718,16 +10840,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     window.addEventListener("keydown", aufTaste);
     window.addEventListener("keyup", aufTaste);
 
-    // Schnee
-    const flocken = Array.from({ length: 46 }, () => ({
+    const flocken = Array.from({ length: 44 }, () => ({
       x: Math.random() * W,
       y: Math.random() * H,
       r: 0.8 + Math.random() * 1.9,
       v: 0.16 + Math.random() * 0.5,
-      a: 0.2 + Math.random() * 0.4
+      a: 0.18 + Math.random() * 0.35
     }));
 
-
+    levelAufbau();
     requestAnimationFrame(frame);
   }
 

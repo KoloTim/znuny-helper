@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.25] – 2026-11-09
+
+### Changed
+- **Pinball mit Leveln:** Vier Karten – **Y-Kreuz**, **Stern**, **Zickzack** und **Tannenbaum**. Jedes Level hat ein Punktziel; ist es erreicht, geht es eine Karte weiter, nach Level 4 gibt es 200 Bonus und es beginnt von vorn. Fortschritt und Levelname stehen in der Kopfzeile und auf dem Spielfeld (mit Balken).
+- **Weniger Hindernisse:** Drei bis sechs große Pins pro Karte statt eines vollen Felds; Slingshots bleiben.
+- **Jeder Durchlauf anders:** Positionen, Winkel und Lage der Pins werden beim Levelaufbau zufällig verschoben und gedreht.
+- **Ballphysik neu:** Die Kugel rechnet mit **fester Schrittweite (240 Hz)** statt pro Bild – dadurch ist die Bewegung unabhängig von der Bildrate, springt nicht durch Hindernisse und prallt sauberer ab. Gravitation, Dämpfung und Flipperkraft sind neu eingestellt; die Flipper stehen enger zusammen, damit die Kugel seltener durch die Mitte fällt.
+
 ## [1.6.24] – 2026-11-09
 
 ### Changed

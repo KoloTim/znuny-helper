@@ -1509,7 +1509,7 @@ check("Elfe mit Auszeit-Text vorhanden",
   source.includes("zh-pin-elf") && source.includes("Auszeit verdient"),
   true);
 check("Pinball: Pins sind Kapseln im Logo-Stil",
-  source.includes("pinSetzen") && /lineWidth = p\.r \* 2/.test(source) && source.includes("const NAVY") && source.includes("const BLAU"),
+  source.includes("const kapsel") && /lineWidth = p\.r \* 2/.test(source) && source.includes("const NAVY") && source.includes("const BLAU"),
   true);
 check("Pinball: Abschuss mit Power-Leiste",
   source.includes("powerLaeuft") && source.includes("abschiessen") && /Space/.test(source),
@@ -1539,6 +1539,20 @@ check("HSRW-Marke exakt (runder Strich + abgeschnittener Balken)",
   true);
 check("Kugeln weichen dem Zeiger aus",
   source.includes("startChristmasMagnet") && /translate\(\$\{nx\.toFixed/.test(source),
+  true);
+
+console.log("\n27) Pinball: Level, Zufall, feste Schrittweite");
+check("vier Levelkarten vorhanden",
+  (source.match(/name: "/g) || []).length >= 4 && source.includes("KARTEN"),
+  true);
+check("Levelaufbau mischt Positionen",
+  source.includes("levelAufbau") && source.includes("zufall()"),
+  true);
+check("feste Zeitschrittweite 1/240",
+  /const SCHRITT = 1 \/ 240;/.test(source) && source.includes("akkumulator"),
+  true);
+check("Levelziel und Fortschritt",
+  source.includes("levelPunkte >= ziel") && source.includes("zh-pin-level"),
   true);
 
 const chromeManifest = JSON.parse(

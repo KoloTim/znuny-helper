@@ -365,7 +365,7 @@ Direkt nach der Installation bzw. dem ersten Aktivieren merkt sich das Addon nur
 
 Der Weihnachtsmodus ist ein saisonales Schmankerl: Schnee (sechszackige Flocken in drei Tiefen, mit Wind und Maus-Abwehr), eine Girlande mit Lichtern und Kugeln, ein Mistelzweig, ein Tannenbaum mit Schneehauben und Geschenken sowie ein vorbeifliegender Schlitten. Der Baum bleibt immer im Bild und schrumpft bei wenig Platz nur leicht.
 
-**Dreimal auf den Tannenbaum klicken** öffnet das **HSRW-Pinball**-Minigame. Die Pins sind Kapseln im Stil der beiden Y-Striche aus dem HSRW-Logo (Violett-Navy #2a2250 und Blau #3c7fd1), gezeichnet und abgefragt mit derselben Form – Treffer sitzen also genau da, wo der Strich ist.
+**Dreimal auf den Tannenbaum klicken** öffnet das **HSRW-Pinball**-Minigame mit **vier Levelkarten**: Y-Kreuz, Stern, Zickzack und Tannenbaum. Jede Karte hat nur wenige, große Hindernisse und wird bei jedem Start leicht verschoben und gedreht – kein Durchlauf gleicht dem anderen. Die Pins sind Kapseln im Stil der beiden Y-Striche aus dem HSRW-Logo (Violett-Navy #2a2250 und Blau #3c7fd1), gezeichnet und abgefragt mit derselben Form. Die Kugel rechnet mit fester Schrittweite (240 Hz), damit sie unabhängig von der Bildrate läuft und nicht durch Hindernisse springt.
 
 * **Leertaste** halten lädt die Abschussrampe (Power-Leiste rechts), loslassen schießt die Kugel ins Feld.
 * **Pfeiltasten** oder **A/D** bewegen die Flipper, **Esc** beendet das Spiel.

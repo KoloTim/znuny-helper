@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.25",
+      items: [
+        "Pinball mit vier Leveln (Y-Kreuz, Stern, Zickzack, Tannenbaum) – jedes Level mit Punktziel, jeder Durchlauf neu gemischt und mit weniger Hindernissen.",
+        "Neue Ballphysik mit fester Schrittweite: läuft flüssig unabhängig von der Bildrate, springt nicht durch Hindernisse."
+      ]
+    },
+    {
       version: "1.6.24",
       items: [
         "EASM-Bewertung nur noch bei EASM-Tickets und standardmäßig aus – im Popup einschaltbar.",

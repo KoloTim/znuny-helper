@@ -131,7 +131,7 @@ const welcomeQuelle = fs.readFileSync(
 );
 merkeVersion("welcome.js (neuester Eintrag)", welcomeQuelle.match(/version:\s*"([\d.]+)"/)?.[1]);
 
-const MAX_VERSION = "1.6.24";
+const MAX_VERSION = "1.6.25";
 const verschieden = [...new Set(versionen.values())];
 if (verschieden.length > 1) {
   failures += 1;
