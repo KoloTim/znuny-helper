@@ -350,6 +350,8 @@ Unter **Saison** im Popup lässt sich der Weihnachtsmodus ein- und ausschalten. 
 - **Glitzer:** kleine Sterne funkeln an mehreren Stellen.
 - **Weihnachtsmann im Vorbeiflug:** Alle 15 Minuten zieht der Schlitten mit zwei Rentieren in etwa sieben Sekunden einmal quer über den Bildschirm; dabei fallen sechs Geschenke heraus. Der erste Flug kommt nach ungefähr 90 Sekunden.
 
+Baum und Mistelzweig erscheinen nur, wenn Platz ist: scrollt die Seite oder ist das Fenster schmaler als etwa 1100 Pixel, bleiben sie weg, damit sie keine Ticketzeilen verdecken.
+
 Die Deko ist reine Anzeige: Sie liegt in einer Ebene, die **keine Klicks annimmt** – Bedienung und Lesbarkeit bleiben unverändert. Ist im System „Bewegung reduzieren" eingestellt, steht der Schnee still, und der Vorbeiflug entfällt. Alles entsteht lokal im Browser; es werden keine Daten gesendet und keine zusätzlichen Berechtigungen benötigt.
 
 ## EB Helper

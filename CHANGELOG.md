@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.17] – 2026-11-09
+
+### Fixed
+- **Deko lag über den Ticketzeilen:** Baum und Mistelzweig sind fest am Fensterrand – in einem schmalen oder kurzen Fenster lagen sie über den Ticketdaten. Sie erscheinen jetzt nur, wenn Platz ist: Die Seite meldet, ob sie scrollt (dann verschwinden beide), zusätzlich werden sie unter etwa 1100 Pixel Fensterbreite ausgeblendet. Die Prüfung läuft nach dem Aufbau erneut, weil Znuny Inhalte nachlädt.
+- Baum und Zweig sind etwas kleiner (132 px statt 148/150 px), damit sie auch auf mittleren Fenstern in die Ecke passen.
+
 ## [1.6.16] – 2026-11-09
 
 ### Changed

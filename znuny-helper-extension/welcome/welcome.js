@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.6.17",
+      items: [
+        "Deko verdeckt keine Ticketzeilen mehr: Baum und Mistelzweig erscheinen nur, wenn die Seite nicht scrollt und das Fenster breit genug ist."
+      ]
+    },
+    {
       version: "1.6.16",
       items: [
         "Mistelzweig jetzt im klassischen Motiv: gelappte Stechpalmenblätter mit roten Beeren, kompakter in der Ecke.",

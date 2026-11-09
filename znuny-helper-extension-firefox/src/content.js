@@ -9652,7 +9652,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         100% { transform: translate(116vw, 4px) rotate(-1deg); }
       }
       #zh-christmas .zh-xmas-mistletoe {
-        position: absolute; top: -6px; right: 0; width: 150px; height: 126px;
+        position: absolute; top: -8px; right: -4px; width: 132px; height: 111px;
         transform: scaleX(-1);
         filter: drop-shadow(0 5px 8px rgba(0,0,0,.2));
       }
@@ -9677,14 +9677,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         100% { transform: translate(116vw, 4px) rotate(-1deg); }
       }
       #zh-christmas .zh-xmas-mistletoe {
-        position: absolute; top: -6px; right: 0; width: 150px; height: 126px;
+        position: absolute; top: -8px; right: -4px; width: 132px; height: 111px;
         transform: scaleX(-1);
         filter: drop-shadow(0 5px 8px rgba(0,0,0,.2));
       }
       #zh-christmas .zh-xmas-mistlestem { fill: none; stroke: #2f6b46; stroke-width: 3; stroke-linecap: round; }
       #zh-christmas .zh-xmas-mistleaf { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1.1; }
       #zh-christmas .zh-xmas-tree {
-        position: absolute; right: 6px; bottom: 14px; width: 148px; height: 197px;
+        position: absolute; right: 8px; bottom: 12px; width: 132px; height: 176px;
         filter: drop-shadow(0 6px 10px rgba(0,0,0,.2));
       }
       #zh-christmas .zh-xmas-tree-trunk { fill: #6b4226; }
@@ -9744,6 +9744,17 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         #zh-christmas .zh-xmas-sleigh,
         #zh-christmas .zh-xmas-spark { animation: none; }
         #zh-christmas .zh-xmas-spark { opacity: .65; }
+      }
+      /* Kein Platz heisst: keine Deko ueber dem Inhalt. Die Seite meldet per
+         Klasse, wenn sie scrollt; zusaetzlich greifen die Breitenschwellen. */
+      #zh-christmas.zh-xmas-knapp .zh-xmas-tree,
+      #zh-christmas.zh-xmas-knapp .zh-xmas-mistletoe { display: none; }
+      @media (max-width: 1100px) {
+        #zh-christmas .zh-xmas-tree,
+        #zh-christmas .zh-xmas-mistletoe { display: none; }
+      }
+      @media (max-width: 760px) {
+        #zh-christmas .zh-xmas-lights { display: none; }
       }
       @media (max-width: 700px) {
         #zh-christmas .zh-xmas-sleigh { width: 230px; height: 92px; bottom: 10px; }
@@ -10118,6 +10129,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       garlandTimer = window.setTimeout(() => renderChristmasGarland(overlay), 200);
     };
     window.addEventListener("resize", onGarlandResize);
+
+    // Baum und Zweig nur, wenn die Seite nicht scrollt: sonst liegen sie ueber
+    // den Ticketzeilen. Nach dem Nachladen von Znuny nochmals pruefen.
+    const pruefePlatz = () => {
+      const knapp = document.documentElement.scrollHeight > window.innerHeight + 60;
+      overlay.classList.toggle("zh-xmas-knapp", knapp);
+    };
+    pruefePlatz();
+    window.setTimeout(pruefePlatz, 1200);
+    window.setTimeout(pruefePlatz, 3000);
 
     christmasCleanupFns = [
       startChristmasSnow(overlay.querySelector("canvas.zh-xmas-snow")),
