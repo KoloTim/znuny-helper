@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.19] – 2026-11-09
+
+### Added
+- **Schnee reagiert auf die Maus:** Die Flocken wirken antimagnetisch – im Umkreis von 150 Pixeln werden sie vom Zeiger weggestoßen, mit einem leichten Drall zur Seite. Sie kehren danach in ihren normalen Fall zurück. Der Effekt endet 1,4 Sekunden nach der letzten Bewegung, damit nichts dauerhaft „klebt"; beim Verlassen des Fensters ist er sofort aus.
+  - Gemessen im Testfenster: Im Feld um den Zeiger fielen die Schnee-Pixel von 158 auf 29 (−82 %), solange die Maus dort stand.
+  - Kostet nur Rechenzeit im sichtbaren Tab und nur, solange die Maus bewegt wird.
+
 ## [1.6.18] – 2026-11-09
 
 ### Added

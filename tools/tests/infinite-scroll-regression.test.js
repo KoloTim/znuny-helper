@@ -1453,6 +1453,16 @@ check("Knopf und Marke sind vorhanden",
   source.includes("zh-easm-button") && source.includes("zh-easm-badge") && source.includes("AgentTicketArticleContent"),
   true);
 
+console.log("\n23) Schnee weicht der Maus aus");
+check("Zeiger wird verfolgt", source.includes("pointermove") && source.includes("aufZeiger"), true);
+check("Abwehrkraft wirkt nur bei kuerzlicher Bewegung",
+  /maus\.aktiv && zeit - maus\.zeit < 1400/.test(source),
+  true);
+check("Abwehrradius ist gesetzt", /quadrat < 150 \* 150/.test(source), true);
+check("Lauscher werden beim Abschalten entfernt",
+  source.includes('removeEventListener("pointermove", aufZeiger)'),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

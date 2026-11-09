@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.6.19",
+      items: [
+        "Der Schnee weicht der Maus aus: Flocken werden im Umkreis von 150 Pixeln vom Zeiger weggestoßen und beruhigen sich, sobald er stehen bleibt."
+      ]
+    },
+    {
       version: "1.6.18",
       items: [
         "Neu: EASM-Bewertung – Knopf neben dem Tickettitel liest die Criticality-Stufen aus dem neuesten Artikel und zeigt die schwerste als farbige Marke (z. B. CRIT · 1×CRIT 1×HIGH). Nur lesend, im Popup abschaltbar.",

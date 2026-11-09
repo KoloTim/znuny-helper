@@ -9853,6 +9853,20 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     let letzteZeit = 0;
     let laeuft = false;
 
+    // Antimagnetisch: Flocken weichen dem Mauszeiger aus. Die Position lebt
+    // nur so lange wie die letzte Bewegung - steht die Maus, hoert der Effekt
+    // nach kurzer Zeit auf.
+    const maus = { x: -999, y: -999, aktiv: false, zeit: 0 };
+    const aufZeiger = (event) => {
+      maus.x = event.clientX;
+      maus.y = event.clientY;
+      maus.aktiv = true;
+      maus.zeit = performance.now();
+    };
+    const zeigerWeg = () => {
+      maus.aktiv = false;
+    };
+
     // Drei Tiefen: weit (klein, blass, langsam), mittel, nah (gross, schnell,
     // drehend). Das erzeugt den Eindruck von Raum statt einer flachen Wand.
     const EBENEN = [
@@ -9905,9 +9919,25 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
       ctx.clearRect(0, 0, breite, hoehe);
       const wirbel = christmasWake.aktiv ? christmasWake : null;
+      const mausAktiv = maus.aktiv && zeit - maus.zeit < 1400;
       for (const flocke of flocken) {
         const ebene = EBENEN[flocke.ebene];
         flocke.y += flocke.tempo * schritt;
+
+        // Der Mauszeiger wirkt abstossend: je naeher die Flocke, desto
+        // staerker wird sie weggeschoben (plus leichter Drall).
+        if (mausAktiv) {
+          const dx = flocke.x - maus.x;
+          const dy = flocke.y - maus.y;
+          const quadrat = dx * dx + dy * dy;
+          if (quadrat < 150 * 150) {
+            const abstand = Math.sqrt(quadrat) || 1;
+            const naehe = 1 - abstand / 150;
+            const kraft = naehe * naehe * 5.2 * schritt;
+            flocke.x += (dx / abstand) * kraft - (dy / abstand) * kraft * 0.35;
+            flocke.y += (dy / abstand) * kraft + (dx / abstand) * kraft * 0.35;
+          }
+        }
 
         // Wirbelt der Schlitten vorbei, werden Flocken in seiner Naehe nach
         // aussen gedrueckt und mitgerissen - wie eine Schleppe.
@@ -10014,11 +10044,17 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     window.addEventListener("resize", onResize);
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pointermove", aufZeiger, { passive: true });
+    window.addEventListener("pointerleave", zeigerWeg);
+    document.addEventListener("mouseleave", zeigerWeg);
 
     return () => {
       anhalten();
       window.removeEventListener("resize", onResize);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pointermove", aufZeiger);
+      window.removeEventListener("pointerleave", zeigerWeg);
+      document.removeEventListener("mouseleave", zeigerWeg);
     };
   }
 
