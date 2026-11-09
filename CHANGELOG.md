@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.11] – 2026-11-09
+
+### Changed
+- **Weihnachtsdeko plastischer:** Statt flacher Flächen arbeiten Girlande, Baum und Figuren jetzt mit Farbverläufen, Glanzlichtern und einem weichen Glow-Filter.
+  - **Girlande:** geflochtene Schnur mit Nadelbüscheln, Lämpchen mit Leuchtkranz und Kugeln mit Deckel, Goldring und Spiegelpunkt.
+  - **Tannenbaum:** vier Etagen mit Wellenrand, Schnee auf den Spitzen, leuchtende Lichter und ein Stern mit Glow.
+  - **Mistelzweig:** Blätter mit Mittelrippen, Beeren mit Glanzpunkt.
+  - **Weihnachtsmann:** Mantel und Mütze mit Verlauf, Bart mit Schattierung, Augen, Wangen und Lachen; Rentiere mit Halsband und Glocke.
+
 ## [1.6.10] – 2026-11-09
 
 ### Fixed

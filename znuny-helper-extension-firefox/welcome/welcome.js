@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.6.11",
+      items: [
+        "Weihnachtsdeko plastischer: Farbverläufe, Glanzlichter und Glow bei Girlande, Baum, Mistelzweig und Weihnachtsmann; Kugeln mit Deckel und Spiegelpunkt."
+      ]
+    },
+    {
       version: "1.6.10",
       items: [
         "Weihnachtsdeo feinjustiert: Kugeln hängen gerade an der Girlande und werden nicht mehr abgeschnitten, Mistelzweig oben rechts, kleiner Tannenbaum unten links.",
