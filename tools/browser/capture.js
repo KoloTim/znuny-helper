@@ -148,6 +148,12 @@ async function aufnehmen(optionen) {
 
         bericht.push(`  ${seite.name}: ${html.length} Zeichen, Titel "${titel}"`);
         bericht.push(`  gespeichert: ${path.relative(REPO_ROOT, ziel)}`);
+        if (/Action=AgentTicketZoom\b/i.test(seite.url)) {
+          // Ehrlich benannt: Die Aufnahme laeuft bewusst ohne Waechter, sonst
+          // fehlten die per POST nachgeladenen Widgets. Znuny setzt beim
+          // Anzeigen eines Tickets einen "gesehen"-Marker - der geht dabei durch.
+          bericht.push("  Hinweis: Ticketansicht setzt den 'gesehen'-Marker (POST, nur der eigene Stand).");
+        }
         if (anmeldeseite) {
           probleme += 1;
           bericht.push("  ! Sieht nach Anmeldeseite aus - bitte zuerst --login ausfuehren.");

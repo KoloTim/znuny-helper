@@ -92,6 +92,27 @@ Aufzeichnung selbst nur bei sichtbaren Änderungen zeichnet.
 | `--nur=<name>` | nur diese Seite prüfen |
 | `--settle=<ms>` | länger warten, bis die Seite „ruhig" ist (Standard 1500) |
 | `--chrome=<pfad>` | anderes Chrome/Edge (sonst `ZH_CHROME`) |
+| `--live` | echte Znuny-Seiten statt Fixtures (siehe unten) |
+
+### Gegen echte Seiten (`--live`)
+
+`smoke.js --live` und `clicks.js --live` laden die echten Seiten statt der Fixtures
+und prüfen dieselben Erwartungen. Die Anmeldung übernimmt Chrome mit dem
+Windows-Kerberos-Ticket (`--auth-server-allowlist=otrs.staff.hsrw` in `launch.js`) –
+es wird kein Passwort gespeichert oder eingegeben.
+
+Ablauf und Grenzen:
+
+- Znuny antwortet ohne Sitzung mit `401 Negotiate` und liefert dann eine
+  **PreLogin-Seite**, die ein POST-Formular abschickt. Diesen einen Anmelde-POST
+  lässt `clicks.js` **vor** dem Wächter laufen; alles danach läuft darunter.
+- Bei `clicks.js --live` laufen nur Szenarien mit `live: true`. Znuny lädt Widgets
+  (`Subaction=LoadWidget`) und den „gesehen"-Marker (`Subaction=MarkAsSeen`) per
+  POST; der Wächter weist beides ab, weshalb Ticket- und Suchseiten live
+  unvollständig bleiben. Aussagekräftig sind die Listen-Szenarien.
+- `capture.js` läuft ohne Wächter, damit die Aufnahme vollständiges Markup enthält.
+  Dabei geht der „gesehen"-Marker durch – der einzige Schreibvorgang, und er
+  betrifft nur den eigenen Stand.
 
 ### smoke.js
 
