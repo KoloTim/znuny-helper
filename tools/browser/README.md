@@ -12,6 +12,8 @@ Richtige".
 
 ## Die vier Aufrufe
 
+Wenn Node im PATH liegt:
+
 ```bash
 node tools/browser/smoke.js              # Fixtures prüfen (braucht kein Znuny)
 node tools/browser/smoke.js --sichtbar   # dasselbe im Fenster, langsam, zum Zusehen
@@ -19,6 +21,26 @@ node tools/browser/capture.js --login    # einmalig im Profil anmelden
 node tools/browser/capture.js            # echte Seiten aufnehmen
 node tools/browser/testserver.js 8099    # lokaler Server für den Aufnahme-Weg
 ```
+
+### Wenn Node nicht im PATH liegt
+
+Auf dem Arbeitsrechner ist kein Node installiert – es gibt nur die Laufzeit, die das
+DeepSeek Harness mitbringt. Dafür liegt im Repo-Wurzelverzeichnis ein Aufrufer, der
+eine passende Node-Installation selbst sucht (PATH, übliche Installationsorte, dann
+die Harness-Laufzeit) und die Skripte damit startet:
+
+```powershell
+.\browser.cmd              Überblick
+.\browser.cmd smoke        Rauchtest ohne Fenster
+.\browser.cmd show         Rauchtest im Fenster, mit Pausen
+.\browser.cmd record       sichtbarer Lauf mit Aufzeichnung
+.\browser.cmd login        einmalig im Znuny anmelden
+.\browser.cmd capture      echte Seiten aufnehmen
+```
+
+Zusatzschalter werden durchgereicht, z. B. `.\browser.cmd show --nur=agent-suche`.
+Ein bestimmtes Node lässt sich erzwingen: `$env:ZH_NODE = 'C:\Pfad\zu\node.exe'`.
+Die npm-Scripts setzen dagegen ein Node im PATH voraus.
 
 ### Zusehen
 

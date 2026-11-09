@@ -495,12 +495,19 @@ node tools/browser/capture.js               # echte Seiten aufnehmen (ohne Erwei
 node tools/browser/testserver.js 8099       # lokaler Server, um den Aufnahme-Weg zu prüfen
 ```
 
-**Zusehen und aufzeichnen.** `--sichtbar` öffnet ein echtes Chrome-Fenster, geht die Seiten der Reihe nach durch und gönnt jeder Seite eine Pause; im Terminal steht vor jedem Schritt, was gerade passiert (`[1/4] … oeffne https://…`, danach die Befunde). Mit `--aufzeichnen=<verzeichnis>` schickt Chrome währenddessen Einzelbilder des Tabs, daraus entsteht eine Abspielseite `index.html` (Abspielen/Pause, Schritt zurück/vor, Tempo, Pfeiltasten) – kein Videoprogramm nötig. `--bleiben` lässt das Fenster am Ende offen.
+**Zusehen und aufzeichnen.** Liegt Node nicht im PATH (auf dem Arbeitsrechner ist das so), alles über den Aufrufer im Repo-Wurzelverzeichnis – er sucht Node selbst, auch die Laufzeit des Harness:
 
-```bash
-npm run browser:show     # sichtbarer Lauf
-npm run browser:record   # sichtbarer Lauf mit Aufzeichnung nach tools/browser/output/lauf
+```powershell
+.\browser.cmd smoke      # Rauchtest gegen Fixtures, ohne Fenster
+.\browser.cmd show       # dasselbe im Fenster, langsam, mit Erzählung im Terminal
+.\browser.cmd record     # sichtbarer Lauf mit Aufzeichnung
+.\browser.cmd login      # einmalig im Znuny anmelden
+.\browser.cmd capture    # echte Seiten aufnehmen
 ```
+
+Mit Node im PATH gehen dieselben Aufrufe direkt (`node tools/browser/smoke.js --sichtbar`, `--aufzeichnen=<verzeichnis>`).
+
+`--sichtbar` öffnet ein echtes Chrome-Fenster, geht die Seiten der Reihe nach durch und gönnt jeder Seite eine Pause; im Terminal steht vor jedem Schritt, was gerade passiert (`[1/4] … oeffne https://…`, danach die Befunde). Mit `--aufzeichnen=<verzeichnis>` schickt Chrome währenddessen Einzelbilder des Tabs, daraus entsteht eine Abspielseite `index.html` (Abspielen/Pause, Schritt zurück/vor, Tempo, Pfeiltasten) – kein Videoprogramm nötig. `--bleiben` lässt das Fenster am Ende offen.
 
 **Rauchtest (`smoke.js`).** Lädt die Erweiterung in Chrome, beantwortet alle Anfragen an `https://otrs.staff.hsrw/...` aus `tools/fixtures/` und prüft je Seite: meldet sich der Content-Script („Znuny Helper *Version* aktiv"), wurde eine Exception geworfen, und sind die erwarteten Elemente vorhanden (z. B. Kategorie-Spalte in der Ticketliste, Artikelsuche im Ticket). Dazu entsteht je Seite ein Screenshot unter `tools/browser/output/`. Erwartungen stehen in `tools/fixtures/fixtures.json`: `fest` muss zutreffen, `beobachtet` wird nur berichtet. `folgeseiten` werden beim Nachladen bedient, sodass Infinite Scroll samt Endebedingung mitgetestet wird.
 
