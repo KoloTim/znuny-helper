@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.15] – 2026-11-09
+
+### Changed
+- **Schnee ruhiger:** deutlich weniger Flocken (maximal 58 statt 88), alle drei Ebenen langsamer (Geschwindigkeit etwa halbiert) und durchweg transparenter – die Ferne liegt bei 26 %, die Nähe bei 68 % Deckkraft, mit stärkerer Streuung. Wirkt wie Schneefall statt Schneesturm.
+- **Der Weihnachtsmann wirbelt den Schnee auf:** Während des Vorbeiflugs verfolgt die Animation die Position des Schlittens und drückt die Flocken in seiner Umgebung nach außen und mit – eine Schleppe aus aufgewirbeltem Schnee, die mit dem Flug wieder verschwindet. Kostet nur während der sieben Sekunden etwas Rechenzeit (Positionsabfrage 16-mal pro Sekunde), sonst nichts.
+
 ## [1.6.14] – 2026-11-09
 
 ### Fixed

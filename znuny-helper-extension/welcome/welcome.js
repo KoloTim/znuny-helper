@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.15",
+      items: [
+        "Schnee ruhiger: weniger Flocken, langsamer und transparenter – Schneefall statt Schneesturm.",
+        "Der Weihnachtsmann wirbelt beim Vorbeiflug die Flocken um sich herum auf."
+      ]
+    },
+    {
       version: "1.6.14",
       items: [
         "Girlande nicht mehr verzerrt: Sie wird passend zur Fensterbreite gezeichnet – Kugeln bleiben rund, Abstände gleich. Bei Fensteränderung wird sie neu aufgebaut.",

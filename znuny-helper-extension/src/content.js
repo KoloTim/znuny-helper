@@ -9772,9 +9772,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     // Drei Tiefen: weit (klein, blass, langsam), mittel, nah (gross, schnell,
     // drehend). Das erzeugt den Eindruck von Raum statt einer flachen Wand.
     const EBENEN = [
-      { groesse: 7, mitAesten: false, alpha: 0.42, tempo: 0.28, anteil: 0.42, dreht: false },
-      { groesse: 11, mitAesten: true, alpha: 0.62, tempo: 0.62, anteil: 0.36, dreht: false },
-      { groesse: 16, mitAesten: true, alpha: 0.88, tempo: 1.05, anteil: 0.22, dreht: true }
+      { groesse: 7, mitAesten: false, alpha: 0.26, tempo: 0.16, anteil: 0.4, dreht: false },
+      { groesse: 11, mitAesten: true, alpha: 0.42, tempo: 0.32, anteil: 0.36, dreht: false },
+      { groesse: 16, mitAesten: true, alpha: 0.68, tempo: 0.58, anteil: 0.24, dreht: true }
     ];
     const sprites = EBENEN.map((ebene) => zeichneSchneeflocke(ebene.groesse * 2, ebene.mitAesten));
 
@@ -9791,7 +9791,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     };
 
     const anlegen = () => {
-      const gesamt = Math.max(26, Math.min(88, Math.round(breite / 19)));
+      const gesamt = Math.max(18, Math.min(58, Math.round(breite / 27)));
       flocken = [];
       EBENEN.forEach((ebene, index) => {
         const anzahl = Math.round(gesamt * ebene.anteil);
@@ -9806,7 +9806,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
             phase: Math.random() * Math.PI * 2,
             winkel: Math.random() * Math.PI * 2,
             drehTempo: (Math.random() - 0.5) * 0.03,
-            alpha: ebene.alpha * (0.75 + Math.random() * 0.35)
+            alpha: ebene.alpha * (0.45 + Math.random() * 0.6)
           });
         }
       });
@@ -9820,9 +9820,26 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       const wind = Math.sin(zeit / 5200) * 0.55 + Math.sin(zeit / 1700) * 0.18;
 
       ctx.clearRect(0, 0, breite, hoehe);
+      const wirbel = christmasWake.aktiv ? christmasWake : null;
       for (const flocke of flocken) {
         const ebene = EBENEN[flocke.ebene];
         flocke.y += flocke.tempo * schritt;
+
+        // Wirbelt der Schlitten vorbei, werden Flocken in seiner Naehe nach
+        // aussen gedrueckt und mitgerissen - wie eine Schleppe.
+        if (wirbel) {
+          const dx = flocke.x - wirbel.x;
+          const dy = flocke.y - wirbel.y;
+          const abstand = Math.sqrt(dx * dx + dy * dy) || 1;
+          if (abstand < wirbel.radius) {
+            const naehe = 1 - abstand / wirbel.radius;
+            const kraft = naehe * naehe * 3.4 * schritt;
+            const nx = dx / abstand;
+            const ny = dy / abstand;
+            flocke.x += (nx * 0.8 - ny * 1.4) * kraft;
+            flocke.y += (ny * 0.8 + nx * 1.4 - 0.6) * kraft;
+          }
+        }
         flocke.x += (flocke.drift + wind + Math.sin(zeit / 1500 + flocke.phase) * 0.45) * schritt;
 
         if (ebene.dreht) flocke.winkel += flocke.drehTempo * schritt;
@@ -9929,6 +9946,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   const CHRISTMAS_FLY_EVERY_MS = 15 * 60 * 1000;
   const CHRISTMAS_FLY_DURATION_MS = 7000;
   const CHRISTMAS_GIFT_COLORS = ["#b3261e", "#1f6b4a", "#e8b34b", "#3976bb"];
+  // Gemeinsamer Zustand von Flug und Schnee: Wo ist der Schlitten gerade, und
+  // wirbelt er? Der Schnee liest das in seiner Zeichenschleife.
+  const christmasWake = { aktiv: false, x: 0, y: 0, radius: 260 };
   let christmasGiftCounter = 0;
 
   function christmasGiftSvg() {
@@ -9986,6 +10006,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       void fly.offsetWidth;
       fly.classList.add("zh-xmas-fly--go");
 
+      // Wirbel: Position des Schlittens waehrend des Flugs verfolgen, damit
+      // der Schnee um ihn herum aufgewirbelt wird.
+      christmasWake.aktiv = true;
+      const wirbelTakt = window.setInterval(() => {
+        const rect = fly.getBoundingClientRect();
+        christmasWake.x = rect.left + rect.width * 0.32;
+        christmasWake.y = rect.top + rect.height * 0.45;
+      }, 60);
+      merken(wirbelTakt);
+
       // Sechs Geschenke waehrend des Flugs, leicht versetzt.
       [900, 1900, 2900, 3900, 4900, 5900].forEach((zeit) => {
         merken(window.setTimeout(() => dropChristmasGift(overlay, fly), zeit));
@@ -9995,6 +10025,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         fly.classList.remove("zh-xmas-fly--go");
         fly.hidden = true;
         delete fly.dataset.flying;
+        christmasWake.aktiv = false;
+        window.clearInterval(wirbelTakt);
       }, CHRISTMAS_FLY_DURATION_MS + 800));
     };
 
@@ -10012,6 +10044,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       });
       timers.clear();
       window.removeEventListener("znuny-helper-christmas-fly", fliegen);
+      christmasWake.aktiv = false;
       if (window.__zhChristmasFly === fliegen) delete window.__zhChristmasFly;
     };
   }
