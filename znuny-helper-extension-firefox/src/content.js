@@ -9695,7 +9695,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     let laeuft = false;
 
     const messen = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // Schnee braucht keine Retina-Aufloesung: bei 1.25 statt 2 spart die
+      // Leinwand rund zwei Drittel Speicher pro Tab - bei vielen offenen
+      // Znuny-Tabs der eigentliche Unterschied.
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
       breite = window.innerWidth;
       hoehe = window.innerHeight;
       canvas.width = Math.max(1, Math.round(breite * dpr));
@@ -9704,7 +9707,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     };
 
     const anlegen = () => {
-      const anzahl = Math.max(28, Math.min(110, Math.round(breite / 16)));
+      const anzahl = Math.max(24, Math.min(80, Math.round(breite / 20)));
       flocken = Array.from({ length: anzahl }, () => ({
         x: Math.random() * breite,
         y: Math.random() * hoehe,
@@ -9771,19 +9774,32 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       }
     };
 
-    messen();
     anlegen();
 
-    if (reducedMotion) {
-      neuMessen();
+    if (document.hidden) {
+      // Beim Laden im Hintergrund gar nicht erst Speicher belegen: die
+      // Leinwand wird erst beim Sichtbarwerden aufgebaut.
+      messen();
+      canvas.width = 0;
+      canvas.height = 0;
     } else {
-      starten();
+      messen();
+      if (reducedMotion) neuMessen();
+      else starten();
     }
 
     const onResize = () => neuMessen();
     const onVisibility = () => {
-      if (document.hidden) anhalten();
-      else if (!reducedMotion) starten();
+      if (document.hidden) {
+        anhalten();
+        // Hintergrund-Tab: Leinwand freigeben. Eine 0-grosse Flaeche belegt
+        // keinen Grafikspeicher - bei vielen offenen Tabs der groesste Effekt.
+        canvas.width = 0;
+        canvas.height = 0;
+      } else {
+        neuMessen();
+        if (!reducedMotion) starten();
+      }
     };
 
     window.addEventListener("resize", onResize);

@@ -159,6 +159,7 @@ async function pruefeSeite(connection, seite, optionen, nummer, gesamt) {
     console.log("        Seite geladen - lese DOM und Erweiterungsoberflaeche");
 
     const logs = page.helperLogs();
+    ergebnis.logs = logs;
     ergebnis.log = logs.length > 0;
     ergebnis.logText = logs.length ? logs[0].text : "";
     ergebnis.exceptions = page.exceptions.slice();
@@ -217,6 +218,13 @@ function bewerte(ergebnis) {
   if (!ergebnis.log) fehler.push("Content-Script hat sich nicht gemeldet");
   for (const exception of ergebnis.exceptions) {
     fehler.push(`Exception: ${exception.text} ${exception.description || ""}`.trim());
+  }
+  // Ein Fehler in init() wird abgefangen und landet nur in der Konsole - ohne
+  // diese Pruefung bliebe ein stiller Ausfall (z. B. kaputte Deko) unbemerkt.
+  for (const eintrag of ergebnis.logs || []) {
+    if (/failed to initialize/i.test(eintrag.text)) {
+      fehler.push(`Initialisierung fehlgeschlagen: ${eintrag.text}`);
+    }
   }
   for (const eintrag of ergebnis.fest) {
     if (eintrag.anzahl <= 0) fehler.push(`fehlt: ${eintrag.selektor}`);

@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.12] – 2026-11-09
+
+### Changed
+- **Weihnachtsdeko kostet kaum noch Speicher, wenn mehrere Tabs offen sind.** Drei Maßnahmen:
+  - Die Schnee-Leinwand läuft in **1,25-facher** statt 2-facher Auflösung – Schnee braucht keine Retina-Schärfe.
+  - **Hintergrund-Tabs geben die Leinwand frei** (0 × 0) und bauen sie erst beim Sichtbarwerden wieder auf. Vorher belegte jeder offene Znuny-Tab seine eigene Fläche.
+  - Weniger Flocken (maximal 80 statt 110), passend zur Fensterbreite.
+
+  Gemessen mit sechs offenen Tabs bei 1422 × 904: vorher rund **124 MB** Grafikspeicher (6 × 20,6 MB), jetzt **4,3 MB** insgesamt – nur der sichtbare Tab hält eine Leinwand. Die CPU-Zeit liegt mit Deko im Rahmen des Rauschens (0,25 s in 6 s gegenüber 0,30 s ohne Deko; nur der sichtbare Tab animiert).
+- **Rauchtest prüft jetzt stille Startfehler:** Ein Fehler in der Initialisierung wird im Content-Script abgefangen und landet nur in der Konsole. Der Rauchtest wertet diese Meldung aus und schlägt an, statt eine kaputte Funktion für „grün" zu halten.
+
 ## [1.6.11] – 2026-11-09
 
 ### Changed
