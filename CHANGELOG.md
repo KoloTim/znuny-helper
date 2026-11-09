@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.33] – 2026-11-09
+
+### Removed
+- **„Priorität setzen" ist wieder raus.** Der Versuch, die EASM-Einstufung direkt in die Ticketpriorität zu schreiben, hat keine Arbeit gespart: Znuny verlangt auf diesen Tickets Queue und Besitzer, die im Formular leer sind – dadurch scheitert jeder Submit, auch von Hand. Statt einer Funktion, die nur erklärt, warum sie nicht funktioniert, ist sie jetzt entfernt.
+  - Entfernt: Knopf, Rückfrage-Dialog, Formular-Logik, Vorauswahl (`#zh-prio`), zugehörige Stile und Tests.
+  - **Geblieben ist die Bewertung** (`EASM bewerten` → `MED · 3×MED` mit Quelle), die funktioniert und beim Triage hilft.
+
 ## [1.6.32] – 2026-11-09
 
 ### Fixed

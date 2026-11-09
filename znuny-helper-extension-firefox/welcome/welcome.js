@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.6.33",
+      items: [
+        "„Priorität setzen“ ist wieder entfernt – Znuny verlangt auf den EASM-Tickets Queue und Besitzer, dadurch scheitert jeder Versuch. Die EASM-Bewertung bleibt."
+      ]
+    },
+    {
       version: "1.6.32",
       items: [
         "Priorität-Dialog prüft jetzt auch Queue und Besitzer: Fehlen sie im Formular, erklärt er das (liegt am Ticket) und bietet kein „Setzen“ an, das ohnehin scheitern würde."

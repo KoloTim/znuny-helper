@@ -356,9 +356,7 @@ Der Schalter **Weihnachtsmodus** im Popup schaltet alles an und aus.
 
 EASM-Tickets der DATAGROUP enthalten je Schwachstelle einen Block „Criticality" mit **Low**, **Medium**, **High** oder **Critical**. Im geöffneten Ticket steht neben dem Titel der Knopf **EASM bewerten**. Ein Klick liest **alle Artikel von neu nach alt** (nur lesend) und nimmt den ersten mit einer Einstufung – der neueste Artikel ist oft nur eine Notiz. Angezeigt wird die schwerste Stufe als farbige Marke, zum Beispiel `CRIT · 1×CRIT 1×HIGH`.
 
-Daneben steht **Priorität: … setzen**. Der Knopf übernimmt die Einstufung in die Ticketpriorität (Critical → Critical, High → High, Medium → Normal, Low → Low). Nach einem Klick erscheint eine Rückfrage; **erst mit „Setzen“ wird geschrieben** – ohne Bestätigung passiert nichts.
 
-Ob das direkt geht, prüft die Erweiterung **vor** der Rückfrage: Sie liest das Prioritätsformular und sieht nach, ob Pflichtfelder leer sind (typisch: **Service**). Fehlt etwas, gibt es **kein „Setzen“** – die Rückfrage bietet dann nur **Formular öffnen**, und die Prioritätsseite startet mit bereits **vorausgewählter Priorität**; du ergänzt nur noch das fehlende Feld und speicherst dort selbst.
 
 - Kritisch = rot, Hoch = orange, Mittel = gelb, Niedrig = grün.
 - Maßgeblich ist die schwerste gefundene Stufe; die Marke nennt zusätzlich, wie viele Funde je Stufe im Artikel stehen.

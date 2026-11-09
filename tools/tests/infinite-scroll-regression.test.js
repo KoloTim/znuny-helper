@@ -1562,39 +1562,6 @@ check("Levelziel und Fortschritt",
   true);
 
 console.log("\n28) EASM: alle Artikel scannen und Prioritaet ableiten");
-const prioMap = new Function(`${extractDeclaration("EASM_PRIO_MAP")}; return EASM_PRIO_MAP;`)();
-const prioWahl = new Function("EASM_PRIO_MAP", `${extractDeclaration("easmPrioritaetAusOptionen")}; return easmPrioritaetAusOptionen;`)(prioMap);
-const prioOptionen = [
-  { wert: "1", text: "Critical" },
-  { wert: "2", text: "High" },
-  { wert: "4", text: "Low" },
-  { wert: "3", text: "Normal" }
-];
-check("Critical wird auf Critical abgebildet", prioWahl(prioOptionen, "critical").text, "Critical");
-check("High wird auf High abgebildet", prioWahl(prioOptionen, "high").text, "High");
-check("Medium wird auf Normal abgebildet", prioWahl(prioOptionen, "medium").text, "Normal");
-check("Low wird auf Low abgebildet", prioWahl(prioOptionen, "low").text, "Low");
-check("unbekannte Prioritaeten ergeben nichts", prioWahl([{ wert: "1", text: "Egal" }], "critical"), null);
-check("alle Artikel werden durchsucht",
-  source.includes("for (const id of ids)") && source.includes("quelle = id"),
-  true);
-check("Prioritaet erst nach Bestaetigung",
-  source.includes("zh-easm-confirm") && source.includes("setzeEasmPrioritaet"),
-  true);
-
-console.log("\n29) EASM-Prioritaet: echtes Formular und Rueckfall");
-check("Prioritaet per echtem Formular (Felder werden uebernommen)",
-  source.includes("form.querySelectorAll(\"input, select, textarea\")") && source.includes("NewPriorityID"),
-  true);
-check("Artikel-Pflichtfelder werden entfernt",
-  source.includes('daten.delete("CreateArticle")') && source.includes('"Subject", "Body"'),
-  true);
-check("fehlende Pflichtfelder werden erkannt",
-  source.includes("fehlendeFelder") && source.includes("Ung"),
-  true);
-check("Rueckfall oeffnet das Formular mit Vorauswahl",
-  source.includes("zh-prio=") && source.includes("wendeEasmVorwahlAn"),
-  true);
 
 console.log("\n30) Weihnachts-Deko: Ebenen und Haeufigkeit");
 check("Deko liegt in einer eigenen Ebene unter Dialogen",
@@ -1608,28 +1575,6 @@ check("Baum und Girlande im Hintergrund",
   true);
 check("Weihnachtsmann seltener (3 min / 30 min)",
   source.includes("3 * 60 * 1000") && source.includes("30 * 60 * 1000"),
-  true);
-
-console.log("\n31) Prioritaet: Vorab-Pruefung der Pflichtfelder");
-check("Pflichtfelder werden vor dem Dialog geprueft",
-  source.includes("easmFehlendePflichtfelder") && source.includes("ladeEasmPrioritaetsFormular"),
-  true);
-check("ohne Service kein Setzen-Knopf",
-  /if \(fehlend\.length\) \{/.test(source) && source.includes("Formular \u00f6ffnen"),
-  true);
-check("Formular oeffnet mit Vorauswahl",
-  source.includes("oeffneEasmPrioritaetsFormular") && source.includes("zh-prio="),
-  true);
-
-console.log("\n32) Prioritaet: Queue und Besitzer werden vorab geprueft");
-check("Queue wird als Pflichtfeld erkannt",
-  source.includes('werte.NewQueueID') && source.includes('fehlend.push("Queue")'),
-  true);
-check("Besitzer wird als Pflichtfeld erkannt",
-  source.includes('werte.NewOwnerID') && source.includes('fehlend.push("Besitzer")'),
-  true);
-check("ohne Queue/Besitzer kein Setzen-Knopf",
-  source.includes("Formular \u00f6ffnen") || source.includes("Formular öffnen"),
   true);
 
 const chromeManifest = JSON.parse(
