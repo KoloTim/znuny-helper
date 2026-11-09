@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.10",
+      items: [
+        "Weihnachtsdeo feinjustiert: Kugeln hängen gerade an der Girlande und werden nicht mehr abgeschnitten, Mistelzweig oben rechts, kleiner Tannenbaum unten links.",
+        "Der Weihnachtsmann ist freundlicher (Augen, Wangen, Lachen) und fliegt in etwa sieben Sekunden vorbei – mit größeren Geschenken."
+      ]
+    },
+    {
       version: "1.6.9",
       items: [
         "Weihnachtsmodus überarbeitet: Girlande mit Kugeln an der oberen Kante statt Deko in den Ecken (dort sitzen Avatar und Menü).",

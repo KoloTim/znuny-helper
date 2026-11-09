@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.10] – 2026-11-09
+
+### Fixed
+- **Kugeln an der Girlande:** Sie wurden am unteren Rand abgeschnitten (die Girlande skalierte fest auf 1440 px Breite) und schaukelten schief am Faden, weil jede Kugel um ihren eigenen Mittelpunkt gedreht wurde. Die Girlande passt sich jetzt der Fensterbreite an, die Fäden enden in der Kugel, und das Schaukeln ist entfernt.
+- **Weihnachtsmann:** freundlicheres Gesicht mit Augen, Wangen und Lachen im Bart.
+
+### Changed
+- **Deko neu verteilt:** Mistelzweig mit weißen Beeren **oben rechts**, kleiner geschmückter **Tannenbaum unten links** – die obere linke Ecke bleibt frei (dort sitzt der Avatar).
+- **Vorbeiflug gestrafft:** Der Ritt dauert jetzt **etwa sieben Sekunden** statt zwanzig; sechs **größere** Geschenke fallen währenddessen heraus.
+
 ## [1.6.9] – 2026-11-09
 
 ### Changed

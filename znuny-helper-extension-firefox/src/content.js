@@ -9335,34 +9335,66 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   // Girlande an der oberen Kante: durchhaengende Schnur, Laempchen und ein
   // paar Kugeln. Bewusst nur die obersten ~80 px - darunter beginnt die
   // Znuny-Navigation, die frei bleiben muss.
+  // Girlande an der oberen Kante: durchhaengende Schnur, Laempchen und ein
+  // paar Kugeln. preserveAspectRatio="none" verhindert, dass die Kugeln am
+  // unteren Rand abgeschnitten werden, wenn das Fenster breiter als 1440 px ist.
   const CHRISTMAS_LIGHTS = `
-    <svg class="zh-xmas-lights" viewBox="0 0 1440 80" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
-      <path class="zh-xmas-wire" d="M0,8 C240,46 480,46 720,18 C960,46 1200,46 1440,8" fill="none"/>
+    <svg class="zh-xmas-lights" viewBox="0 0 1440 92" preserveAspectRatio="none" aria-hidden="true">
+      <path class="zh-xmas-wire" d="M0,8 C240,50 480,50 720,20 C960,50 1200,50 1440,8" fill="none"/>
       <g class="zh-xmas-bulbs">
-        <circle cx="110" cy="26" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
-        <circle cx="215" cy="35" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--b"/>
-        <circle cx="320" cy="41" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--c"/>
-        <circle cx="425" cy="43" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
-        <circle cx="530" cy="41" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--b"/>
-        <circle cx="635" cy="33" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--c"/>
-        <circle cx="720" cy="18" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
-        <circle cx="805" cy="33" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--b"/>
-        <circle cx="910" cy="41" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--c"/>
-        <circle cx="1015" cy="43" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
-        <circle cx="1120" cy="41" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--b"/>
-        <circle cx="1225" cy="35" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--c"/>
-        <circle cx="1330" cy="26" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
+        <circle cx="110" cy="28" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
+        <circle cx="215" cy="38" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--b"/>
+        <circle cx="320" cy="44" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--c"/>
+        <circle cx="425" cy="46" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
+        <circle cx="530" cy="44" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--b"/>
+        <circle cx="635" cy="35" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--c"/>
+        <circle cx="720" cy="20" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
+        <circle cx="805" cy="35" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--b"/>
+        <circle cx="910" cy="44" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--c"/>
+        <circle cx="1015" cy="46" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
+        <circle cx="1120" cy="44" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--b"/>
+        <circle cx="1225" cy="38" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--c"/>
+        <circle cx="1330" cy="28" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
       </g>
       <g class="zh-xmas-baubles">
-        <line x1="264" y1="39" x2="264" y2="56" class="zh-xmas-thread"/>
-        <circle cx="264" cy="66" r="9" class="zh-xmas-bauble zh-xmas-bauble--red"/>
-        <line x1="586" y1="39" x2="586" y2="58" class="zh-xmas-thread"/>
-        <circle cx="586" cy="68" r="8" class="zh-xmas-bauble zh-xmas-bauble--gold"/>
-        <line x1="854" y1="41" x2="854" y2="58" class="zh-xmas-thread"/>
-        <circle cx="854" cy="68" r="8.5" class="zh-xmas-bauble zh-xmas-bauble--red"/>
-        <line x1="1176" y1="39" x2="1176" y2="56" class="zh-xmas-thread"/>
-        <circle cx="1176" cy="66" r="9" class="zh-xmas-bauble zh-xmas-bauble--gold"/>
+        <line x1="264" y1="41" x2="264" y2="64" class="zh-xmas-thread"/>
+        <circle cx="264" cy="72" r="9" class="zh-xmas-bauble zh-xmas-bauble--red"/>
+        <line x1="586" y1="42" x2="586" y2="66" class="zh-xmas-thread"/>
+        <circle cx="586" cy="74" r="8" class="zh-xmas-bauble zh-xmas-bauble--gold"/>
+        <line x1="854" y1="44" x2="854" y2="66" class="zh-xmas-thread"/>
+        <circle cx="854" cy="74" r="8.5" class="zh-xmas-bauble zh-xmas-bauble--red"/>
+        <line x1="1176" y1="41" x2="1176" y2="64" class="zh-xmas-thread"/>
+        <circle cx="1176" cy="72" r="9" class="zh-xmas-bauble zh-xmas-bauble--gold"/>
       </g>
+    </svg>`;
+
+  // Mistelzweig fuer die obere rechte Ecke: Stiel, Blätter, weisse Beeren.
+  const CHRISTMAS_MISTLETOE = `
+    <svg class="zh-xmas-mistletoe" viewBox="0 0 180 150" aria-hidden="true">
+      <path class="zh-xmas-mistlestem" d="M4,4 C30,28 56,46 84,56"/>
+      <ellipse class="zh-xmas-mistleaf" cx="36" cy="28" rx="27" ry="11" transform="rotate(38 36 28)"/>
+      <ellipse class="zh-xmas-mistleaf" cx="66" cy="48" rx="25" ry="10" transform="rotate(22 66 48)"/>
+      <ellipse class="zh-xmas-mistleaf" cx="92" cy="72" rx="23" ry="9" transform="rotate(58 92 72)"/>
+      <ellipse class="zh-xmas-mistleaf" cx="30" cy="62" rx="23" ry="9" transform="rotate(-28 30 62)"/>
+      <circle class="zh-xmas-mistleberry" cx="54" cy="64" r="4.4"/>
+      <circle class="zh-xmas-mistleberry" cx="72" cy="78" r="4.4"/>
+      <circle class="zh-xmas-mistleberry" cx="88" cy="62" r="3.8"/>
+      <circle class="zh-xmas-mistleberry" cx="42" cy="44" r="3.4"/>
+    </svg>`;
+
+  // Kleiner geschmueckter Tannenbaum fuer die untere linke Ecke.
+  const CHRISTMAS_TREE = `
+    <svg class="zh-xmas-tree" viewBox="0 0 150 200" aria-hidden="true">
+      <rect class="zh-xmas-tree-trunk" x="66" y="158" width="18" height="26" rx="3"/>
+      <path class="zh-xmas-tree-green" d="M75,6 L110,66 L40,66 Z"/>
+      <path class="zh-xmas-tree-green" d="M75,46 L118,116 L32,116 Z"/>
+      <path class="zh-xmas-tree-green" d="M75,92 L128,166 L22,166 Z"/>
+      <circle class="zh-xmas-tree-star" cx="75" cy="6" r="6"/>
+      <circle class="zh-xmas-bauble zh-xmas-bauble--red" cx="60" cy="60" r="4.2"/>
+      <circle class="zh-xmas-bauble zh-xmas-bauble--gold" cx="92" cy="82" r="4"/>
+      <circle class="zh-xmas-bauble zh-xmas-bauble--red" cx="48" cy="118" r="4.4"/>
+      <circle class="zh-xmas-bauble zh-xmas-bauble--gold" cx="102" cy="132" r="4.2"/>
+      <circle class="zh-xmas-bauble zh-xmas-bauble--red" cx="70" cy="146" r="4"/>
     </svg>`;
 
   // Rentiere, Schlitten und Weihnachtsmann als Vektorgrafik. Alles in lokalen
@@ -9408,7 +9440,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           <rect class="zh-xmas-santa-buckle" x="143" y="157" width="12" height="12" rx="2"/>
           <path class="zh-xmas-santa-trim" d="M112,170 L186,170 L186,177 L112,177 Z"/>
           <circle class="zh-xmas-santa-face" cx="149" cy="104" r="16"/>
+          <circle class="zh-xmas-santa-eye" cx="143" cy="99" r="1.9"/>
+          <circle class="zh-xmas-santa-eye" cx="155" cy="99" r="1.9"/>
+          <circle class="zh-xmas-santa-cheek" cx="136" cy="104" r="3"/>
+          <circle class="zh-xmas-santa-cheek" cx="162" cy="104" r="3"/>
           <path class="zh-xmas-santa-beard" d="M133,104 C133,128 140,140 149,140 C158,140 165,128 165,104 C159,112 139,112 133,104 Z"/>
+          <path class="zh-xmas-santa-smile" d="M143,113 C146,118 152,118 155,113"/>
           <path class="zh-xmas-santa-hat" d="M129,94 C132,72 141,60 152,56 C163,60 169,76 169,94 Z"/>
           <path class="zh-xmas-santa-trim" d="M126,91 L172,91 L172,101 L126,101 Z"/>
           <circle class="zh-xmas-santa-trim" cx="159" cy="54" r="7"/>
@@ -9450,7 +9487,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       }
       #zh-christmas svg { display: block; }
       #zh-christmas .zh-xmas-lights {
-        position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 80px;
+        position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 92px;
         filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
       }
       #zh-christmas .zh-xmas-wire { stroke: rgba(24, 62, 44, .55); stroke-width: 1.4; }
@@ -9461,13 +9498,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-christmas .zh-xmas-thread { stroke: #d9c48a; stroke-width: 1.2; }
       #zh-christmas .zh-xmas-bauble--red { fill: #c0392b; stroke: #7f1d1d; stroke-width: 1; }
       #zh-christmas .zh-xmas-bauble--gold { fill: #e8b34b; stroke: #a97a1f; stroke-width: 1; }
-      #zh-christmas .zh-xmas-bauble { animation: zh-xmas-sway 5.2s ease-in-out infinite; transform-origin: 50% 0; }
       #zh-christmas .zh-xmas-fly {
         position: absolute; top: 7%; left: 0; width: 700px; height: 276px;
         will-change: transform;
         filter: drop-shadow(0 12px 18px rgba(0,0,0,.16));
       }
-      #zh-christmas .zh-xmas-fly--go { animation: zh-xmas-fly-across 20s linear forwards; }
+      #zh-christmas .zh-xmas-fly--go { animation: zh-xmas-fly-across 7s linear forwards; }
       @keyframes zh-xmas-fly-across {
         0%   { transform: translate(-660px, 0) rotate(-2deg); }
         20%  { transform: translate(12vw, -28px) rotate(1deg); }
@@ -9475,6 +9511,21 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         70%  { transform: translate(70vw, -18px) rotate(1.5deg); }
         100% { transform: translate(116vw, 4px) rotate(-1deg); }
       }
+      #zh-christmas .zh-xmas-mistletoe {
+        position: absolute; top: 0; right: 2px; width: 165px; height: 138px;
+        transform: scaleX(-1);
+        filter: drop-shadow(0 5px 8px rgba(0,0,0,.2));
+      }
+      #zh-christmas .zh-xmas-mistlestem { fill: none; stroke: #2f6b46; stroke-width: 3; stroke-linecap: round; }
+      #zh-christmas .zh-xmas-mistleaf { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1; }
+      #zh-christmas .zh-xmas-mistleberry { fill: #f7f4ee; stroke: #cfc6b4; stroke-width: .8; }
+      #zh-christmas .zh-xmas-tree {
+        position: absolute; left: -18px; bottom: -8px; width: 150px; height: 200px;
+        filter: drop-shadow(0 6px 10px rgba(0,0,0,.2));
+      }
+      #zh-christmas .zh-xmas-tree-trunk { fill: #6b4226; }
+      #zh-christmas .zh-xmas-tree-green { fill: #1c5c3a; stroke: #14432a; stroke-width: 1.5; }
+      #zh-christmas .zh-xmas-tree-star { fill: #e8b34b; }
       #zh-christmas .zh-xmas-deer-body { fill: #7a4a2b; }
       #zh-christmas .zh-xmas-deer-muzzle { fill: none; stroke: #5b3620; stroke-width: 2; stroke-linecap: round; }
       #zh-christmas .zh-xmas-deer-eye { fill: #f6e3b4; }
@@ -9498,13 +9549,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-christmas .zh-xmas-santa-face { fill: #f2c9a0; }
       #zh-christmas .zh-xmas-santa-beard { fill: #f7f4ee; }
       #zh-christmas .zh-xmas-santa-glove { fill: #2b2b2b; }
+      #zh-christmas .zh-xmas-santa-eye { fill: #2b2b2b; }
+      #zh-christmas .zh-xmas-santa-cheek { fill: #e8928a; opacity: .85; }
+      #zh-christmas .zh-xmas-santa-smile { fill: none; stroke: #8c4a42; stroke-width: 1.6; stroke-linecap: round; }
       #zh-christmas .zh-xmas-gift {
-        position: absolute; width: 20px; height: 20px;
-        animation: zh-xmas-gift-fall 3.6s cubic-bezier(.35,.05,.75,.6) forwards;
+        position: absolute; width: 30px; height: 30px;
+        animation: zh-xmas-gift-fall 2.4s cubic-bezier(.35,.05,.75,.6) forwards;
       }
       @keyframes zh-xmas-gift-fall {
         0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
-        100% { transform: translate(var(--zh-gift-dx, 30px), 62vh) rotate(var(--zh-gift-rot, 220deg)); opacity: 0; }
+        100% { transform: translate(var(--zh-gift-dx, 30px), 52vh) rotate(var(--zh-gift-rot, 220deg)); opacity: 0; }
       }
       #zh-christmas .zh-xmas-spark {
         position: absolute; width: 16px; height: 16px; fill: #fff6d8;
@@ -9652,7 +9706,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   // "znuny-helper-christmas-fly" (Tests, Vorfuehrung).
   const CHRISTMAS_FLY_FIRST_MS = 90 * 1000;
   const CHRISTMAS_FLY_EVERY_MS = 15 * 60 * 1000;
-  const CHRISTMAS_FLY_DURATION_MS = 20000;
+  const CHRISTMAS_FLY_DURATION_MS = 7000;
   const CHRISTMAS_GIFT_COLORS = ["#b3261e", "#1f6b4a", "#e8b34b", "#3976bb"];
   let christmasGiftCounter = 0;
 
@@ -9712,7 +9766,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       fly.classList.add("zh-xmas-fly--go");
 
       // Fuenf Geschenke waehrend des Flugs, leicht versetzt.
-      [3200, 6200, 9000, 11800, 14600].forEach((zeit) => {
+      [900, 1900, 2900, 3900, 4900, 5900].forEach((zeit) => {
         merken(window.setTimeout(() => dropChristmasGift(overlay, fly), zeit));
       });
 
@@ -9759,6 +9813,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       <canvas class="zh-xmas-snow"></canvas>
       <div class="zh-xmas-glow"></div>
       ${CHRISTMAS_LIGHTS}
+      ${CHRISTMAS_MISTLETOE}
+      ${CHRISTMAS_TREE}
       <div class="zh-xmas-fly" hidden>${christmasSleighScene()}</div>
       ${CHRISTMAS_SPARKS}
     `;
