@@ -9726,6 +9726,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-christmas .zh-xmas-tree {
         position: absolute; right: 8px; bottom: 12px; width: 132px; height: 176px;
         filter: drop-shadow(0 6px 10px rgba(0,0,0,.2));
+        /* Der Baum ist der einzige Teil der Deko, der Klicks annimmt (Pinball). */
+        pointer-events: auto; cursor: pointer;
       }
       #zh-christmas .zh-xmas-tree-trunk { fill: #6b4226; }
       #zh-christmas .zh-xmas-tree-green { fill: #1c5c3a; stroke: #14432a; stroke-width: 1.5; }
@@ -9791,8 +9793,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
          sichtbar bleiben, aber die Zeilen nicht mehr verdecken. */
       #zh-christmas .zh-xmas-tree,
       #zh-christmas .zh-xmas-mistletoe { transition: transform .45s ease, opacity .45s ease; }
-      #zh-christmas.zh-xmas-knapp .zh-xmas-tree { transform: translate(46%, 26%) scale(.94); opacity: .92; }
-      #zh-christmas.zh-xmas-knapp .zh-xmas-mistletoe { transform: scaleX(-1) translate(-34%, -18%) scale(.94); opacity: .92; }
+      /* Bei wenig Platz nur zart verkleinern - der Baum bleibt vollstaendig
+         im Bild und nimmt den unteren Rand als Anker (kein Rausrutschen). */
+      #zh-christmas.zh-xmas-knapp .zh-xmas-tree { transform: translateY(6%) scale(.9); transform-origin: bottom right; opacity: .9; }
+      #zh-christmas.zh-xmas-knapp .zh-xmas-mistletoe { transform: scale(.9); transform-origin: top right; opacity: .9; }
       @media (max-width: 1100px) {
         #zh-christmas .zh-xmas-tree,
         #zh-christmas .zh-xmas-mistletoe { display: none; }
@@ -10175,6 +10179,296 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     };
   }
 
+  // ---- Pinball-Minigame (HSRW-Thema) ---------------------------------
+  // Eigenes Overlay ueber der Seite, per Escape oder Knopf beendbar. Rein
+  // lokal, kein Zugriff auf Znuny-Daten.
+
+  function pinballStyle() {
+    addStyle("zh-pinball-style", `
+      #zh-pinball {
+        position: fixed; inset: 0; z-index: 2147483600;
+        background: rgba(10, 16, 28, .92);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-family: system-ui, Segoe UI, sans-serif; color: #eaf1fb;
+      }
+      #zh-pinball.zh-hide { display: none; }
+      #zh-pinball .zh-pin-top { display: flex; align-items: baseline; gap: 18px; margin: 0 18px 12px; }
+      #zh-pinball .zh-pin-title { font-size: 22px; font-weight: 700; letter-spacing: .5px; }
+      #zh-pinball .zh-pin-title span { color: #7fb3ff; }
+      #zh-pinball .zh-pin-score { font-size: 26px; font-weight: 800; color: #ffd479; }
+      #zh-pinball canvas { background: #0c1a30; border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,.55); }
+      #zh-pinball .zh-pin-hint { margin-top: 14px; font-size: 14px; opacity: .8; }
+      #zh-pinball .zh-pin-close {
+        position: absolute; top: 16px; right: 20px; width: 40px; height: 40px;
+        border: 1px solid #3d4c66; border-radius: 50%; background: #172338;
+        color: #eaf1fb; font-size: 20px; line-height: 1; cursor: pointer;
+      }
+      #zh-pinball .zh-pin-close:hover { background: #243352; }
+    `);
+  }
+
+  function startPinball() {
+    if (document.getElementById("zh-pinball")) return;
+    pinballStyle();
+
+    const host = document.createElement("div");
+    host.id = "zh-pinball";
+    host.innerHTML = `
+      <div class="zh-pin-top">
+        <div class="zh-pin-title">H<span style="color:#7fb3ff">SRW</span> Pinball</div>
+        <div class="zh-pin-score" id="zh-pin-score">0</div>
+      </div>
+      <canvas id="zh-pin-board" width="660" height="520"></canvas>
+      <div class="zh-pin-hint">Kugel mit links/rechts (Pfeiltasten oder A/D) steuern · Kugel halten: Leertaste · Esc schlie\u00dfen</div>
+      <button class="zh-pin-close" id="zh-pin-close" title="Schlie\u00dfen">\u00d7</button>
+    `;
+    document.body.appendChild(host);
+
+    const canvas = host.querySelector("#zh-pin-board");
+    const ctx = canvas.getContext("2d");
+    const punkteAnzeige = host.querySelector("#zh-pin-score");
+
+    // Farben: HSRW-Blau im Zentrum, rote Flipper, goldene Anzeige.
+    const W = canvas.width;
+    const H = canvas.height;
+    const HSRW = { blue: "#1e5aa8", deep: "#123b73", cyan: "#5fa8ff" };
+
+    let punkte = 0;
+    let laeuft = true;
+    let letzterFrame = 0;
+    let flipperL = -0.5;
+    let flipperR = -0.5;
+    let tastatur = { links: false, rechts: false, halten: false };
+    let kugel = { x: W / 2, y: 150, vx: 0, vy: 3.2, r: 8 };
+    let kugelStill = 0;
+
+    const buxen = [];
+    (function baueBuxen() {
+      const zeilen = [
+        { y: 64, farbe: "#ffd479", punkte: 30 },
+        { y: 96, farbe: "#7fb3ff", punkte: 20 },
+        { y: 128, farbe: "#8fd3a8", punkte: 10 },
+        { y: 160, farbe: "#8fd3a8", punkte: 10 }
+      ];
+      zeilen.forEach((zeile, zi) => {
+        const vonX = 90 + zi * 26;
+        const bisX = W - 90 - zi * 26;
+        const anzahl = zi === 0 ? 5 : 6;
+        for (let i = 0; i < anzahl; i += 1) {
+          const x = vonX + ((bisX - vonX) / (anzahl - 1)) * i;
+          buxen.push({ x, y: zeile.y, r: 11, farbe: zeile.farbe, punkte: zeile.punkte });
+        }
+      });
+    })();
+
+    const saulestueck = [
+      { x: W / 2, y: 200, r: 15 },
+      { x: W / 2 - 32, y: 232, r: 12 },
+      { x: W / 2 + 32, y: 232, r: 12 },
+      { x: W / 2, y: 268, r: 12 }
+    ];
+
+    // HSRW-Schriftzug mittig als Dekor (kein Kollisionsobjekt).
+    const mitteText = { x: W / 2, y: H / 2 - 10 };
+
+    function schritt(dt) {
+      if (!laeuft) return;
+      const sch = Math.min(dt, 34) / 16.67;
+
+      if (tastatur.links) flipperL = Math.min(1, flipperL + 0.18 * sch);
+      else flipperL = Math.max(-0.5, flipperL - 0.12 * sch);
+      if (tastatur.rechts) flipperR = Math.min(1, flipperR + 0.18 * sch);
+      else flipperR = Math.max(-0.5, flipperR - 0.12 * sch);
+
+      kugel.vy += 0.16 * sch;
+      kugel.x += kugel.vx * sch;
+      kugel.y += kugel.vy * sch;
+
+      // Wände
+      if (kugel.x - kugel.r < 6) { kugel.x = 6 + kugel.r; kugel.vx = Math.abs(kugel.vx); }
+      if (kugel.x + kugel.r > W - 6) { kugel.x = W - 6 - kugel.r; kugel.vx = -Math.abs(kugel.vx); }
+      if (kugel.y - kugel.r < 6) { kugel.y = 6 + kugel.r; kugel.vy = Math.abs(kugel.vy); }
+
+      // Bumper
+      for (const b of buxen) {
+        const dx = kugel.x - b.x;
+        const dy = kugel.y - b.y;
+        const ab = Math.sqrt(dx * dx + dy * dy);
+        if (ab < b.r + kugel.r) {
+          const nx = dx / (ab || 1);
+          const ny = dy / (ab || 1);
+          kugel.x = b.x + nx * (b.r + kugel.r);
+          kugel.y = b.y + ny * (b.r + kugel.r);
+          kugel.vx = nx * 8;
+          kugel.vy = ny * 8;
+          punkte += b.punkte;
+        }
+      }
+
+      // Saulen
+      for (const st of saulestueck) {
+        const dx = kugel.x - st.x;
+        const dy = kugel.y - st.y;
+        const ab = Math.sqrt(dx * dx + dy * dy);
+        if (ab < st.r + kugel.r) {
+          const nx = dx / (ab || 1);
+          const ny = dy / (ab || 1);
+          kugel.x = st.x + nx * (st.r + kugel.r);
+          kugel.y = st.y + ny * (st.r + kugel.r);
+          const dot = kugel.vx * nx + kugel.vy * ny;
+          kugel.vx -= 2 * dot * nx;
+          kugel.vy -= 2 * dot * ny;
+        }
+      }
+
+      // Flipper-Kollision
+      const drehen = (flip, px, py, seite) => {
+        const a = seite > 0 ? -0.5 - flip * 1.2 : Math.PI + 0.5 + flip * 1.2;
+        const lx = px + Math.cos(a) * 52;
+        const ly = py + Math.sin(a) * 52;
+        const dx = kugel.x - lx;
+        const dy = kugel.y - ly;
+        const ab = Math.sqrt(dx * dx + dy * dy);
+        if (ab < 12 + kugel.r) {
+          const nx = dx / (ab || 1);
+          const ny = dy / (ab || 1);
+          kugel.x = lx + nx * (12 + kugel.r);
+          kugel.y = ly + ny * (12 + kugel.r);
+          const staerke = 7 + flip * 3;
+          kugel.vx = nx * staerke;
+          kugel.vy = ny * staerke - 2;
+        }
+      };
+      drehen(flipperL, 178, H - 58, -1);
+      drehen(flipperR, W - 178, H - 58, 1);
+
+      // Halten verlangsamt die Kugel
+      if (tastatur.halten) {
+        kugel.vx *= 0.9;
+        kugel.vy *= 0.9;
+      }
+
+      // Verloren -> zurueck
+      if (kugel.y > H + 30) {
+        kugel = { x: W / 2, y: 150, vx: 0, vy: 3.4, r: 8 };
+        punkte = Math.max(0, punkte - 20);
+      }
+
+      punkteAnzeige.textContent = String(punkte);
+    }
+
+    function zeichnen() {
+      ctx.clearRect(0, 0, W, H);
+
+      const verlauf = ctx.createLinearGradient(0, 0, 0, H);
+      verlauf.addColorStop(0, "#10243f");
+      verlauf.addColorStop(1, "#081320");
+      ctx.fillStyle = verlauf;
+      ctx.fillRect(0, 0, W, H);
+
+      // HSRW-Saeule
+      const saeule = ctx.createLinearGradient(0, 0, 0, H);
+      saeule.addColorStop(0, HSRW.blue);
+      saeule.addColorStop(1, HSRW.deep);
+      ctx.fillStyle = saeule;
+      ctx.fillRect(W / 2 - 46, 0, 92, H);
+
+      ctx.fillStyle = HSRW.cyan;
+      ctx.font = "700 34px system-ui, Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillText("HSRW", mitteText.x, mitteText.y);
+
+      // Bumper
+      for (const b of buxen) {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = b.farbe;
+        ctx.shadowColor = b.farbe;
+        ctx.shadowBlur = 14;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(255,255,255,.5)";
+        ctx.beginPath();
+        ctx.arc(b.x - 3, b.y - 4, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Saulen
+      for (const st of saulestueck) {
+        ctx.beginPath();
+        ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+        ctx.fillStyle = "#35507b";
+        ctx.fill();
+        ctx.strokeStyle = "#7fb3ff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // Flipper
+      const zeichneFlipper = (flip, px, seite) => {
+        const a = seite > 0 ? -0.5 - flip * 1.2 : Math.PI + 0.5 + flip * 1.2;
+        ctx.save();
+        ctx.translate(px, H - 58);
+        ctx.rotate(a);
+        ctx.fillStyle = "#ff6b57";
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") ctx.roundRect(-16, -8, 52, 16, 8);
+        else ctx.rect(-16, -8, 52, 16);
+        ctx.fill();
+        ctx.restore();
+      };
+      zeichneFlipper(flipperL, 178, -1);
+      zeichneFlipper(flipperR, W - 178, 1);
+
+      // Kugel
+      ctx.beginPath();
+      ctx.arc(kugel.x, kugel.y, kugel.r, 0, Math.PI * 2);
+      ctx.fillStyle = "#e8eef7";
+      ctx.shadowColor = "#7fb3ff";
+      ctx.shadowBlur = 10;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    function frame(zeit) {
+      if (!laeuft) return;
+      const dt = letzterFrame ? zeit - letzterFrame : 16;
+      letzterFrame = zeit;
+      for (let i = 0; i < 2; i += 1) schritt(dt / 2);
+      zeichnen();
+      requestAnimationFrame(frame);
+    }
+
+    const aufTaste = (event) => {
+      const taste = event.key.toLowerCase();
+      if (event.key === "Escape") {
+        schliessen();
+        return;
+      }
+      if (taste === "arrowleft" || taste === "a") { tastatur.links = event.type === "keydown"; event.preventDefault(); }
+      if (taste === "arrowright" || taste === "d") { tastatur.rechts = event.type === "keydown"; event.preventDefault(); }
+      if (event.code === "Space") { tastatur.halten = event.type === "keydown"; event.preventDefault(); }
+    };
+
+    function schliessen() {
+      laeuft = false;
+      window.removeEventListener("keydown", aufTaste);
+      window.removeEventListener("keyup", aufTaste);
+      host.remove();
+    }
+
+    host.querySelector("#zh-pin-close").addEventListener("click", schliessen);
+    window.addEventListener("keydown", aufTaste);
+    window.addEventListener("keyup", aufTaste);
+
+    requestAnimationFrame(frame);
+  }
+
+  function disablePinball() {
+    document.getElementById("zh-pinball")?.remove();
+    removeStyle("zh-pinball-style");
+  }
+
   function enableChristmasMode() {
     if (window.top !== window.self) return;
     if (document.getElementById(CHRISTMAS_OVERLAY_ID)) return;
@@ -10188,7 +10482,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const overlay = document.createElement("div");
     overlay.id = CHRISTMAS_OVERLAY_ID;
-    overlay.setAttribute("aria-hidden", "true");
+    // Der Baum braucht Klicks, daher ist das Overlay nicht mehr rein
+    // dekorativ - aber die uebrigen Teile bleiben pointer-events:none.
     overlay.innerHTML = `
       <canvas class="zh-xmas-snow"></canvas>
       <div class="zh-xmas-glow"></div>
@@ -10201,6 +10496,33 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     document.body.appendChild(overlay);
     renderChristmasGarland(overlay);
+
+    // Dreimal auf den Baum klicken (innerhalb von 1,8 s) startet das Pinball-
+    // Minigame. Ein eigener Zaehler verhindert, dass normale Klicks stoeren.
+    const baum = overlay.querySelector(".zh-xmas-tree");
+    let baumKlicks = 0;
+    let baumTimer = 0;
+    const baumAnim = document.createElement("style");
+    baumAnim.dataset.zhPinballHint = "1";
+    baumAnim.textContent =
+      "#zh-christmas .zh-xmas-tree:active { transform: scale(.96); }";
+    document.head.appendChild(baumAnim);
+
+    const oeuml = document.createElement("div");
+    const pinballAktiv = () => Boolean(document.getElementById("zh-pinball"));
+    const baumAnklicken = () => {
+      baumKlicks += 1;
+      window.clearTimeout(baumTimer);
+      baumTimer = window.setTimeout(() => { baumKlicks = 0; }, 1800);
+      if (baumKlicks >= 3) {
+        baumKlicks = 0;
+        if (!pinballAktiv()) startPinball();
+      }
+    };
+    baum?.addEventListener("click", baumAnklicken);
+    baum?.setAttribute("role", "button");
+    baum?.setAttribute("aria-label", "Pinball (dreimal klicken)");
+    baum?.setAttribute("tabindex", "0");
 
     // Die Girlande haengt an der Fensterbreite: bei Aenderung neu zeichnen.
     let garlandTimer = 0;
@@ -10226,6 +10548,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       () => {
         window.clearTimeout(garlandTimer);
         window.removeEventListener("resize", onGarlandResize);
+      },
+      () => {
+        window.clearTimeout(baumTimer);
+        baum?.removeEventListener("click", baumAnklicken);
+        baumAnim?.remove();
+        disablePinball();
       }
     ];
   }

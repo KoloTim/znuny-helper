@@ -1463,6 +1463,29 @@ check("Lauscher werden beim Abschalten entfernt",
   source.includes('removeEventListener("pointermove", aufZeiger)'),
   true);
 
+console.log("\n24) Pinball-Minigame und Baum-Klick");
+check("Baum ist klickbar (pointer-events auto)",
+  /pointer-events:\s*auto/.test(source),
+  true);
+check("Dreifach-Klick-Zaehler vorhanden",
+  source.includes("baumKlicks") && /baumKlicks >= 3/.test(source),
+  true);
+check("Pinball-Funktion vorhanden",
+  source.includes("function startPinball") && source.includes("zh-pin-board"),
+  true);
+check("Pinball uebernimmt HSRW-Farbe",
+  source.includes("#1e5aa8") || source.includes("HSRW"),
+  true);
+check("Pinball per Escape schliessbar",
+  source.includes('event.key === "Escape"') && source.includes("schliessen"),
+  true);
+check("Baum bleibt im Bild (kein Rausrutschen)",
+  /transform-origin:\s*bottom right/.test(source) && !/translate\(46%, 26%\)/.test(source),
+  true);
+check("roundRect hat Fallback",
+  /typeof ctx\.roundRect === "function"/.test(source),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

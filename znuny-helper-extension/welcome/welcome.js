@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.21",
+      items: [
+        "Neu: HSRW-Pinball – dreimal auf den Tannenbaum klicken und losspielen (Pfeiltasten/A+D, Leertaste, Esc).",
+        "Tannenbaum bleibt jetzt im Bild statt aus dem Fenster zu rutschen."
+      ]
+    },
+    {
       version: "1.6.20",
       items: [
         "Das Seil der Girlande ist jetzt zweifarbig und damit auch auf der grauen Kopfleiste zu sehen."

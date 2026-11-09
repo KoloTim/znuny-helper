@@ -363,21 +363,9 @@ Direkt nach der Installation bzw. dem ersten Aktivieren merkt sich das Addon nur
 
 ===== Weihnachtsmodus =====
 
-Unter **Saison** im Popup lässt sich der Weihnachtsmodus ein- und ausschalten. Ist er an, legt sich eine Dekoschicht über die Znuny-Seite:
+Der Weihnachtsmodus ist ein saisonales Schmankerl: Schnee (echte sechszackige Flocken in drei Tiefen, mit Wind und Maus-Abwehr), eine Girlande mit Lichtern und Kugeln, ein Mistelzweig, ein Tannenbaum mit Geschenken und ein vorbeifliegender Schlitten. **Dreimal auf den Tannenbaum klicken** öffnet das **HSRW-Pinball**-Minigame – steuern mit Pfeiltasten oder A/D, Kugel halten mit Leertaste, beenden mit Esc oder dem × oben rechts.
 
-* **Schnee:** echte Schneeflocken in drei Tiefenstaffelungen – klein und fern bis groß und drehend – mit Windböen. Im Hintergrund-Tab pausiert die Animation und die Leinwand wird freigegeben.
-* **Girlande:** durchhängende Schnur mit farbigen Lämpchen und vier Kugeln an der oberen Kante – oberhalb der Navigation, damit nichts verdeckt wird.
-* **Mistelzweig:** oben rechts in der Ecke – gelappte Stechpalmenblätter mit roten Beeren.
-* **Tannenbaum:** ein geschmückter Baum unten rechts, mit Geschenken darunter.
-* **Glitzer:** kleine Sterne funkeln an mehreren Stellen.
-* **Weihnachtsmann im Vorbeiflug:** Alle 15 Minuten zieht der Schlitten mit zwei Rentieren in etwa sieben Sekunden einmal quer über den Bildschirm; dabei fallen sechs Geschenke heraus. Der erste Flug kommt nach ungefähr 90 Sekunden.
-
-Die Schneeflocken weichen dem Mauszeiger aus – sie werden in einem Umkreis von rund 150 Pixeln abgestoßen und beruhigen sich, sobald die Maus stehen bleibt.
-
-Baum und Mistelzweig erscheinen nur, wenn Platz ist: scrollt die Seite oder ist das Fenster schmaler als etwa 1100 Pixel, bleiben sie weg, damit sie keine Ticketzeilen verdecken.
-
-Die Deko ist reine Anzeige: Sie liegt in einer Ebene, die **keine Klicks annimmt** – Bedienung und Lesbarkeit bleiben unverändert. Ist im System „Bewegung reduzieren" eingestellt, steht der Schnee still, und der Vorbeiflug entfällt. Alles entsteht lokal im Browser; es werden keine Daten gesendet und keine zusätzlichen Berechtigungen benötigt.
-
+Der Schalter **Weihnachtsmodus** im Popup schaltet alles an und aus.
 ===== EASM-Bewertung =====
 
 EASM-Tickets der DATAGROUP enthalten je Schwachstelle einen Block „Criticality" mit **Low**, **Medium**, **High** oder **Critical**. Im geöffneten Ticket steht neben dem Titel der Knopf **EASM bewerten**. Ein Klick liest den **neuesten Artikel** des Tickets (nur lesend) und zeigt die schwerste Einstufung als farbige Marke, zum Beispiel `CRIT · 1×CRIT 1×HIGH`.

@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.21] – 2026-11-09
+
+### Added
+- **HSRW-Pinball-Minigame:** Dreimal auf den Tannenbaum klicken öffnet ein Pinball-Spiel im HSRW-Look (blaue Säule mit HSRW-Schriftzug, goldene Bumper, rote Flipper, Punktzahl oben). Steuern mit Pfeiltasten oder A/D, Kugel halten mit Leertaste, beenden mit Esc oder dem × oben rechts. Rein lokal, ohne Zugriff auf Znuny-Daten.
+  - Bumper geben je Reihe 30/20/10/10 Punkte; geht die Kugel unten durch, gibt es 20 Punkte Abzug.
+
+### Fixed
+- **Tannenbaum verrutschte und verließ den Bildschirm:** Bei scrollenden Seiten schob ihn die „wenig Platz"-Regel um 46 % nach rechts aus dem Fenster. Jetzt schrumpft er nur zart (um 10 %) mit dem unteren Rand als Anker und bleibt vollständig sichtbar. Der Baum ist jetzt außerdem klickbar (`pointer-events: auto`), damit das Pinball-Minigame funktioniert.
+
 ## [1.6.20] – 2026-11-09
 
 ### Changed
