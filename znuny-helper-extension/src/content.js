@@ -9397,7 +9397,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     for (let x0 = -spanne; x0 < breite + spanne; x0 += spanne) {
       const spanIndex = Math.round(x0 / spanne);
-      wire.push(`<path class="zh-xmas-wire" d="M${x0},10 Q${x0 + spanne / 2},62 ${x0 + spanne},10" fill="none"/>`);
+      wire.push(
+        `<path class="zh-xmas-wire-shadow" d="M${x0},10 Q${x0 + spanne / 2},62 ${x0 + spanne},10" fill="none"/>` +
+          `<path class="zh-xmas-wire" d="M${x0},10 Q${x0 + spanne / 2},62 ${x0 + spanne},10" fill="none"/>`
+      );
 
       [0.18, 0.5, 0.82].forEach((t2, i) => {
         const p = aufBogen(x0, t2);
@@ -9659,7 +9662,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
       }
       #zh-christmas .zh-xmas-defs { position: absolute; width: 0; height: 0; }
-      #zh-christmas .zh-xmas-wire { stroke: #3a2f22; stroke-width: 2.2; opacity: .75; }
+      /* Zweifarbig: dunkle Kante plus helle Schnur - sichtbar auf hellem
+         Inhalt und auf der dunklen Kopfleiste. */
+      #zh-christmas .zh-xmas-wire-shadow { stroke: #4a3517; stroke-width: 3.6; opacity: .85; }
+      #zh-christmas .zh-xmas-wire { stroke: #d3a862; stroke-width: 2; }
       #zh-christmas .zh-xmas-sprig path { fill: none; stroke: #1b5a38; stroke-width: 2.2; stroke-linecap: round; opacity: .95; }
       #zh-christmas .zh-xmas-bulb-glow { fill: #ffd479; opacity: .28; filter: url(#zhXmasGlow); }
       #zh-christmas .zh-xmas-cap { fill: #c9a227; }

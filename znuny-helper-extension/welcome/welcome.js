@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.6.20",
+      items: [
+        "Das Seil der Girlande ist jetzt zweifarbig und damit auch auf der grauen Kopfleiste zu sehen."
+      ]
+    },
+    {
       version: "1.6.19",
       items: [
         "Der Schnee weicht der Maus aus: Flocken werden im Umkreis von 150 Pixeln vom Zeiger weggestoßen und beruhigen sich, sobald er stehen bleibt."

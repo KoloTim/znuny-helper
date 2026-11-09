@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.20] – 2026-11-09
+
+### Changed
+- **Girlanden-Seil sichtbar:** Die Schnur war dunkelbraun und verschwand auf der grauen Kopfleiste. Sie wird jetzt zweifarbig gezeichnet – dunkle Kante plus helle, warme Schnur (`#d3a862`) – und hebt sich damit sowohl von der dunklen Leiste als auch vom hellen Inhalt ab.
+
 ## [1.6.19] – 2026-11-09
 
 ### Added
