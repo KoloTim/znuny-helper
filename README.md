@@ -489,18 +489,20 @@ Vier Betriebsarten:
 
 ```bash
 node tools/browser/smoke.js                 # Fixtures: Erweiterung laden, Seiten prüfen, Screenshots
+node tools/browser/smoke.js --sichtbar      # dasselbe im Fenster, langsam, mit Erzählung im Terminal
 node tools/browser/capture.js --login       # einmalig: im Profil anmelden (Sitzung bleibt gespeichert)
 node tools/browser/capture.js               # echte Seiten aufnehmen (ohne Erweiterung)
 node tools/browser/testserver.js 8099       # lokaler Server, um den Aufnahme-Weg zu prüfen
 ```
 
-**Rauchtest (`smoke.js`).** Lädt die Erweiterung in Chrome, beantwortet alle Anfragen an `https://otrs.staff.hsrw/...` aus `tools/fixtures/` und prüft je Seite: meldet sich der Content-Script („Znuny Helper *Version* aktiv"), wurde eine Exception geworfen, und sind die erwarteten Elemente vorhanden (z. B. Kategorie-Spalte in der Ticketliste, Artikelsuche im Ticket). Dazu entsteht je Seite ein Screenshot unter `tools/browser/output/`. Erwartungen stehen in `tools/fixtures/fixtures.json`: `fest` muss zutreffen, `beobachtet` wird nur berichtet. `folgeseiten` werden beim Nachladen bedient, sodass Infinite Scroll samt Endebedingung mitgetestet wird.
+**Zusehen und aufzeichnen.** `--sichtbar` öffnet ein echtes Chrome-Fenster, geht die Seiten der Reihe nach durch und gönnt jeder Seite eine Pause; im Terminal steht vor jedem Schritt, was gerade passiert (`[1/4] … oeffne https://…`, danach die Befunde). Mit `--aufzeichnen=<verzeichnis>` schickt Chrome währenddessen Einzelbilder des Tabs, daraus entsteht eine Abspielseite `index.html` (Abspielen/Pause, Schritt zurück/vor, Tempo, Pfeiltasten) – kein Videoprogramm nötig. `--bleiben` lässt das Fenster am Ende offen.
 
 ```bash
-node tools/browser/smoke.js --headful              # Fenster zeigen
-node tools/browser/smoke.js --nur=agent-ticket-zoom
-node tools/browser/smoke.js --settle=3000           # länger warten (langsame Rechner)
+npm run browser:show     # sichtbarer Lauf
+npm run browser:record   # sichtbarer Lauf mit Aufzeichnung nach tools/browser/output/lauf
 ```
+
+**Rauchtest (`smoke.js`).** Lädt die Erweiterung in Chrome, beantwortet alle Anfragen an `https://otrs.staff.hsrw/...` aus `tools/fixtures/` und prüft je Seite: meldet sich der Content-Script („Znuny Helper *Version* aktiv"), wurde eine Exception geworfen, und sind die erwarteten Elemente vorhanden (z. B. Kategorie-Spalte in der Ticketliste, Artikelsuche im Ticket). Dazu entsteht je Seite ein Screenshot unter `tools/browser/output/`. Erwartungen stehen in `tools/fixtures/fixtures.json`: `fest` muss zutreffen, `beobachtet` wird nur berichtet. `folgeseiten` werden beim Nachladen bedient, sodass Infinite Scroll samt Endebedingung mitgetestet wird.
 
 **Aufnahme echter Seiten (`capture.js`).** Fehlt eine Seite als Fixture, wird sie aus dem echten System aufgenommen. Voraussetzung ist ein angemeldetes Profil in `.browser-profile/`; die Anmeldung erfolgt einmalig von Hand über `--login`, die Cookies bleiben im Profil. Passwörter stehen nirgends im Skript, und die Erweiterung sieht während der Aufnahme keine Zugangsdaten. Aufgenommen wird **ohne** Erweiterung, damit das Fixture reines Znuny-Markup enthält und der Rauchtest sich nicht selbst mitbringt. Ergebnis: `tools/fixtures/aufnahme/<name>.html` samt Konsolenprotokoll und Screenshot (per `.gitignore` ausgeschlossen, weil darin Ticketdaten stehen). Mit `--uebernehmen` ersetzt eine Aufnahme den synthetischen Platzhalter.
 

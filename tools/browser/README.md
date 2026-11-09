@@ -14,10 +14,60 @@ Richtige".
 
 ```bash
 node tools/browser/smoke.js              # Fixtures prüfen (braucht kein Znuny)
+node tools/browser/smoke.js --sichtbar   # dasselbe im Fenster, langsam, zum Zusehen
 node tools/browser/capture.js --login    # einmalig im Profil anmelden
 node tools/browser/capture.js            # echte Seiten aufnehmen
 node tools/browser/testserver.js 8099    # lokaler Server für den Aufnahme-Weg
 ```
+
+### Zusehen
+
+Der Rauchtest lässt sich sichtbar machen – im Fenster und im Terminal:
+
+```bash
+node tools/browser/smoke.js --sichtbar
+```
+
+Das öffnet ein echtes Chrome-Fenster, geht die Seiten der Reihe nach durch und
+gönnt jeder Seite eine Pause (`--settle` 2500 ms laden, `--langsam` 2200 ms
+ansehen). Im Terminal steht vor jedem Schritt, was gerade passiert:
+
+```
+[1/4] agent-uebersicht - Gesperrte Tickets (Ticketliste) inkl. Nachladen
+        oeffne https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketLockedView
+        Seite geladen - lese DOM und Erweiterungsoberflaeche
+        aufgezeichnet: 4 Bilder
+
+ok      agent-uebersicht  (Gesperrte Tickets (Ticketliste) inkl. Nachladen)
+        Meldung: Znuny Helper 1.6.5 aktiv Object | zh-Elemente: 32 | Dokumente bedient: 3
+        fest        ok  .zh-cat-ui (5)
+```
+
+Mit `--bleiben` bleibt das Fenster am Ende stehen, bis Enter gedrückt wird.
+
+### Aufzeichnen und abspielen
+
+```bash
+node tools/browser/smoke.js --sichtbar --aufzeichnen=tools/browser/output/lauf
+```
+
+Chrome schickt während des Laufs Einzelbilder des Tabs (`Page.startScreencast`).
+Daraus entsteht je Seite ein Ordner mit Bildern und eine Abspielseite
+`index.html`: Abspielen/Pause, Schritt zurück/vor, Tempo-Regler, Pfeiltasten und
+Leertaste. Kein Videoprogramm nötig – es ist eine Bilderfolge mit etwas JavaScript.
+Das scharfe Schlussbild jeder Seite wird zusätzlich übernommen, weil die
+Aufzeichnung selbst nur bei sichtbaren Änderungen zeichnet.
+
+| Schalter | Wirkung |
+| --- | --- |
+| `--sichtbar` | Fenster zeigen, längere Pausen, Erzählung im Terminal |
+| `--headful` | Fenster zeigen, ohne Pausen (schnell) |
+| `--langsam=<ms>` | Pause je Seite (Standard bei `--sichtbar`: 2200) |
+| `--bleiben` | Fenster am Ende offen lassen (Enter beendet) |
+| `--aufzeichnen=<dir>` | Bilderfolge + `index.html` in dieses Verzeichnis |
+| `--nur=<name>` | nur diese Seite prüfen |
+| `--settle=<ms>` | länger warten, bis die Seite „ruhig" ist (Standard 1500) |
+| `--chrome=<pfad>` | anderes Chrome/Edge (sonst `ZH_CHROME`) |
 
 ### smoke.js
 
@@ -31,14 +81,8 @@ alle Anfragen an `https://otrs.staff.hsrw/...` aus `tools/fixtures/`. Je Seite:
 4. Was ist bei `beobachtet` herausgekommen (nur Bericht)?
 
 Screenshot je Seite nach `tools/browser/output/`. Rückgabewert 1, sobald eine feste
-Erwartung verletzt ist – damit taugt es als Prüfschritt.
-
-| Schalter | Wirkung |
-| --- | --- |
-| `--headful` | Fenster zeigen (zum Zuschauen) |
-| `--nur=<name>` | nur diese Seite prüfen |
-| `--settle=<ms>` | länger warten, bis die Seite „ruhig" ist (Standard 1500) |
-| `--chrome=<pfad>` | anderes Chrome/Edge (sonst `ZH_CHROME`) |
+Erwartung verletzt ist – damit taugt es als Prüfschritt. Alle Schalter stehen in
+der Tabelle oben.
 
 ### fixtures.json
 
