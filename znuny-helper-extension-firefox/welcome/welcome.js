@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.6.8",
+      items: [
+        "Neu: Weihnachtsmodus (Popup → Saison) – Schnee, Lichterkette, Tannenzweige mit Kugeln, Glitzer und ein Schlitten mit zwei Rentieren. Reine Deko, fängt keine Klicks ab und ist jederzeit abschaltbar."
+      ]
+    },
+    {
       version: "1.6.7",
       items: [
         "Behoben: Beim Verknüpfen schloss sich das Fenster sofort nach „Suchen“ – die Treffer waren weg. Es bleibt jetzt offen, bis Znuny wieder das Ticket zeigt.",

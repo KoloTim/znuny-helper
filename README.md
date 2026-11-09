@@ -94,6 +94,7 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Ton bei neuem Ticket**
 | Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status (Tage im Popup einstellbar) |
 | Tastenkürzel | Strg+Enter zum Senden | Aktuelles Formular übermitteln, Tab schließt danach automatisch |
 | Benachrichtigung | Ton bei neuem Ticket | Sound abspielen, sobald ein neues Ticket bei einem selbst gesperrt wird |
+| Saison | Weihnachtsmodus | Schnee, Lichterkette, Tannenzweige mit Kugeln, Glitzer und ein Schlitten mit Rentieren – abschaltbar |
 | Hilfe | Diagnose | Version, erkannte Seite, Einstellungen und letzte Meldungen für eine Fehlermeldung sammeln und kopieren |
 
 ## Anhang-Vorschau
@@ -337,6 +338,18 @@ Im Addon-Popup lässt sich unter **Benachrichtigung**:
 Zehn Sounds sind bereits eingebaut: drei dezente Standardtöne (Sanfter Ping, Zwei-Ton-Chime, Weicher Klick – Sanfter Ping ist voreingestellt), zwei dezente Benachrichtigungstöne (Dezenter Ping, Neue Nachricht) sowie ICQ, iPhone, Minecraft Huhn 1, Minecraft Huhn 2 und WhatsApp.
 
 > Direkt nach der Installation bzw. dem ersten Aktivieren merkt sich das Addon nur den aktuellen Stand der gesperrten Tickets. Für bereits vorher gesperrte Tickets wird noch kein Ton abgespielt, erst für neu hinzukommende.
+
+## Weihnachtsmodus
+
+Unter **Saison** im Popup lässt sich der Weihnachtsmodus ein- und ausschalten. Ist er an, legt sich eine Dekoschicht über die Znuny-Seite:
+
+- **Schnee:** feine Flocken ziehen langsam über den Bildschirm; im Hintergrund-Tab pausiert die Animation.
+- **Lichterkette:** eine Kette mit farbigen Lämpchen hängt am oberen Rand.
+- **Tannenzweige mit Kugeln:** links und rechts oben, leicht über den Seitenrand hängend.
+- **Glitzer:** kleine Sterne funkeln an mehreren Stellen.
+- **Schlitten mit zwei Rentieren:** als Vektorgrafik unten rechts, mit goldenem Geschirr und Kufen.
+
+Die Deko ist reine Anzeige: Sie liegt in einer Ebene, die **keine Klicks annimmt** – Bedienung und Lesbarkeit bleiben unverändert. Ist im System „Bewegung reduzieren" eingestellt, steht der Schnee still und die Animationen entfallen. Alles entsteht lokal im Browser; es werden keine Daten gesendet und keine zusätzlichen Berechtigungen benötigt.
 
 ## EB Helper
 

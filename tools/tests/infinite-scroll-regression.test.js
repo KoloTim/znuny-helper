@@ -1400,6 +1400,30 @@ check("Fenster schliesst erst bei Ticket oder Liste",
   ),
   true);
 
+console.log("\n21) Weihnachtsmodus: Deko ohne Nebenwirkungen");
+check("Schalter im Popup", popupHtml.includes('name="christmasMode"'), true);
+check("Standardeinstellung ist an", settingBlock(source, "content.js").includes("christmasMode: true"), true);
+check("Wird mit den Funktionen geschaltet",
+  extractDeclaration("runEnabledFeatures").includes("enableChristmasMode()") &&
+    extractDeclaration("runEnabledFeatures").includes("disableChristmasMode()"),
+  true);
+check("Deko-Ebene faengt keine Klicks ab",
+  /#zh-christmas\s*\{[^}]*pointer-events:\s*none/.test(source),
+  true);
+check("Schnee respektiert reduzierte Bewegung",
+  extractDeclaration("startChristmasSnow").includes("prefers-reduced-motion"),
+  true);
+check("Abschalten raeumt Overlay und Stil weg",
+  extractDeclaration("disableChristmasMode").includes("CHRISTMAS_OVERLAY_ID") &&
+    extractDeclaration("disableChristmasMode").includes("removeStyle"),
+  true);
+check("Schlitten und Rentiere sind Vektorgrafik",
+  source.includes("zh-xmas-sleigh") && source.includes("zh-xmas-deer-antler"),
+  true);
+check("Glitzer liegt als eigene Ebene darueber",
+  source.includes("zh-xmas-spark") && source.includes("CHRISTMAS_SPARKS"),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

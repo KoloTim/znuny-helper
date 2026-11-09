@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.8] – 2026-11-09
+
+### Added
+- **Weihnachtsmodus:** Unter **Saison** im Popup schaltet ein eigener Schalter eine saisonale Deko über die Znuny-Oberfläche: feiner Schnee (Canvas, pausiert im Hintergrund-Tab), eine Lichterkette am oberen Rand, Tannenzweige mit Kugeln in beiden oberen Ecken, funkelnder Glitzer und ein Schlitten mit zwei Rentieren als Vektorgrafik unten rechts. Die Ebenen überlappen den Seitenrand bewusst leicht.
+
+  Die Deko ist **reine Anzeige**: alles liegt in einer Ebene mit `pointer-events: none`, Klicks gehen unverändert an Znuny (durch die Klick-Tests bestätigt). Ist im System „Bewegung reduzieren" gesetzt, steht der Schnee still und die Animationen entfallen. Alles entsteht lokal, ohne Netzwerkzugriff und ohne zusätzliche Berechtigungen; der Schalter lässt sich jederzeit wieder ausschalten.
+
 ## [1.6.7] – 2026-11-09
 
 ### Fixed

@@ -20,7 +20,8 @@
     keyboardShortcuts: true,
     assignedTicketSound: false,
     quickReply: false,
-    directArticleActions: true
+    directArticleActions: true,
+    christmasMode: true
   };
 
   const BUILTIN_TICKET_SOUNDS = [
