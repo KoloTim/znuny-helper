@@ -77,6 +77,17 @@ const szenarien = [
       await w.erwarte(".zh-category-modal-backdrop", "Verwaltung ist offen");
       await w.erwarteText(".zh-category-modal h2", "Kategorien", "Ueberschrift stimmt");
 
+      // Escape schliesst - wie bei Vorschau und Notizfenster.
+      await w.taste("Escape");
+      await w.warte(300);
+      await w.erwarteNicht(".zh-category-modal-backdrop", "Escape schliesst die Verwaltung");
+
+      // Erneut oeffnen: der Escape-Handler darf nicht doppelt haengen bleiben,
+      // sonst wuerde der Dialog beim naechsten Tastendruck sofort wieder zugehen.
+      await w.klickText(".zh-category-tools button, .zh-category-manage-btn", "Kategorien bearbeiten");
+      await w.warte(300);
+      await w.erwarte(".zh-category-modal-backdrop", "Verwaltung laesst sich erneut oeffnen");
+
       // Schliessen ueber den Knopf im Kopf des Fensters
       await w.klickText(".zh-category-modal header button", "Schließen");
       await w.warte(300);

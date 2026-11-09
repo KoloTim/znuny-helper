@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.6] – 2026-11-09
+
+### Added
+- **Diagnose im Popup:** Unter **Hilfe und Diagnose** sammelt ein Knopf alles, was zur Fehlersuche nötig ist – Version, erkannte Seitenart mit Adresse und Titel, die erkannte Ticketliste samt Spaltennamen und Ticketspalte, alle Einstellungen, die Belegung des lokalen Speichers je Schlüssel und die letzten 20 Warnungen/Fehler der Seite. Der Bericht erscheint im Popup und landet per Klick in der Zwischenablage, damit er direkt in eine Meldung passt. Er wird **nur lokal** erzeugt: kein Netzwerkzugriff, keine Änderung an Einstellungen.
+
+### Fixed
+- **Kategorien-Verwaltung ließ sich nicht mit Escape schließen:** Vorschau-Fenster und lokale Notiz konnten das schon, die Verwaltung nicht – man musste immer den Knopf **Schließen** oder den Rand treffen. Escape schließt sie jetzt genauso. Der Tastatur-Handler wird beim Schließen wieder entfernt, sonst hätte er nach dem ersten Öffnen dauerhaft mitgelauscht.
+
+### Changed
+- **Prüfung gegen echte Seiten statt nur gegen Fixtures:** Rauchtest und Klick-Tests können jetzt mit `--live` direkt gegen das echte Znuny laufen (`browser.cmd smoke --live`, `browser.cmd clicks --live`). Die Anmeldung erfolgt über das vorhandene Windows-Kerberos-Ticket (SSO), es wird weiterhin kein Passwort gespeichert. Der Wächter bleibt dabei unverändert aktiv: schreibende Anfragen werden abgewiesen. Beim Aufnehmen einer Ticketansicht setzt Znuny selbst einen „gesehen"-Marker per POST – der Wächter blockt ihn in den Live-Tests; beim reinen Aufnehmen (`capture`) läuft er durch, weil die Seite sonst unvollständig wäre.
+
 ## [1.6.5] – 2026-10-08
 
 ### Fixed

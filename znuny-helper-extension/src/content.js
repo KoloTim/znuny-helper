@@ -158,6 +158,46 @@
   const api = typeof browser !== "undefined" ? browser : chrome;
   const usesPromiseStorage = typeof browser !== "undefined";
   let settings = { ...DEFAULT_SETTINGS };
+
+  // Kleiner Ringpuffer fuer die Diagnose im Popup. Er sammelt nur die letzten
+  // Warnungen/Fehler dieser Seite, damit eine Meldung wie "geht nicht" ohne
+  // Rueckfragen auswertbar ist. Rein lokal, nichts wird gesendet.
+  const DIAGNOSE_FEHLER_LIMIT = 20;
+  const diagnoseFehler = [];
+
+  function merkeDiagnoseFehler(art, text) {
+    diagnoseFehler.push({
+      art,
+      zeit: new Date().toISOString().slice(11, 19),
+      text: String(text).replace(/\s+/g, " ").slice(0, 400)
+    });
+    if (diagnoseFehler.length > DIAGNOSE_FEHLER_LIMIT) diagnoseFehler.shift();
+  }
+
+  function installDiagnoseProtokoll() {
+    // Nur die eigene Welt: Content-Script-Logs landen in derselben Konsole,
+    // die Kapselung betrifft aber ausschliesslich Aufrufe aus diesem Skript.
+    ["warn", "error"].forEach((art) => {
+      const original = console[art].bind(console);
+      console[art] = (...args) => {
+        try {
+          merkeDiagnoseFehler(
+            art,
+            args.map((wert) => (wert && wert.message) ? wert.message : String(wert)).join(" ")
+          );
+        } catch {
+          /* Diagnose darf nie den Betrieb stoeren */
+        }
+        return original(...args);
+      };
+    });
+
+    window.addEventListener("error", (event) => {
+      const text = event?.error?.message || event?.message || "";
+      if (text) merkeDiagnoseFehler("uncaught", text);
+    });
+  }
+
   let ticketState = { categories: {}, notes: {} };
   let categoryConfig = null;
   let priorityTemplateConfig = { templates: DEFAULT_PRIORITY_TEMPLATES };
@@ -6870,6 +6910,13 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return candidates[0];
   }
 
+  // Die Ticket-Kategorien (und nur sie) brauchen die grosszuegige Erkennung:
+  // Das Kundenportal hat weniger Spalten als die Agenten-Liste. An einer Stelle
+  // gebuendelt, damit Nachladen und Ton-Pruefung nachweislich streng bleiben.
+  function findCategoryTable() {
+    return findTicketTable(document, { relaxed: true });
+  }
+
   function getIndexes(table) {
     const headers = [...table.querySelectorAll("th")].map((th) => getElementText(th).trim().toUpperCase());
 
@@ -7860,7 +7907,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     table.parentElement.insertBefore(wrap, table);
   }
 
+  // Escape schliesst die Verwaltung - wie Vorschau und Notizfenster. Der
+  // Handler haengt an document und wird beim Schliessen wieder entfernt, sonst
+  // bliebe er nach dem ersten Oeffnen dauerhaft aktiv.
+  let categoryManagerEscHandler = null;
+
   function closeCategoryManager() {
+    if (categoryManagerEscHandler) {
+      document.removeEventListener("keydown", categoryManagerEscHandler, true);
+      categoryManagerEscHandler = null;
+    }
     document.querySelectorAll(".zh-category-modal-backdrop").forEach((element) => element.remove());
   }
 
@@ -8111,6 +8167,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     });
     document.body.appendChild(backdrop);
     renderCategoryManagerRows(list);
+
+    categoryManagerEscHandler = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeCategoryManager();
+    };
+    document.addEventListener("keydown", categoryManagerEscHandler, true);
   }
 
   function applyTicketCategories() {
@@ -8119,7 +8183,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       return;
     }
 
-    const table = findTicketTable(document, { relaxed: true });
+    const table = findCategoryTable();
     if (!table) return;
 
     addTicketCategoryStyles();
@@ -8198,7 +8262,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     document.getElementById("zh-toolbar")?.remove();
     document.querySelectorAll(".zh-category-tools").forEach((element) => element.remove());
 
-    const table = findTicketTable(document, { relaxed: true });
+    const table = findCategoryTable();
     const tbody = table?.querySelector("tbody");
     if (!tbody) return;
 
@@ -9574,7 +9638,67 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     document.addEventListener("keydown", onKeydown);
   }
 
+  // ---- Diagnose (Popup) -------------------------------------------------
+  // Beantwortet die Frage "warum geht das bei mir nicht?" mit einem Bericht:
+  // Build, erkannte Seite und Tabelle, aktive Einstellungen und die letzten
+  // Meldungen. Nur lesend, keine Netzwerkzugriffe.
+
+  function diagnoseSeitenart() {
+    const url = window.location.href;
+    if (/Action=AgentTicketZoom\b/i.test(url)) return "Ticketansicht";
+    if (/Action=AgentTicketSearch\b/i.test(url)) return "Suche";
+    if (/Action=AgentTicket(?:Queue|LockedView|OwnerView|ResponsibleView|WatchView|StatusView|EscalationView)\b/i.test(url)) {
+      return "Ticketliste";
+    }
+    if (/customer\.pl/i.test(url)) return "Kundenportal";
+    return "andere Seite";
+  }
+
+  function diagnoseTicketliste() {
+    const table = findCategoryTable();
+    if (!table) return { erkannt: false, zeilen: 0, spalten: [], ticketspalte: -1 };
+
+    const spalten = [...table.querySelectorAll("th")]
+      .map((th) => getElementText(th).replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+
+    const indexes = getIndexes(table);
+    return {
+      erkannt: true,
+      zeilen: table.querySelectorAll("tbody tr").length,
+      spalten,
+      ticketspalte: resolveTicketColumnIndex(table, indexes)
+    };
+  }
+
+  function buildDiagnoseBericht() {
+    return {
+      version: api.runtime.getManifest?.().version || "?",
+      zeit: new Date().toISOString(),
+      seite: {
+        art: diagnoseSeitenart(),
+        url: window.location.href,
+        titel: document.title
+      },
+      ticketliste: diagnoseTicketliste(),
+      kategorien: Boolean(settings.ticketCategories),
+      einstellungen: { ...settings },
+      fehler: diagnoseFehler.slice()
+    };
+  }
+
+  function installDiagnoseAntwort() {
+    api.runtime.onMessage.addListener((nachricht, absender, antworten) => {
+      if (!nachricht || nachricht.typ !== "zh-diagnose") return undefined;
+      antworten({ ok: true, bericht: buildDiagnoseBericht() });
+      return undefined;
+    });
+  }
+
   async function init() {
+    installDiagnoseProtokoll();
+    installDiagnoseAntwort();
+
     // Diagnostic aid: shows at a glance which build is running and whether the
     // current page is treated as a ticket list. Only visible with DevTools open.
     console.info(

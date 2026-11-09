@@ -1357,13 +1357,14 @@ check("Queue-Ansicht bleibt ohne Kategorien",
   false);
 
 check("Kundenportal nutzt die grosszuegige Tabellensuche",
-  extractDeclaration("applyTicketCategories").includes("findTicketTable(document, { relaxed: true })"),
+  extractDeclaration("applyTicketCategories").includes("findCategoryTable()"),
   true);
 check("Nachladen bleibt bei der strengen Pruefung",
   Boolean(
     extractDeclaration("findTicketTable").includes("options = {}") &&
     !extractDeclaration("loadNextTicketListPage").includes("relaxed: true") &&
-    (source.match(/relaxed: true/g) || []).length === 2
+    // Die grosszuegige Variante existiert genau einmal, in findCategoryTable.
+    (source.match(/relaxed: true/g) || []).length === 1
   ),
   true);
 

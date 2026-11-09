@@ -68,6 +68,81 @@ if (regression.status !== 0) {
   console.log(`  FAIL Regressionstest (Exit-Code ${regression.status})`);
 }
 
+/* ---------- 3) Struktur- und Versionscheck ---------- */
+// Faengt zwei Fehlerklassen, die sonst erst im Store oder beim Nutzer auffallen:
+// eine Funktion, die still aus der Oberflaeche verschwindet, und eine Version,
+// die an einer Stelle vergessen wurde (Manifest, package.json, Changelog-Seite).
+console.log("\nStruktur- und Versionscheck:");
+
+function pruefeStruktur(rel, bedingungen) {
+  const datei = path.join(REPO_ROOT, rel);
+  if (!fs.existsSync(datei)) {
+    failures += 1;
+    console.log(`  FAIL ${rel} fehlt`);
+    return;
+  }
+  const inhalt = fs.readFileSync(datei, "utf8");
+  for (const [beschreibung, muster] of bedingungen) {
+    const ok = typeof muster === "string" ? inhalt.includes(muster) : muster.test(inhalt);
+    if (!ok) failures += 1;
+    console.log(`  ${ok ? "OK  " : "FAIL"} ${rel}: ${beschreibung}`);
+  }
+}
+
+const POPUP_HTML = path.join("znuny-helper-extension", "popup", "popup.html");
+pruefeStruktur(POPUP_HTML, [
+  ["Diagnose-Knopf im Popup", 'id="diagnoseCopy"'],
+  ["Diagnose-Ausgabe im Popup", 'id="diagnoseOutput"']
+]);
+pruefeStruktur(path.join("znuny-helper-extension", "popup", "popup.js"), [
+  ["Diagnose fragt das Content-Script", "zh-diagnose"],
+  ["Diagnose formatiert den Bericht", "formatiereDiagnose"]
+]);
+pruefeStruktur(path.join("znuny-helper-extension", "src", "content.js"), [
+  ["Diagnose antwortet dem Popup", "zh-diagnose"],
+  ["Diagnose sammelt die Seite", "buildDiagnoseBericht"],
+  ["Diagnose merkt sich Fehler", "merkeDiagnoseFehler"]
+]);
+
+const versionen = new Map();
+function merkeVersion(rel, version) {
+  if (!version) {
+    failures += 1;
+    console.log(`  FAIL ${rel}: keine Version gefunden`);
+    return;
+  }
+  versionen.set(rel, version);
+  console.log(`  OK   ${rel}: ${version}`);
+}
+
+for (const variante of VARIANTS) {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(REPO_ROOT, variante, "manifest.json"), "utf8")
+  );
+  merkeVersion(`${variante}/manifest.json`, manifest.version);
+}
+
+const paket = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf8"));
+merkeVersion("package.json", paket.version);
+
+const welcomeQuelle = fs.readFileSync(
+  path.join(REPO_ROOT, "znuny-helper-extension", "welcome", "welcome.js"),
+  "utf8"
+);
+merkeVersion("welcome.js (neuester Eintrag)", welcomeQuelle.match(/version:\s*"([\d.]+)"/)?.[1]);
+
+const MAX_VERSION = "1.6.6";
+const verschieden = [...new Set(versionen.values())];
+if (verschieden.length > 1) {
+  failures += 1;
+  console.log(`  FAIL Versionen weichen voneinander ab: ${verschieden.join(" / ")}`);
+} else if (verschieden[0] !== MAX_VERSION) {
+  failures += 1;
+  console.log(`  FAIL Version ist ${verschieden[0]}, erwartet ${MAX_VERSION}`);
+} else {
+  console.log(`  OK   Alle Versionsstellen stehen auf ${MAX_VERSION}`);
+}
+
 /* ---------- Ergebnis ---------- */
 if (failures) {
   console.log(`\nERGEBNIS: ${failures} Schritt(e) fehlgeschlagen.`);

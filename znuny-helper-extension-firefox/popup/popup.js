@@ -49,6 +49,23 @@
   const pendingDefaultInput = document.getElementById("pendingDefaultInput");
   const pendingDetails = document.getElementById("pendingDetails");
   const versionPill = document.getElementById("versionPill");
+  const diagnoseCopy = document.getElementById("diagnoseCopy");
+  const diagnoseOutput = document.getElementById("diagnoseOutput");
+
+  // Alle Schluessel, die die Erweiterung im lokalen Speicher belegt. Nur zur
+  // Groessenangabe in der Diagnose - die Namen duerfen sich nicht aendern,
+  // sonst waeren die gespeicherten Daten der Nutzer weg.
+  const STORAGE_KEYS = [
+    "znunyHelperSettings",
+    "znunyHelperTicketState",
+    "znunyHelperSearchHistory",
+    "znunyHelperCategoryConfig",
+    "znunyHelperPriorityTemplateConfig",
+    "znunyHelperTicketSoundConfig",
+    "znunyHelperSeenLockedTicketIds",
+    "znunyHelperQuickReplyLayout",
+    "znunyHelperQuickReplyDrafts"
+  ];
 
   let ticketSoundConfig = { customSounds: [], selectedId: BUILTIN_TICKET_SOUNDS[0].id };
 
@@ -262,6 +279,157 @@
     }
   }
 
+  // ---- Diagnose ---------------------------------------------------------
+  // Bewusst rein lesend: kein Netz, keine Aenderung an Einstellungen. Der
+  // Bericht ist Text, damit er sich unveraendert in eine Meldung kopieren
+  // laesst (auch aus Firefox heraus, wo Objekte zwischen Welten verloren gehen).
+
+  function storageBytes(keys) {
+    try {
+      const ergebnis = api.storage.local.getBytesInUse(keys);
+      if (ergebnis && typeof ergebnis.then === "function") return ergebnis;
+    } catch {
+      /* Chrome ohne Callback -> unten nachholen */
+    }
+    return new Promise((resolve) => api.storage.local.getBytesInUse(keys, resolve));
+  }
+
+  function aktiverTab() {
+    if (usesPromiseStorage) return api.tabs.query({ active: true, currentWindow: true });
+    return new Promise((resolve) => api.tabs.query({ active: true, currentWindow: true }, resolve));
+  }
+
+  function frageContentSkript(tabId) {
+    if (usesPromiseStorage) {
+      return api.tabs.sendMessage(tabId, { typ: "zh-diagnose" }).catch(() => null);
+    }
+    return new Promise((resolve) => {
+      try {
+        api.tabs.sendMessage(tabId, { typ: "zh-diagnose" }, (antwort) => {
+          void api.runtime.lastError;
+          resolve(antwort || null);
+        });
+      } catch {
+        resolve(null);
+      }
+    });
+  }
+
+  async function kopiereText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fallback fuer Umgebungen ohne Clipboard-Berechtigung im Popup.
+      const hilfsfeld = document.createElement("textarea");
+      hilfsfeld.value = text;
+      hilfsfeld.style.position = "fixed";
+      hilfsfeld.style.opacity = "0";
+      document.body.appendChild(hilfsfeld);
+      hilfsfeld.select();
+      let ok = false;
+      try {
+        ok = document.execCommand("copy");
+      } catch {
+        ok = false;
+      }
+      hilfsfeld.remove();
+      return ok;
+    }
+  }
+
+  function formatiereDiagnose(bericht, tabs, groessen) {
+    const zeilen = [];
+    const version = (() => {
+      try {
+        return api.runtime.getManifest().version;
+      } catch {
+        return "?";
+      }
+    })();
+
+    zeilen.push(`Znuny Helper ${version}`);
+    zeilen.push(`Zeit: ${new Date().toISOString()}`);
+    zeilen.push("");
+
+    if (!bericht || !bericht.ok || !bericht.bericht) {
+      zeilen.push("Seite: kein Znuny-Content-Script erreichbar");
+      zeilen.push(`Aktiver Tab: ${tabs?.url || "(unbekannt)"}`);
+    } else {
+      const daten = bericht.bericht;
+      zeilen.push(`Seite: ${daten.seite.art}`);
+      zeilen.push(`URL: ${daten.seite.url}`);
+      zeilen.push(`Titel: ${daten.seite.titel}`);
+      zeilen.push(
+        `Ticketliste: ${daten.ticketliste.erkannt ? "erkannt" : "nicht erkannt"}, ` +
+        `${daten.ticketliste.zeilen} Zeile(n), Ticketspalte ${daten.ticketliste.ticketspalte}`
+      );
+      if (daten.ticketliste.spalten.length) {
+        zeilen.push(`Spalten: ${daten.ticketliste.spalten.join(" | ")}`);
+      }
+      zeilen.push("");
+      zeilen.push("Einstellungen:");
+      Object.entries(daten.einstellungen).forEach(([schluessel, wert]) => {
+        zeilen.push(`  ${schluessel}: ${Array.isArray(wert) ? wert.join(", ") : wert}`);
+      });
+      zeilen.push("");
+      zeilen.push(`Letzte Meldungen (${daten.fehler.length}):`);
+      if (!daten.fehler.length) zeilen.push("  keine");
+      daten.fehler.forEach((eintrag) => zeilen.push(`  [${eintrag.zeit}] ${eintrag.art}: ${eintrag.text}`));
+    }
+
+    zeilen.push("");
+    zeilen.push("Speicher:");
+    if (groessen.gesamt === null) {
+      zeilen.push("  Groesse nicht verfuegbar");
+    } else {
+      zeilen.push(`  gesamt: ${groessen.gesamt} Bytes`);
+      Object.entries(groessen.einzeln).forEach(([schluessel, wert]) => {
+        zeilen.push(`  ${schluessel}: ${wert === null ? "?" : `${wert} B`}`);
+      });
+    }
+
+    return zeilen.join("\n");
+  }
+
+  async function zeigeDiagnose() {
+    const tabs = await aktiverTab();
+    const tab = Array.isArray(tabs) ? tabs[0] : null;
+    const bericht = tab?.id ? await frageContentSkript(tab.id) : null;
+
+    let gesamt = null;
+    const einzeln = {};
+    try {
+      gesamt = await storageBytes(null);
+      for (const schluessel of STORAGE_KEYS) {
+        einzeln[schluessel] = await storageBytes([schluessel]);
+      }
+    } catch {
+      gesamt = null;
+    }
+
+    const text = formatiereDiagnose(bericht, tab, { gesamt, einzeln });
+    if (diagnoseOutput) {
+      diagnoseOutput.hidden = false;
+      diagnoseOutput.textContent = text;
+    }
+
+    const kopiert = await kopiereText(text);
+    status.textContent = kopiert ? "Diagnose kopiert" : "Diagnose angezeigt (Kopieren fehlgeschlagen)";
+    window.setTimeout(() => {
+      status.textContent = "Bereit";
+    }, 2600);
+  }
+
+  function initDiagnose() {
+    diagnoseCopy?.addEventListener("click", () => {
+      zeigeDiagnose().catch((error) => {
+        status.textContent = "Diagnose fehlgeschlagen";
+        console.warn("Znuny Helper: Diagnose fehlgeschlagen:", error);
+      });
+    });
+  }
+
   async function init() {
     showVersion();
 
@@ -278,6 +446,7 @@
     renderSoundSelect();
     renderCustomSoundList();
     initSoundSettings();
+    initDiagnose();
   }
 
   init().catch((error) => {

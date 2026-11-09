@@ -21,7 +21,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 
 | Punkt | Beschreibung |
 | --- | --- |
-| Aktuelle Version | 1.6.5 (Stand: 08.10.2026) |
+| Aktuelle Version | 1.6.6 (Stand: 09.11.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` und `https://otrs.staff.hsrw/otrs/customer.pl*` (Kundenportal) |
@@ -94,6 +94,7 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Ton bei neuem Ticket**
 | Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status (Tage im Popup einstellbar) |
 | Tastenkürzel | Strg+Enter zum Senden | Aktuelles Formular übermitteln, Tab schließt danach automatisch |
 | Benachrichtigung | Ton bei neuem Ticket | Sound abspielen, sobald ein neues Ticket bei einem selbst gesperrt wird |
+| Hilfe | Diagnose | Version, erkannte Seite, Einstellungen und letzte Meldungen für eine Fehlermeldung sammeln und kopieren |
 
 ## Anhang-Vorschau
 
@@ -356,6 +357,19 @@ Falls der Text nicht automatisch erkannt wird, kann ein Hardwaretext manuell ein
 
 Die endgültige Prüfung und Korrektur der Gerätezeilen erfolgt auf der EB-Seite.
 
+## Diagnose
+
+Unter **Hilfe und Diagnose** im Popup sitzt der Knopf **Diagnose kopieren**. Er sammelt in einem Bericht:
+
+- Version der Erweiterung
+- erkannte Seitenart (Ticketliste, Ticketansicht, Suche, Kundenportal) mit Adresse und Titel
+- die erkannte Ticketliste: Anzahl der Zeilen, die Spaltennamen und die Spalte, in der die Ticketnummer steht
+- alle Einstellungen mit ihrem aktuellen Wert
+- die Belegung des lokalen Speichers je Schlüssel
+- die letzten 20 Warnungen und Fehler der geöffneten Seite
+
+Der Bericht wird im Popup angezeigt und gleichzeitig in die Zwischenablage kopiert; er lässt sich damit direkt in eine Fehlermeldung einfügen. Er entsteht **ausschließlich lokal**: kein Netzwerkzugriff, keine Änderung an Einstellungen. Enthalten sind keine Zugangsdaten, aber die Adresse der geöffneten Seite und – falls in einer Fehlermeldung sichtbar – Ticketnummern aus der Liste.
+
 ## Fehlermeldungen und Verbesserungsvorschläge
 
 Das Addon hat bewusst **keinen öffentlichen Meldeweg** im Popup: Da es über die Store-Direktlinks von überall installiert werden kann, würde ein offen sichtbarer Bug-Link (z. B. eine interne Mailadresse) auch Meldungen von außerhalb der Hochschule anziehen. Rückmeldungen laufen daher über die üblichen internen Wege.
@@ -367,6 +381,7 @@ Für eine hilfreiche Fehlermeldung bitte notieren:
 - Ticketnummer, falls sinnvoll
 - was erwartet wurde
 - was tatsächlich passiert ist
+- am einfachsten zusätzlich den Bericht aus **Hilfe und Diagnose → Diagnose kopieren**
 
 ## Datenschutz und Speicherung
 
@@ -483,6 +498,8 @@ Der Syntaxcheck aller eigenen JS-Dateien in beiden Varianten (`src`, `popup`, `w
 npm test
 ```
 
+Zusätzlich prüft derselbe Lauf die Struktur der Oberfläche (Diagnose-Knopf und seine Gegenstelle im Content-Script) und dass die Version an **allen** Stellen gleich ist: beide `manifest.json`, `package.json` und der neueste Eintrag in `welcome/welcome.js`. Eine vergessene Versionsstelle fällt damit sofort auf, statt erst im Store.
+
 Die npm-Scripts `build`, `verify` und `sync-firefox` rufen die Python-Skripte auf und funktionieren unter Windows (`python`/`py`) wie unter Linux (`python3`); es werden keine zusätzlichen Pakete benötigt.
 
 ### Browser-Werkzeuge (echtes Znuny und Fixtures)
@@ -520,6 +537,15 @@ Mit Node im PATH gehen dieselben Aufrufe direkt (`node tools/browser/smoke.js --
 **Aufnahme echter Seiten (`capture.js`).** Fehlt eine Seite als Fixture, wird sie aus dem echten System aufgenommen. Voraussetzung ist ein angemeldetes Profil in `.browser-profile/`; die Anmeldung erfolgt einmalig von Hand über `--login`, die Cookies bleiben im Profil. Passwörter stehen nirgends im Skript, und die Erweiterung sieht während der Aufnahme keine Zugangsdaten. Aufgenommen wird **ohne** Erweiterung, damit das Fixture reines Znuny-Markup enthält und der Rauchtest sich nicht selbst mitbringt. Ergebnis: `tools/fixtures/aufnahme/<name>.html` samt Konsolenprotokoll und Screenshot (per `.gitignore` ausgeschlossen, weil darin Ticketdaten stehen). Mit `--uebernehmen` ersetzt eine Aufnahme den synthetischen Platzhalter.
 
 **Klick-Tests (`clicks.js`).** Der Rauchtest prüft nur, dass etwas da ist – hier wird wirklich bedient: Mausklick an der Elementposition, Tippen, Tasten samt Modifikatoren, Auswahlfelder. Die Szenarien stehen in `tools/fixtures/clicks.js`. Ein **Wächter** (`guard.js`) macht die Zusage „nur lesend" technisch wahr: schreibende Anfragen (`POST`/`PUT`/`PATCH`/`DELETE`) werden mit `Aborted` abgewiesen, jede Formularübermittlung wird abgefangen und mitgezählt, `window.open` zählt nur mit und neue Tabs werden geschlossen. Deshalb dürfen Szenarien gefahrlos bis zum Absenden gehen: Ein Test klickt wirklich auf „Suche starten" und drückt wirklich Strg+Enter – und prüft dann, dass die Seite nicht verlassen wurde. Der Bericht nennt je Szenario, wie viele Formulare und Anfragen abgefangen wurden.
+
+**Gegen echte Seiten (`--live`).** Fixtures sind synthetisch und können von der Wirklichkeit abweichen. Deshalb können Rauchtest und Klick-Tests dieselben Erwartungen auch gegen das echte Znuny prüfen:
+
+```powershell
+.\browser.cmd smoke --live    # echte Seiten, nur lesend
+.\browser.cmd clicks --live   # echte Seiten, Wächter aktiv (nur Szenarien mit live: true)
+```
+
+Die Anmeldung läuft über das Windows-Kerberos-Ticket (Chrome bekommt dafür `--auth-server-allowlist=otrs.staff.hsrw`); es wird kein Passwort gespeichert oder eingegeben. Eine Sitzung ist nicht nötig, ein angemeldetes Profil schadet nicht. Beim Start schickt Znuny eine **PreLogin-Seite mit einem POST-Formular** – dieser eine Anmelde-POST läuft vor der Aktivierung des Wächters, alle Testschritte danach laufen darunter. Live sind nur Szenarien sinnvoll, deren Seite vollständig per GET rendert (`live: true` in `clicks.js`): Znuny lädt Widgets und den „gesehen"-Marker per POST, und genau den muss der Wächter abweisen. Beim Aufnehmen (`capture.js`) läuft dieser Marker durch – sonst wäre die Seite unvollständig; das ist der einzige Schreibvorgang und betrifft nur den eigenen „gesehen"-Stand.
 
 **Sicherheit.** Das Harness arbeitet ausschließlich lesend: navigieren, klicken, tippen, DOM lesen, Screenshots. Schreibende Anfragen sind technisch gesperrt, nicht bloß unerwünscht – es gibt auch keinen Schalter, der das aufhebt. `.browser-profile/` enthält die Sitzung und ist von der Versionierung ausgenommen.
 

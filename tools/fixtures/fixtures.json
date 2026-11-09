@@ -1,5 +1,5 @@
 {
-  "hinweis": "Seiten, die tools/browser/smoke.js ohne echtes Znuny laedt. 'fest' = muss zutreffen (sonst Fehler), 'beobachtet' = wird nur berichtet. 'folgeseiten' werden beim Nachladen (Infinite Scroll) bedient. Echte Aufnahmen aus tools/browser/capture.js ersetzen die synthetischen Platzhalter 1:1.",
+  "hinweis": "Seiten, die tools/browser/smoke.js ohne echtes Znuny laedt. Alle vier sind SYNTHETISCH: Aufbau und Spalten an echten Aufnahmen vom 09.11.2026 orientiert, Inhalte erfunden. Massgeblich fuer die Wirklichkeit sind die Live-Laeufe (smoke.js --live / clicks.js --live); echte Aufnahmen liegen lokal unter tools/fixtures/aufnahme/ und sind wegen Ticketdaten nicht eingecheckt. 'fest' = muss zutreffen (sonst Fehler), 'beobachtet' = wird nur berichtet. 'folgeseiten' werden beim Nachladen (Infinite Scroll) bedient. Echte Aufnahmen aus tools/browser/capture.js ersetzen die synthetischen Platzhalter 1:1.",
   "seiten": [
     {
       "name": "agent-uebersicht",

@@ -10,6 +10,10 @@ den Verlauf des vorherigen Gesprächs. Zuerst die Guardrails lesen, dann Phase 0
   Redundanzen auflösen, Features dort anpassen, wo es sinnvoll ist – und als
   **1.6.6** veröffentlichen.
 
+> **Stand 09.11.2026:** Die Revision ist als **1.6.6** veröffentlicht. Was
+> erledigt ist und was offen bleibt, steht in Abschnitt 14 – dort zuerst
+> nachsehen, bevor der Plan unten erneut abgearbeitet wird.
+
 ---
 
 ## 0. Guardrails (nicht verhandelbar)
@@ -378,3 +382,34 @@ $py   = "$env:USERPROFILE\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\pyt
 & $py tools/verify-release-zips.py
 & $py tools/make-netwiki-absatzform.py
 ```
+
+## 14. Stand nach der Revision (09.11.2026)
+
+### Erledigt und geprüft
+
+| Punkt | Ergebnis |
+| --- | --- |
+| Phase 0 – echte Seiten | Alle vier Seiten aufgenommen: Übersicht (3 gesperrte Tickets), Ticketansicht, Kundenportal **mit** `Filter=All` (12 Tickets), Suchdialog. Liegen unter `tools/fixtures/aufnahme/` (gitignored). |
+| Anmeldung ohne Handarbeit | Chrome nutzt das Windows-Kerberos-Ticket (`--auth-server-allowlist` in `launch.js`). Kein Passwort im Spiel, keine manuelle Anmeldung nötig. |
+| Phase 1 – Live-Prüfung | `smoke.js --live` **4/4 grün**, `clicks.js --live` **2/2 grün** (Kategorie setzen, Kategorien-Verwaltung). Fixture-Läufe weiterhin 4/4 und 6/6. |
+| B1 | Escape schließt die Kategorien-Verwaltung; Handler wird beim Schließen entfernt. Neuer Klick-Test prüft Escape **und** erneutes Öffnen. |
+| B4 | Aufnahmen vorhanden (siehe oben); `.browser-profile/` bleibt unangetastet und gitignored. |
+| F1 | Diagnose im Popup: Version, Seitenart, erkannte Tabelle samt Spalten, Einstellungen, Speichergrößen je Schlüssel, letzte 20 Meldungen, Knopf „Diagnose kopieren". Gegen die echte Übersicht geprüft (erkennt 3 Zeilen, Ticketspalte 3). |
+| R5 (teilweise) | `run-node-test.js` prüft jetzt Version an allen Stellen (beide Manifeste, `package.json`, neuester Welcome-Eintrag) und die Struktur des Diagnose-Wegs. |
+| Doku | `README.md`, beide NetWiki-Fassungen und die generierte Absatzform auf 1.6.6, inklusive Diagnose-Abschnitt und Live-Test-Anleitung. |
+| Release | Archive gebaut und je Eintrag per SHA256 geprüft; Tag `v1.6.6` gesetzt. |
+
+### Wichtige Erkenntnis aus Phase 1
+
+`clicks --live` ist nur auf Seiten sinnvoll, die vollständig per GET rendern. Znuny lädt Widgets (`Subaction=LoadWidget`) und den „gesehen"-Marker (`Subaction=MarkAsSeen`) per **POST**; der Wächter weist beides ab – richtig so, aber dadurch fehlen auf Ticket- und Suchseiten Inhalte. Deshalb tragen nur die beiden Listen-Szenarien `live: true`. Beim reinen `capture` läuft der Marker durch (sonst wäre die Aufnahme unvollständig); er ändert nur den eigenen „gesehen"-Stand.
+
+### Offen geblieben
+
+| Punkt | Status |
+| --- | --- |
+| B2 – Zeitfenster im Tab-Riegel | unverändert; kein Schreibzugriff möglich, nur ein kurzlebiger Tab. |
+| B3 – Fixtures | bleiben **synthetisch**, ausdrücklich so markiert in `fixtures.json`. Maßgeblich ist der Live-Lauf; echte Aufnahmen enthalten Ticketdaten und werden nicht eingecheckt. |
+| R1 – Doku-Quelle | nicht entschieden (README ≈ NETWIKI weiterhin ~90 % gleich). Braucht eine Entscheidung des Nutzers. |
+| R2 – Regressionstest aufteilen | nicht gemacht (1.553 Zeilen, 255 Prüfungen, ein Helfer). |
+| F2 – Store-Texte | offen. |
+| F3 – `web-ext lint` | offen; auf diesem Rechner kein npm verfügbar. |

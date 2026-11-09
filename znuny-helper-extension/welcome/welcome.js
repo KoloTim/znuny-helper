@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.6",
+      items: [
+        "Neu: Diagnose im Popup (Hilfe und Diagnose) – Version, erkannte Seite und Tabelle, Einstellungen, Speicherbelegung und die letzten Meldungen per Klick in die Zwischenablage. Rein lokal.",
+        "Behoben: Die Kategorien-Verwaltung schließt jetzt mit Escape – wie Vorschau und Notizfenster."
+      ]
+    },
+    {
       version: "1.6.5",
       items: [
         "Behoben: Entwürfe in der Schnellantwort behalten jetzt die Formatierung – Absätze, Fettungen, Listen und Signatur werden als Editor-Inhalt gespeichert und unverändert wiederhergestellt."

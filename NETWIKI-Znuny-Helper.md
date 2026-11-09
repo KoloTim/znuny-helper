@@ -21,7 +21,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 
 | Punkt | Beschreibung |
 | --- | --- |
-| Aktuelle Version | 1.6.5 (Stand: 08.10.2026) |
+| Aktuelle Version | 1.6.6 (Stand: 09.11.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | `https://otrs.staff.hsrw/otrs/index.pl*` und `https://otrs.staff.hsrw/otrs/customer.pl*` (Kundenportal) |
@@ -94,6 +94,7 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Ton bei neuem Ticket**
 | Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status (Tage im Popup einstellbar) |
 | Tastenkürzel | Strg+Enter zum Senden | Aktuelles Formular übermitteln, Tab schließt danach automatisch |
 | Benachrichtigung | Ton bei neuem Ticket | Sound abspielen, sobald ein neues Ticket bei einem selbst gesperrt wird |
+| Hilfe | Diagnose | Version, erkannte Seite, Einstellungen und letzte Meldungen für eine Fehlermeldung sammeln und kopieren |
 
 ## Anhang-Vorschau
 
@@ -356,6 +357,19 @@ Falls der Text nicht automatisch erkannt wird, kann ein Hardwaretext manuell ein
 
 Die endgültige Prüfung und Korrektur der Gerätezeilen erfolgt auf der EB-Seite.
 
+## Diagnose
+
+Unter **Hilfe und Diagnose** im Popup sitzt der Knopf **Diagnose kopieren**. Er sammelt in einem Bericht:
+
+- Version der Erweiterung
+- erkannte Seitenart (Ticketliste, Ticketansicht, Suche, Kundenportal) mit Adresse und Titel
+- die erkannte Ticketliste: Anzahl der Zeilen, die Spaltennamen und die Spalte, in der die Ticketnummer steht
+- alle Einstellungen mit ihrem aktuellen Wert
+- die Belegung des lokalen Speichers je Schlüssel
+- die letzten 20 Warnungen und Fehler der geöffneten Seite
+
+Der Bericht wird im Popup angezeigt und gleichzeitig in die Zwischenablage kopiert; er lässt sich damit direkt in eine Fehlermeldung einfügen. Er entsteht **ausschließlich lokal**: kein Netzwerkzugriff, keine Änderung an Einstellungen. Enthalten sind keine Zugangsdaten, aber die Adresse der geöffneten Seite und – falls in einer Fehlermeldung sichtbar – Ticketnummern aus der Liste.
+
 ## Fehlermeldungen und Verbesserungsvorschläge
 
 Das Addon hat bewusst **keinen öffentlichen Meldeweg** im Popup: Da es über die Store-Direktlinks von überall installiert werden kann, würde ein offen sichtbarer Bug-Link (z. B. eine interne Mailadresse) auch Meldungen von außerhalb der Hochschule anziehen. Rückmeldungen laufen daher über die üblichen internen Wege.
@@ -367,6 +381,7 @@ Für eine hilfreiche Fehlermeldung bitte notieren:
 - Ticketnummer, falls sinnvoll
 - was erwartet wurde
 - was tatsächlich passiert ist
+- am einfachsten zusätzlich den Bericht aus **Hilfe und Diagnose → Diagnose kopieren**
 
 ## Datenschutz und Speicherung
 
