@@ -2,6 +2,9 @@
 
 Chrome/Edge über das DevTools-Protokoll (CDP) ansteuern – **ohne Zusatzpakete**.
 Node bringt den WebSocket-Client mit, deshalb genügt ein installiertes Chrome oder Edge.
+Voraussetzung ist **Node 22 oder neuer**: Erst dort gibt es `WebSocket` als globale
+Klasse; unter Node 20 bricht das Harness mit einer klaren Meldung ab (die CI nutzt
+deshalb Node 22, nicht 20).
 
 ## Wozu
 

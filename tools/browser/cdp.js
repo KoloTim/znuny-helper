@@ -4,8 +4,9 @@
  * Winziger Client fuer das Chrome DevTools Protocol (CDP).
  *
  * Warum nicht Playwright/Puppeteer? Das Repo laeuft bewusst ohne Zusatzpakete
- * (siehe tools/run-node-test.js). Node 20+ bringt einen WebSocket-Client mit,
- * damit reicht das Protokoll direkt: keine Installation, kein Browser-Download,
+ * (siehe tools/run-node-test.js). Node 22+ bringt einen WebSocket-Client als
+ * globale Klasse mit (Node 20 nicht - dort braeche das Harness ab), damit
+ * reicht das Protokoll direkt: keine Installation, kein Browser-Download,
  * und es funktioniert offline.
  *
  * Protokoll: jede Nachricht ist JSON. Anfragen tragen eine "id" und werden
@@ -49,6 +50,17 @@ class CdpConnection {
   }
 
   static async open(webSocketUrl, timeoutMs = 20000) {
+    // Node 20 kennt kein globales WebSocket; das Harness braucht deshalb
+    // Node 22 oder neuer. Ohne diese Pruefung meldet sich sonst nur
+    // "WebSocket is not defined" - ein Fehler, der nach Addon aussieht,
+    // aber an der Laufzeit liegt.
+    if (typeof WebSocket === "undefined") {
+      throw new Error(
+        `Dieser Node (${process.version}) bringt keinen WebSocket-Client mit. ` +
+          "Das Browser-Harness braucht Node 22 oder neuer."
+      );
+    }
+
     const socket = new WebSocket(webSocketUrl);
     await new Promise((resolve, reject) => {
       const timer = setTimeout(() => {

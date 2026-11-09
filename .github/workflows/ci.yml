@@ -2,6 +2,10 @@ name: CI
 
 on:
   push:
+    # Nur Branch-Pushes. Ein Tag zeigt auf einen bereits geprueften Commit;
+    # ohne diese Einschraenkung lief die CI pro Release ein zweites Mal.
+    branches: ["**"]
+    tags-ignore: ["**"]
   pull_request:
 
 jobs:
@@ -16,12 +20,22 @@ jobs:
       - name: Node.js einrichten
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Node 22 oder neuer: Der CDP-Client nutzt das globale WebSocket,
+          # das es erst ab Node 22 ohne Zusatzschalter gibt. Mit Node 20
+          # scheiterte der Rauchtest mit "WebSocket is not defined".
+          node-version: "22"
 
       - name: Python einrichten
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Umgebung anzeigen
+        run: |
+          node --version
+          node -e "console.log('WebSocket:', typeof WebSocket)"
+          python3 --version
+          google-chrome --version || chromium --version || echo "kein Chrome gefunden"
 
       - name: Firefox-Variante pruefen (Parity)
         run: python3 tools/sync-firefox.py --check
