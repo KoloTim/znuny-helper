@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.22] – 2026-11-09
+
+### Changed
+- **Tannenbaum neu gezeichnet:** Statt gestapelter Dreiecke jetzt eine **gezahnte Nadel-Silhouette** (sechs Aststufen mit Kerben, gewellte Unterkante), berechnet statt handgezeichnet – gleichmäßige Zacken, Schneehauben auf den Astspitzen, Stern, Lichter, Kugeln und Geschenke. **Der Fokusrahmen (Kasten) ist weg** – der Baum war fokussierbar und bekam dadurch beim Klick einen Rahmen.
+- **Mistelzweig überarbeitet:** fünf Stechpalmenblätter mit Mittelrippe und Blattadern in Blattrichtung, vier rote Beeren mit Glanzpunkt.
+- **Pinball mit HSRW-Marke:** Das echte Logo (Y-Marke in Violett-Navy `#2a2250` und Blau `#3c7fd1`, Wortmarke) steht in der Kopfzeile und als großes Wasserzeichen im Spielfeld; „Hochschule Rhein-Waal" darunter. Dazu Zuckerstangen an den Seiten, Weihnachtsband „Frohe Weihnachten", Baumkulisse, fünf Bumperreihen in Markenfarben und ein größeres Spielfeld.
+- **Elfe als Begrüßung:** Vor dem Spiel erscheint eine Elfe mit dem Text „Oh, du hast eine kleine Auszeit verdient. Weihnachten ist eine schöne, aber oft stressige Zeit. Wie wäre es mit ein paar Minuten Pinball? Geschenke sind hier gratis." – Start erst auf „Bisschen Pinball".
+
 ## [1.6.21] – 2026-11-09
 
 ### Added

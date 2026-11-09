@@ -342,7 +342,9 @@ Zehn Sounds sind bereits eingebaut: drei dezente Standardtöne (Sanfter Ping, Zw
 
 ## Weihnachtsmodus
 
-Der Weihnachtsmodus ist ein saisonales Schmankerl: Schnee (echte sechszackige Flocken in drei Tiefen, mit Wind und Maus-Abwehr), eine Girlande mit Lichtern und Kugeln, ein Mistelzweig, ein Tannenbaum mit Geschenken und ein vorbeifliegender Schlitten. **Dreimal auf den Tannenbaum klicken** öffnet das **HSRW-Pinball**-Minigame – steuern mit Pfeiltasten oder A/D, Kugel halten mit Leertaste, beenden mit Esc oder dem × oben rechts.
+Der Weihnachtsmodus ist ein saisonales Schmankerl: Schnee (sechszackige Flocken in drei Tiefen, mit Wind und Maus-Abwehr), eine Girlande mit Lichtern und Kugeln, ein Mistelzweig, ein Tannenbaum mit Schneehauben und Geschenken sowie ein vorbeifliegender Schlitten. Der Baum bleibt immer im Bild und schrumpft bei wenig Platz nur leicht.
+
+**Dreimal auf den Tannenbaum klicken** öffnet das **HSRW-Pinball**-Minigame – mit dem HSRW-Logo (Y-Marke in Violett-Navy und Blau) auf dem Spielfeld, Zuckerstangen, Weihnachtsband und Baumkulisse. Eine kleine Elfe begrüßt dich vorher: „Oh, du hast eine kleine Auszeit verdient." Steuern mit Pfeiltasten oder A/D, beenden mit Esc oder dem × oben rechts.
 
 Der Schalter **Weihnachtsmodus** im Popup schaltet alles an und aus.
 ## EASM-Bewertung

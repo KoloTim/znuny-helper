@@ -1482,8 +1482,37 @@ check("Pinball per Escape schliessbar",
 check("Baum bleibt im Bild (kein Rausrutschen)",
   /transform-origin:\s*bottom right/.test(source) && !/translate\(46%, 26%\)/.test(source),
   true);
-check("roundRect hat Fallback",
-  /typeof ctx\.roundRect === "function"/.test(source),
+check("HSRW-Logo im Pinball (Marke + Wortmarke)",
+  source.includes("zh-pin-logo") && source.includes("#2a2250") && source.includes("#3c7fd1"),
+  true);
+
+console.log("\n25) Weihnachts-Deko: Baum, Mistelzweig, Elfe");
+check("Baum wird berechnet, nicht mehr als Konstante",
+  source.includes("function christmasTreeSvg") && !source.includes("const CHRISTMAS_TREE"),
+  true);
+check("Baum hat gezaehnten Rand (mehrere L-Segmente)",
+  /links\.push\(`L\$\{/.test(source) && /stufen = 6/.test(source),
+  true);
+check("Baum ist nicht fokussierbar (kein Kasten)",
+  !source.includes('baum?.setAttribute("tabindex"'),
+  true);
+check("Fokusrahmen wird unterdrueckt",
+  /outline:\s*none !important/.test(source),
+  true);
+check("Schneehauben haben eine Fuellung",
+  source.includes(".zh-xmas-tree-snow { fill:"),
+  true);
+check("Mistelzweig hat fuenf Blaetter",
+  (source.match(/<use href="#zhHollyLeaf"/g) || []).length === 5,
+  true);
+check("Elfe mit Auszeit-Text vorhanden",
+  source.includes("zh-pin-elf") && source.includes("Auszeit verdient"),
+  true);
+check("Pinball hat HSRW-Schriftzug und Weihnachtsband",
+  source.includes("Hochschule Rhein-Waal") && source.includes("Frohe Weihnachten"),
+  true);
+check("Pinball startet erst nach dem Intro-Knopf",
+  source.includes("zh-pin-start") && source.includes("spielLaeuft = true"),
   true);
 
 const chromeManifest = JSON.parse(

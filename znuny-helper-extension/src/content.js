@@ -9459,78 +9459,119 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   // Mistelzweig im klassischen Motiv: drei gelappte Stechpalmen-Blaetter mit
-  // Mittelrippe und eine Traube roter Beeren mit Glanzpunkt.
+  // Mistelzweig: gebogener Stiel, fuenf Stechpalmen-Blaetter mit sichtbarer
+  // Mittelrippe in Blattrichtung und eine Traube roter Beeren.
   const CHRISTMAS_MISTLETOE = `
     <svg class="zh-xmas-mistletoe" viewBox="0 0 240 210" aria-hidden="true">
       <defs>
-        <path id="zhHollyLeaf" d="M0,0
-          Q-20,-6 -20,-16 Q-20,-24 -8,-24
-          Q-24,-30 -24,-40 Q-22,-48 -9,-46
-          Q-18,-56 -12,-64 Q-4,-68 0,-70
-          Q4,-68 12,-64 Q18,-56 9,-46
-          Q22,-48 24,-40 Q24,-30 8,-24
-          Q20,-24 20,-16 Q20,-6 0,0 Z"/>
+        <g id="zhHollyLeaf">
+          <path class="zh-xmas-holly-fill" d="M2,-32
+            C24,-32 40,-22 48,-6 C52,2 52,8 48,12
+            C40,28 24,32 2,32
+            C-16,32 -28,22 -34,8 C-38,0 -38,-8 -34,-14
+            C-28,-26 -16,-32 2,-32 Z"/>
+          <path class="zh-xmas-holly-vein" d="M-6,0 C4,0 18,-2 30,-2"/>
+          <path class="zh-xmas-holly-vein" d="M14,-1 C18,-9 22,-16 26,-22"/>
+          <path class="zh-xmas-holly-vein" d="M14,1 C18,9 22,16 26,22"/>
+          <path class="zh-xmas-holly-vein" d="M-2,-1 C-4,-7 -6,-12 -8,-17"/>
+          <path class="zh-xmas-holly-vein" d="M-2,1 C-4,7 -6,12 -8,17"/>
+        </g>
       </defs>
 
-      <g class="zh-xmas-holly">
-        <use href="#zhHollyLeaf" transform="translate(96,150) rotate(-34) scale(1.15)"/>
-        <use href="#zhHollyLeaf" transform="translate(150,146) rotate(38) scale(1.1)"/>
-        <use href="#zhHollyLeaf" transform="translate(122,158) rotate(4) scale(0.92)"/>
+      <g class="zh-xmas-mistlestem">
+        <path d="M4,10 C42,42 84,70 124,96 C144,108 162,120 180,134"/>
       </g>
 
-      <g class="zh-xmas-holly-veins">
-        <path d="M96,150 L92,72" transform="rotate(-34 96 150)"/>
-        <path d="M150,146 L146,70" transform="rotate(38 150 146)"/>
-        <path d="M122,158 L120,102" transform="rotate(4 122 158)"/>
+      <g class="zh-xmas-holly">
+        <use href="#zhHollyLeaf" transform="translate(66,78) rotate(28)"/>
+        <use href="#zhHollyLeaf" transform="translate(122,112) rotate(-14)"/>
+        <use href="#zhHollyLeaf" transform="translate(170,146) rotate(24) scale(.92)"/>
+        <use href="#zhHollyLeaf" transform="translate(94,124) rotate(152) scale(.78)"/>
+        <use href="#zhHollyLeaf" transform="translate(150,158) rotate(176) scale(.72)"/>
       </g>
 
       <g class="zh-xmas-holly-berries">
-        <circle cx="108" cy="150" r="13"/>
-        <circle cx="134" cy="158" r="11.5"/>
-        <circle cx="120" cy="172" r="9.5"/>
+        <circle cx="152" cy="98" r="12"/>
+        <circle cx="172" cy="108" r="10.5"/>
+        <circle cx="158" cy="122" r="9"/>
+        <circle cx="136" cy="114" r="8"/>
       </g>
       <g class="zh-xmas-holly-shines">
-        <circle cx="104" cy="145" r="3.4"/>
-        <circle cx="130.4" cy="153.6" r="3"/>
-        <circle cx="117" cy="168.4" r="2.4"/>
+        <circle cx="148" cy="94" r="3.2"/>
+        <circle cx="168.5" cy="104" r="2.8"/>
+        <circle cx="155" cy="118.5" r="2.4"/>
+        <circle cx="133.5" cy="111" r="2"/>
       </g>
-
-      <path class="zh-xmas-mistlestem" d="M176,6 C168,44 158,86 140,126"/>
     </svg>`;
 
-  // Tannenbaum: vier Etagen mit Wellenrand, Schnee auf den Spitzen, Lichter
-  // und Kugeln - nicht mehr drei flache Dreiecke.
-  const CHRISTMAS_TREE = `
+  // Tannenbaum-Silhouette: gezaehnter Nadelrand (Astspitzen und Kerben) statt
+  // gestapelter Dreiecke. Der Pfad wird berechnet, damit die Zacken gleich-
+  // maessig sitzen; Lichter, Kugeln, Stern und Geschenke liegen darueber.
+  function christmasTreeSvg() {
+    const cx = 85;
+    const oben = 14;
+    const unten = 186;
+    const halb = 62;
+    const stufen = 6;
+    const schritt = (unten - oben) / stufen;
+    const links = [];
+    const rechts = [];
+    const spitzen = [];
+
+    for (let i = 1; i <= stufen; i += 1) {
+      const t2 = i / stufen;
+      const y = oben + (unten - oben) * Math.pow(t2, 0.92);
+      const x = halb * Math.pow(t2, 1.12);
+      const kerbeY = Math.min(unten - 3, y + schritt * 0.46);
+      links.push(`L${(cx - x).toFixed(1)},${y.toFixed(1)}`);
+      links.push(`L${(cx - x * 0.68).toFixed(1)},${kerbeY.toFixed(1)}`);
+      rechts.push(`L${(cx + x).toFixed(1)},${y.toFixed(1)}`);
+      rechts.push(`L${(cx + x * 0.68).toFixed(1)},${kerbeY.toFixed(1)}`);
+      if (i >= 2 && i <= 4) spitzen.push({ x: cx - x * 0.92, y: y + 2 }, { x: cx + x * 0.92, y: y + 2 });
+    }
+
+    const boden = [];
+    const segmente = 5;
+    for (let k = 0; k <= segmente; k += 1) {
+      const x = cx - halb + (2 * halb * k) / segmente;
+      boden.push(`L${x.toFixed(1)},${k % 2 === 0 ? unten : unten - 7}`);
+    }
+
+    const schnee = spitzen
+      .slice(0, 6)
+      .map((s2) => `<ellipse class="zh-xmas-tree-snow" cx="${s2.x.toFixed(1)}" cy="${s2.y.toFixed(1)}" rx="7.5" ry="3.1"/>`)
+      .join("");
+
+    return `
     <svg class="zh-xmas-tree" viewBox="0 0 170 220" aria-hidden="true">
-      <rect class="zh-xmas-tree-trunk" x="76" y="176" width="18" height="32" rx="4"/>
-      <path class="zh-xmas-tree-green" d="M85,10 L112,58 C104,52 95,62 85,54 C75,62 66,52 58,58 Z"/>
-      <path class="zh-xmas-tree-green" d="M85,44 L120,104 C110,96 99,108 85,98 C71,108 60,96 50,104 Z"/>
-      <path class="zh-xmas-tree-green" d="M85,112 L140,190 C126,178 110,194 85,180 C60,194 44,178 30,190 Z"/>
-      <circle class="zh-xmas-tree-star" cx="85" cy="8" r="7"/>
-      <circle class="zh-xmas-tree-light" cx="66" cy="56" r="2.6"/>
-      <circle class="zh-xmas-tree-light" cx="104" cy="66" r="2.6"/>
-      <circle class="zh-xmas-tree-light" cx="58" cy="104" r="2.6"/>
-      <circle class="zh-xmas-tree-light" cx="112" cy="116" r="2.6"/>
-      <circle class="zh-xmas-tree-light" cx="48" cy="150" r="2.6"/>
-      <circle class="zh-xmas-tree-light" cx="122" cy="158" r="2.6"/>
-      <circle class="zh-xmas-tree-light" cx="70" cy="176" r="2.6"/>
-      <circle cx="94" cy="84" r="4.6" fill="url(#zhXmasBaubleRed)"/>
-      <circle cx="60" cy="132" r="4.2" fill="url(#zhXmasBaubleGold)"/>
-      <circle cx="110" cy="170" r="4.4" fill="url(#zhXmasBaubleRed)"/>
-      <circle cx="78" cy="150" r="4" fill="url(#zhXmasBaubleGold)"/>
+      <rect class="zh-xmas-tree-trunk" x="76" y="176" width="18" height="34" rx="4"/>
+      <path class="zh-xmas-tree-green" d="M${cx},${oben} ${links.join(" ")} ${boden.join(" ")} ${rechts.reverse().join(" ")} Z"/>
+      ${schnee}
+      <path class="zh-xmas-tree-star" d="M85,0 L88.6,9.4 L98,10 L90.8,16 L93.4,26 L85,20.4 L76.6,26 L79.2,16 L72,10 L81.4,9.4 Z"/>
+      <circle class="zh-xmas-tree-light" cx="66" cy="60" r="3.1"/>
+      <circle class="zh-xmas-tree-light" cx="106" cy="76" r="3.1"/>
+      <circle class="zh-xmas-tree-light" cx="54" cy="108" r="3.1"/>
+      <circle class="zh-xmas-tree-light" cx="118" cy="120" r="3.1"/>
+      <circle class="zh-xmas-tree-light" cx="44" cy="156" r="3.1"/>
+      <circle class="zh-xmas-tree-light" cx="126" cy="164" r="3.1"/>
+      <circle class="zh-xmas-bauble" cx="92" cy="98" r="6" fill="url(#zhXmasBaubleRed)"/>
+      <circle class="zh-xmas-bauble" cx="60" cy="134" r="5.4" fill="url(#zhXmasBaubleGold)"/>
+      <circle class="zh-xmas-bauble" cx="112" cy="172" r="5.6" fill="url(#zhXmasBaubleRed)"/>
+      <circle class="zh-xmas-bauble" cx="80" cy="158" r="5" fill="url(#zhXmasBaubleGold)"/>
       <g class="zh-xmas-tree-gifts">
-        <rect x="36" y="194" width="32" height="21" rx="3" fill="#b3261e"/>
-        <rect x="36" y="194" width="32" height="7" rx="3" fill="#8f1d16"/>
-        <rect x="50" y="194" width="4" height="21" fill="#f6e3b4"/>
-        <path d="M52,194 C48,187 41,188 43,192 C45,196 49,196 52,194 Z" fill="#e8b34b"/>
-        <rect x="94" y="198" width="26" height="17" rx="2.5" fill="#1f6b4a"/>
-        <rect x="94" y="198" width="26" height="6" rx="2.5" fill="#17573a"/>
-        <rect x="105" y="198" width="4" height="17" fill="#f6e3b4"/>
-        <rect x="66" y="204" width="24" height="15" rx="2.5" fill="#3976bb"/>
-        <rect x="75" y="204" width="4" height="15" fill="#f6e3b4"/>
-        <path d="M77,204 C73,199 67,200 69,203 C71,206 75,205 77,204 Z" fill="#e8b34b"/>
+        <rect x="34" y="194" width="34" height="22" rx="3" fill="#b3261e"/>
+        <rect x="34" y="194" width="34" height="7" rx="3" fill="#8f1d16"/>
+        <rect x="49" y="194" width="4" height="22" fill="#f6e3b4"/>
+        <path d="M51,194 C46,187 40,188 42,192 C44,196 49,196 51,194 Z" fill="#e8b34b"/>
+        <rect x="96" y="198" width="28" height="18" rx="2.5" fill="#1f6b4a"/>
+        <rect x="96" y="198" width="28" height="6" rx="2.5" fill="#17573a"/>
+        <rect x="108" y="198" width="4" height="18" fill="#f6e3b4"/>
+        <rect x="66" y="204" width="26" height="16" rx="2.5" fill="#3976bb"/>
+        <rect x="76" y="204" width="4" height="16" fill="#f6e3b4"/>
+        <path d="M79,204 C74,199 68,200 70,203 C72,206 77,205 79,204 Z" fill="#e8b34b"/>
       </g>
     </svg>`;
+  }
 
   // Rentiere, Schlitten und Weihnachtsmann als Vektorgrafik. Alles in lokalen
   // Koordinaten, damit dieselbe Szene im Vorbeiflug passt.
@@ -9674,9 +9715,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-christmas .zh-xmas-treesnow { fill: #f4f8fb; opacity: .92; }
       #zh-christmas .zh-xmas-tree-light { fill: #ffe9a8; filter: url(#zhXmasGlow); }
       #zh-christmas .zh-xmas-tree-star { fill: #ffe9a8; filter: url(#zhXmasGlow); }
-      #zh-christmas .zh-xmas-mistleaves ellipse { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1.1; }\n      #zh-christmas .zh-xmas-mistleveins path { fill: none; stroke: #1c4a2f; stroke-width: 1.2; opacity: .65; }
-      #zh-christmas .zh-xmas-mistleberries circle { fill: #f7f4ee; stroke: #cfc6b4; stroke-width: .8; }
-      #zh-christmas .zh-xmas-mistleberry-shine,\n      #zh-christmas .zh-xmas-mistleberry-shines circle { fill: rgba(255,255,255,.85); }
+      #zh-christmas .zh-xmas-holly-fill { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1.4; stroke-linejoin: round; }
+      #zh-christmas .zh-xmas-holly-vein { fill: none; stroke: #1c4a2f; stroke-width: 1.2; opacity: .6; stroke-linecap: round; }
+      #zh-christmas .zh-xmas-mistlestem { fill: none; stroke: #2f6b46; stroke-width: 3.2; stroke-linecap: round; }
+      #zh-christmas .zh-xmas-holly-berries circle { fill: url(#zhXmasBaubleRed); stroke: #6f1712; stroke-width: 1.2; }
+      #zh-christmas .zh-xmas-holly-shines circle { fill: rgba(255,255,255,.85); }
       #zh-christmas .zh-xmas-thread { stroke: #d9c48a; stroke-width: 1.2; }
       #zh-christmas .zh-xmas-fly {
         position: absolute; top: 7%; left: 0; width: 700px; height: 276px;
@@ -9725,6 +9768,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-christmas .zh-xmas-mistleaf { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1.1; }
       #zh-christmas .zh-xmas-tree {
         position: absolute; right: 8px; bottom: 12px; width: 132px; height: 176px;
+        outline: none !important; -webkit-tap-highlight-color: transparent;
         filter: drop-shadow(0 6px 10px rgba(0,0,0,.2));
         /* Der Baum ist der einzige Teil der Deko, der Klicks annimmt (Pinball). */
         pointer-events: auto; cursor: pointer;
@@ -9732,6 +9776,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-christmas .zh-xmas-tree-trunk { fill: #6b4226; }
       #zh-christmas .zh-xmas-tree-green { fill: #1c5c3a; stroke: #14432a; stroke-width: 1.5; }
       #zh-christmas .zh-xmas-tree-star { fill: #e8b34b; }
+      #zh-christmas .zh-xmas-tree-snow { fill: #f2f7fb; opacity: .92; }
       #zh-christmas .zh-xmas-deer-body { fill: url(#zhXmasDeer); }
       #zh-christmas .zh-xmas-deer-muzzle { fill: none; stroke: #5b3620; stroke-width: 2; stroke-linecap: round; }
       #zh-christmas .zh-xmas-deer-eye { fill: #f6e3b4; }
@@ -10187,110 +10232,198 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     addStyle("zh-pinball-style", `
       #zh-pinball {
         position: fixed; inset: 0; z-index: 2147483600;
-        background: rgba(10, 16, 28, .92);
+        background:
+          radial-gradient(120% 90% at 50% 0%, #17335c 0%, #0b1830 45%, #060d1a 100%);
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        font-family: system-ui, Segoe UI, sans-serif; color: #eaf1fb;
+        font-family: system-ui, Segoe UI, sans-serif; color: #eaf1fb; gap: 10px;
       }
-      #zh-pinball.zh-hide { display: none; }
-      #zh-pinball .zh-pin-top { display: flex; align-items: baseline; gap: 18px; margin: 0 18px 12px; }
-      #zh-pinball .zh-pin-title { font-size: 22px; font-weight: 700; letter-spacing: .5px; }
-      #zh-pinball .zh-pin-title span { color: #7fb3ff; }
-      #zh-pinball .zh-pin-score { font-size: 26px; font-weight: 800; color: #ffd479; }
-      #zh-pinball canvas { background: #0c1a30; border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,.55); }
-      #zh-pinball .zh-pin-hint { margin-top: 14px; font-size: 14px; opacity: .8; }
+      #zh-pinball .zh-pin-top {
+        display: flex; align-items: baseline; gap: 16px; padding: 0 12px;
+      }
+      #zh-pinball .zh-pin-title {
+        font-size: 22px; font-weight: 800; letter-spacing: .6px;
+        text-shadow: 0 0 18px rgba(95,168,255,.55);
+      }
+      #zh-pinball .zh-pin-title b { color: #7fb3ff; }
+      #zh-pinball .zh-pin-score {
+        font-size: 24px; font-weight: 800; color: #ffd479;
+        text-shadow: 0 0 16px rgba(255,212,121,.5);
+      }
+      #zh-pinball .zh-pin-logo { height: 34px; width: auto; display: block; }
+      #zh-pinball canvas { display: block; border-radius: 16px; }
+      #zh-pinball .zh-pin-hint {
+        font-size: 13px; color: #cfe0f7; background: rgba(12,26,48,.85);
+        border: 1px solid rgba(127,179,255,.28); border-radius: 999px;
+        padding: 7px 16px; line-height: 1.35; text-align: center;
+      }
+      #zh-pinball .zh-pin-hint b { color: #ffd479; }
       #zh-pinball .zh-pin-close {
-        position: absolute; top: 16px; right: 20px; width: 40px; height: 40px;
-        border: 1px solid #3d4c66; border-radius: 50%; background: #172338;
-        color: #eaf1fb; font-size: 20px; line-height: 1; cursor: pointer;
+        position: absolute; top: 14px; right: 18px; width: 42px; height: 42px;
+        border: 1px solid rgba(127,179,255,.35); border-radius: 50%;
+        background: rgba(18,34,58,.9); color: #eaf1fb; font-size: 22px; line-height: 1;
+        cursor: pointer; transition: background .15s ease, transform .15s ease;
       }
-      #zh-pinball .zh-pin-close:hover { background: #243352; }
+      #zh-pinball .zh-pin-close:hover { background: #24385c; transform: scale(1.06); }
+
+      /* Elfe mit Sprechblase */
+      #zh-pinball .zh-pin-intro {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        background: rgba(4, 10, 20, .72); backdrop-filter: blur(3px);
+      }
+      #zh-pinball .zh-pin-intro.zh-weg { display: none; }
+      #zh-pinball .zh-pin-card {
+        width: min(560px, 88vw); background: linear-gradient(180deg, #16294a, #0d1a30);
+        border: 1px solid rgba(127,179,255,.35); border-radius: 20px; padding: 26px 28px 22px;
+        box-shadow: 0 24px 60px rgba(0,0,0,.6); text-align: center;
+      }
+      #zh-pinball .zh-pin-card h2 { margin: 0 0 6px; font-size: 22px; color: #ffd479; }
+      #zh-pinball .zh-pin-card p { margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #dbe8fa; }
+      #zh-pinball .zh-pin-card button {
+        margin-top: 20px; padding: 11px 26px; border-radius: 999px; border: 0;
+        background: linear-gradient(180deg, #ffd479, #e0a92e); color: #2a1b00;
+        font-size: 15px; font-weight: 800; cursor: pointer;
+      }
+      #zh-pinball .zh-pin-card button:hover { filter: brightness(1.07); }
+      #zh-pinball .zh-pin-card button:focus-visible { outline: 2px solid #fff3c4; outline-offset: 3px; }
+      #zh-pinball svg.zh-pin-elf { width: 120px; height: 120px; margin-bottom: 4px; }
     `);
+  }
+
+  // HSRW-Marke: zwei geschwungene Striche (violett-navy + blau), daneben die
+  // Wortmarke. Farben aus dem Logo: #2a2250, #3c7fd1, Wortmarke fast schwarz.
+  function pinballLogo(hell) {
+    const wort = hell ? "#eef4ff" : "#14131f";
+    return `
+      <svg class="zh-pin-logo ${hell ? "zh-pin-logo--hell" : ""}" viewBox="0 0 232 64" aria-label="HSRW">
+        <path d="M15,11 C19,30 29,45 44,54" fill="none" stroke="#2a2250" stroke-width="11" stroke-linecap="round"/>
+        <path d="M59,11 C55,30 45,45 32,54" fill="none" stroke="#3c7fd1" stroke-width="11" stroke-linecap="round"/>
+        <text x="74" y="47" font-family="system-ui, Segoe UI, sans-serif" font-size="38" font-weight="800" fill="${wort}">HSRW</text>
+      </svg>`;
+  }
+
+  function pinballElf() {
+    return `
+      <svg class="zh-pin-elf" viewBox="0 0 120 120" aria-hidden="true">
+        <path d="M60,104 C40,104 30,92 30,78 L90,78 C90,92 80,104 60,104 Z" fill="#b3261e"/>
+        <path d="M30,78 L90,78 L84,68 L36,68 Z" fill="#f7f4ee"/>
+        <circle cx="60" cy="54" r="22" fill="#f2c9a0"/>
+        <path d="M38,50 C38,32 48,22 60,22 C72,22 82,32 82,50 Z" fill="#1f6b4a"/>
+        <path d="M60,22 C74,22 84,30 88,44 L74,44 C72,34 66,28 60,28 Z" fill="#17573a"/>
+        <circle cx="88" cy="44" r="6" fill="#f7f4ee"/>
+        <path d="M38,44 L26,36 L36,58 Z" fill="#f2c9a0"/>
+        <path d="M82,44 L94,36 L84,58 Z" fill="#f2c9a0"/>
+        <circle cx="52" cy="52" r="3" fill="#2b2b2b"/>
+        <circle cx="68" cy="52" r="3" fill="#2b2b2b"/>
+        <path d="M52,62 C56,67 64,67 68,62" stroke="#b3261e" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        <circle cx="46" cy="60" r="4" fill="#e8928a" opacity=".8"/>
+        <circle cx="74" cy="60" r="4" fill="#e8928a" opacity=".8"/>
+      </svg>`;
   }
 
   function startPinball() {
     if (document.getElementById("zh-pinball")) return;
     pinballStyle();
 
+    const breite = Math.max(360, Math.min(680, window.innerWidth - 80));
+    const hoehe = Math.max(420, Math.min(560, window.innerHeight - 230));
+
     const host = document.createElement("div");
     host.id = "zh-pinball";
     host.innerHTML = `
       <div class="zh-pin-top">
-        <div class="zh-pin-title">H<span style="color:#7fb3ff">SRW</span> Pinball</div>
+        ${pinballLogo(true)}
+        <div class="zh-pin-title">Pinball</div>
         <div class="zh-pin-score" id="zh-pin-score">0</div>
       </div>
-      <canvas id="zh-pin-board" width="660" height="520"></canvas>
-      <div class="zh-pin-hint">Kugel mit links/rechts (Pfeiltasten oder A/D) steuern · Kugel halten: Leertaste · Esc schlie\u00dfen</div>
+      <canvas id="zh-pin-board" width="${breite}" height="${hoehe}"></canvas>
+      <div class="zh-pin-hint">
+        <b>Pfeiltasten</b> oder <b>A</b>/<b>D</b> steuern die Flipper &middot; <b>Esc</b> beendet
+      </div>
       <button class="zh-pin-close" id="zh-pin-close" title="Schlie\u00dfen">\u00d7</button>
+      <div class="zh-pin-intro" id="zh-pin-intro">
+        <div class="zh-pin-card">
+          ${pinballElf()}
+          <h2>Oh, du hast eine kleine Auszeit verdient.</h2>
+          <p>Weihnachten ist eine sch\u00f6ne, aber oft stressige Zeit.
+             Wie w\u00e4re es mit ein paar Minuten Pinball? Geschenke sind hier gratis.</p>
+          <button id="zh-pin-start">Bisschen Pinball</button>
+        </div>
+      </div>
     `;
     document.body.appendChild(host);
 
     const canvas = host.querySelector("#zh-pin-board");
     const ctx = canvas.getContext("2d");
     const punkteAnzeige = host.querySelector("#zh-pin-score");
+    const intro = host.querySelector("#zh-pin-intro");
 
-    // Farben: HSRW-Blau im Zentrum, rote Flipper, goldene Anzeige.
     const W = canvas.width;
     const H = canvas.height;
-    const HSRW = { blue: "#1e5aa8", deep: "#123b73", cyan: "#5fa8ff" };
+    const farben = {
+      blau: "#3c7fd1", tief: "#1b1740", cyan: "#5fa8ff",
+      gold: "#ffd479", rot: "#e0492f", gruen: "#1d6b46", weiss: "#f4f8ff"
+    };
 
     let punkte = 0;
     let laeuft = true;
+    let spielLaeuft = false;
     let letzterFrame = 0;
-    let flipperL = -0.5;
-    let flipperR = -0.5;
-    let tastatur = { links: false, rechts: false, halten: false };
-    let kugel = { x: W / 2, y: 150, vx: 0, vy: 3.2, r: 8 };
-    let kugelStill = 0;
+    let flipperL = 0;
+    let flipperR = 0;
+    let tasten = { links: false, rechts: false };
 
-    const buxen = [];
-    (function baueBuxen() {
-      const zeilen = [
-        { y: 64, farbe: "#ffd479", punkte: 30 },
-        { y: 96, farbe: "#7fb3ff", punkte: 20 },
-        { y: 128, farbe: "#8fd3a8", punkte: 10 },
-        { y: 160, farbe: "#8fd3a8", punkte: 10 }
-      ];
-      zeilen.forEach((zeile, zi) => {
-        const vonX = 90 + zi * 26;
-        const bisX = W - 90 - zi * 26;
-        const anzahl = zi === 0 ? 5 : 6;
-        for (let i = 0; i < anzahl; i += 1) {
-          const x = vonX + ((bisX - vonX) / (anzahl - 1)) * i;
-          buxen.push({ x, y: zeile.y, r: 11, farbe: zeile.farbe, punkte: zeile.punkte });
-        }
-      });
-    })();
+    const kugel = { x: W / 2, y: H * 0.28, vx: 0, vy: 0, r: 8 };
 
-    const saulestueck = [
-      { x: W / 2, y: 200, r: 15 },
-      { x: W / 2 - 32, y: 232, r: 12 },
-      { x: W / 2 + 32, y: 232, r: 12 },
-      { x: W / 2, y: 268, r: 12 }
+    // Christbaumkugeln als Bumper: drei Bogenreihen.
+    const bumper = [];
+    const reihen = [
+      { y: 0.26, radius: 12, farbe: farben.gold, punkte: 30, anzahl: 5 },
+      { y: 0.38, radius: 10.5, farbe: farben.cyan, punkte: 20, anzahl: 6 },
+      { y: 0.5, radius: 9.5, farbe: "#8fd3a8", punkte: 15, anzahl: 5 }
     ];
+    // Zusaetzliche Bumper in der Mitte, damit das Feld nicht leer wirkt.
+    reihen.push({ y: 0.63, radius: 9, farbe: "#ffd479", punkte: 25, anzahl: 4 });
+    reihen.push({ y: 0.72, radius: 8, farbe: "#7fb3ff", punkte: 25, anzahl: 3 });
+    reihen.forEach((reihe, rIndex) => {
+      const rand = 0.16 + rIndex * 0.03;
+      for (let i = 0; i < reihe.anzahl; i += 1) {
+        const t2 = reihe.anzahl === 1 ? 0.5 : i / (reihe.anzahl - 1);
+        bumper.push({
+          x: W * (rand + (1 - 2 * rand) * t2),
+          y: H * reihe.y,
+          r: reihe.radius,
+          farbe: reihe.farbe,
+          punkte: reihe.punkte
+        });
+      }
+    });
 
-    // HSRW-Schriftzug mittig als Dekor (kein Kollisionsobjekt).
-    const mitteText = { x: W / 2, y: H / 2 - 10 };
+    // Schnee im Spielfeld
+    const flocken = Array.from({ length: 42 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: 0.8 + Math.random() * 1.9,
+      v: 0.16 + Math.random() * 0.5,
+      a: 0.25 + Math.random() * 0.45
+    }));
 
-    function schritt(dt) {
-      if (!laeuft) return;
+    const schrittPhysik = (dt) => {
       const sch = Math.min(dt, 34) / 16.67;
 
-      if (tastatur.links) flipperL = Math.min(1, flipperL + 0.18 * sch);
-      else flipperL = Math.max(-0.5, flipperL - 0.12 * sch);
-      if (tastatur.rechts) flipperR = Math.min(1, flipperR + 0.18 * sch);
-      else flipperR = Math.max(-0.5, flipperR - 0.12 * sch);
+      if (tasten.links) flipperL = Math.min(1, flipperL + 0.2 * sch);
+      else flipperL = Math.max(0, flipperL - 0.14 * sch);
+      if (tasten.rechts) flipperR = Math.min(1, flipperR + 0.2 * sch);
+      else flipperR = Math.max(0, flipperR - 0.14 * sch);
 
-      kugel.vy += 0.16 * sch;
+      kugel.vy += 0.14 * sch;
       kugel.x += kugel.vx * sch;
       kugel.y += kugel.vy * sch;
 
-      // Wände
-      if (kugel.x - kugel.r < 6) { kugel.x = 6 + kugel.r; kugel.vx = Math.abs(kugel.vx); }
-      if (kugel.x + kugel.r > W - 6) { kugel.x = W - 6 - kugel.r; kugel.vx = -Math.abs(kugel.vx); }
-      if (kugel.y - kugel.r < 6) { kugel.y = 6 + kugel.r; kugel.vy = Math.abs(kugel.vy); }
+      if (kugel.x - kugel.r < 10) { kugel.x = 10 + kugel.r; kugel.vx = Math.abs(kugel.vx); }
+      if (kugel.x + kugel.r > W - 10) { kugel.x = W - 10 - kugel.r; kugel.vx = -Math.abs(kugel.vx); }
+      if (kugel.y - kugel.r < 10) { kugel.y = 10 + kugel.r; kugel.vy = Math.abs(kugel.vy); }
 
-      // Bumper
-      for (const b of buxen) {
+      for (const b of bumper) {
         const dx = kugel.x - b.x;
         const dy = kugel.y - b.y;
         const ab = Math.sqrt(dx * dx + dy * dy);
@@ -10299,145 +10432,247 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           const ny = dy / (ab || 1);
           kugel.x = b.x + nx * (b.r + kugel.r);
           kugel.y = b.y + ny * (b.r + kugel.r);
-          kugel.vx = nx * 8;
-          kugel.vy = ny * 8;
+          kugel.vx = nx * 7.5;
+          kugel.vy = ny * 7.5;
           punkte += b.punkte;
         }
       }
 
-      // Saulen
-      for (const st of saulestueck) {
-        const dx = kugel.x - st.x;
-        const dy = kugel.y - st.y;
+      // Flipper: zwei Dreiecke unten links/rechts
+      const flipperStoss = (px, seite, stellung) => {
+        const grund = seite < 0 ? Math.PI + 0.42 : -0.42;
+        const winkel = grund + seite * stellung * 0.9;
+        const laenge = Math.min(86, W * 0.14);
+        const ex = px + Math.cos(winkel) * laenge;
+        const ey = H - 54 + Math.sin(winkel) * laenge;
+        const dx = kugel.x - ex;
+        const dy = kugel.y - ey;
         const ab = Math.sqrt(dx * dx + dy * dy);
-        if (ab < st.r + kugel.r) {
+        if (ab < 14 + kugel.r) {
           const nx = dx / (ab || 1);
           const ny = dy / (ab || 1);
-          kugel.x = st.x + nx * (st.r + kugel.r);
-          kugel.y = st.y + ny * (st.r + kugel.r);
-          const dot = kugel.vx * nx + kugel.vy * ny;
-          kugel.vx -= 2 * dot * nx;
-          kugel.vy -= 2 * dot * ny;
-        }
-      }
-
-      // Flipper-Kollision
-      const drehen = (flip, px, py, seite) => {
-        const a = seite > 0 ? -0.5 - flip * 1.2 : Math.PI + 0.5 + flip * 1.2;
-        const lx = px + Math.cos(a) * 52;
-        const ly = py + Math.sin(a) * 52;
-        const dx = kugel.x - lx;
-        const dy = kugel.y - ly;
-        const ab = Math.sqrt(dx * dx + dy * dy);
-        if (ab < 12 + kugel.r) {
-          const nx = dx / (ab || 1);
-          const ny = dy / (ab || 1);
-          kugel.x = lx + nx * (12 + kugel.r);
-          kugel.y = ly + ny * (12 + kugel.r);
-          const staerke = 7 + flip * 3;
-          kugel.vx = nx * staerke;
-          kugel.vy = ny * staerke - 2;
+          kugel.x = ex + nx * (14 + kugel.r);
+          kugel.y = ey + ny * (14 + kugel.r);
+          const kraft = 6.4 + stellung * 4.4;
+          kugel.vx = nx * kraft;
+          kugel.vy = ny * kraft - 3;
         }
       };
-      drehen(flipperL, 178, H - 58, -1);
-      drehen(flipperR, W - 178, H - 58, 1);
+      flipperStoss(W * 0.26, -1, flipperL);
+      flipperStoss(W * 0.74, 1, flipperR);
 
-      // Halten verlangsamt die Kugel
-      if (tastatur.halten) {
-        kugel.vx *= 0.9;
-        kugel.vy *= 0.9;
-      }
-
-      // Verloren -> zurueck
-      if (kugel.y > H + 30) {
-        kugel = { x: W / 2, y: 150, vx: 0, vy: 3.4, r: 8 };
+      if (kugel.y > H + 26) {
+        kugel.x = W / 2;
+        kugel.y = H * 0.2;
+        kugel.vx = (Math.random() - 0.5) * 3;
+        kugel.vy = 2.6;
         punkte = Math.max(0, punkte - 20);
       }
 
+      for (const f of flocken) {
+        f.y += f.v * sch;
+        if (f.y > H) { f.y = -4; f.x = Math.random() * W; }
+      }
+
       punkteAnzeige.textContent = String(punkte);
-    }
+    };
 
-    function zeichnen() {
-      ctx.clearRect(0, 0, W, H);
-
-      const verlauf = ctx.createLinearGradient(0, 0, 0, H);
-      verlauf.addColorStop(0, "#10243f");
-      verlauf.addColorStop(1, "#081320");
-      ctx.fillStyle = verlauf;
+    const zeichne = () => {
+      // Grundflaeche
+      const grund = ctx.createLinearGradient(0, 0, 0, H);
+      grund.addColorStop(0, "#1b1a3d");
+      grund.addColorStop(0.55, "#12142c");
+      grund.addColorStop(1, "#0a0a18");
+      ctx.fillStyle = grund;
       ctx.fillRect(0, 0, W, H);
 
-      // HSRW-Saeule
-      const saeule = ctx.createLinearGradient(0, 0, 0, H);
-      saeule.addColorStop(0, HSRW.blue);
-      saeule.addColorStop(1, HSRW.deep);
-      ctx.fillStyle = saeule;
-      ctx.fillRect(W / 2 - 46, 0, 92, H);
+      // HSRW-Marke als grosses Wasserzeichen (Y aus zwei Boegen + Wortmarke)
+      ctx.save();
+      ctx.globalAlpha = 0.13;
+      ctx.lineCap = "round";
+      ctx.lineWidth = Math.max(10, W * 0.028);
+      const my = H * 0.34;
+      const mx = W / 2 - W * 0.16;
+      const arm = W * 0.045;
+      ctx.strokeStyle = "#2a2250";
+      ctx.beginPath();
+      ctx.moveTo(mx - arm, my - 34);
+      ctx.bezierCurveTo(mx - arm * 0.7, my - 6, mx - arm * 0.1, my + 16, mx + arm * 0.5, my + 34);
+      ctx.stroke();
+      ctx.strokeStyle = "#3c7fd1";
+      ctx.beginPath();
+      ctx.moveTo(mx + arm, my - 34);
+      ctx.bezierCurveTo(mx + arm * 0.7, my - 6, mx + arm * 0.1, my + 16, mx - arm * 0.5, my + 34);
+      ctx.stroke();
+      ctx.globalAlpha = 0.12;
+      ctx.fillStyle = "#dfe9ff";
+      ctx.font = `800 ${Math.round(W * 0.17)}px system-ui, Segoe UI`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText("HSRW", mx + 48, my + 2);
+      ctx.restore();
 
-      ctx.fillStyle = HSRW.cyan;
-      ctx.font = "700 34px system-ui, Segoe UI";
-      ctx.textAlign = "center";
-      ctx.fillText("HSRW", mitteText.x, mitteText.y);
+      // Schnee
+      for (const f of flocken) {
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(244,248,255,${f.a})`;
+        ctx.fill();
+      }
 
-      // Bumper
-      for (const b of buxen) {
+      // Girlande am oberen Rand
+      ctx.save();
+      ctx.strokeStyle = "#d3a862";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(10, 16);
+      ctx.quadraticCurveTo(W / 2, 54, W - 10, 16);
+      ctx.stroke();
+      const lichter = 9;
+      for (let i = 0; i < lichter; i += 1) {
+        const t2 = i / (lichter - 1);
+        const x = 10 + (W - 20) * t2;
+        const y = 16 + Math.sin(Math.PI * t2) * 31;
+        ctx.beginPath();
+        ctx.arc(x, y + 5, 3.4, 0, Math.PI * 2);
+        ctx.fillStyle = i % 3 === 0 ? "#ffd479" : i % 3 === 1 ? "#ff8f7a" : "#8fd3a8";
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      ctx.restore();
+
+      // Bumper als Christbaumkugeln
+      for (const b of bumper) {
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
         ctx.fillStyle = b.farbe;
         ctx.shadowColor = b.farbe;
-        ctx.shadowBlur = 14;
+        ctx.shadowBlur = 16;
         ctx.fill();
         ctx.shadowBlur = 0;
-        ctx.fillStyle = "rgba(255,255,255,.5)";
         ctx.beginPath();
-        ctx.arc(b.x - 3, b.y - 4, 3, 0, Math.PI * 2);
+        ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.35, b.r * 0.3, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,255,255,.85)";
         ctx.fill();
       }
 
-      // Saulen
-      for (const st of saulestueck) {
-        ctx.beginPath();
-        ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
-        ctx.fillStyle = "#35507b";
-        ctx.fill();
-        ctx.strokeStyle = "#7fb3ff";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-
-      // Flipper
-      const zeichneFlipper = (flip, px, seite) => {
-        const a = seite > 0 ? -0.5 - flip * 1.2 : Math.PI + 0.5 + flip * 1.2;
+      // Weihnachtsbaeume links/rechts unten
+      const zeichneBaum = (bx, by, groesse) => {
         ctx.save();
-        ctx.translate(px, H - 58);
-        ctx.rotate(a);
-        ctx.fillStyle = "#ff6b57";
+        ctx.translate(bx, by);
+        ctx.scale(groesse, groesse);
+        ctx.fillStyle = "rgba(29,107,70,.9)";
         ctx.beginPath();
-        if (typeof ctx.roundRect === "function") ctx.roundRect(-16, -8, 52, 16, 8);
-        else ctx.rect(-16, -8, 52, 16);
+        ctx.moveTo(0, -30);
+        ctx.lineTo(16, -6);
+        ctx.lineTo(8, -6);
+        ctx.lineTo(20, 14);
+        ctx.lineTo(-20, 14);
+        ctx.lineTo(-8, -6);
+        ctx.lineTo(-16, -6);
+        ctx.closePath();
         ctx.fill();
+        ctx.fillStyle = "#6b4226";
+        ctx.fillRect(-3, 14, 6, 8);
         ctx.restore();
       };
-      zeichneFlipper(flipperL, 178, -1);
-      zeichneFlipper(flipperR, W - 178, 1);
+      zeichneBaum(38, H - 30, 1);
+      zeichneBaum(W - 38, H - 30, 1);
+
+      // Flipper
+      const zeichneFlipper = (px, seite, stellung) => {
+        const grund2 = seite < 0 ? Math.PI + 0.42 : -0.42;
+        const winkel = grund2 + seite * stellung * 0.9;
+        const laenge = Math.min(86, W * 0.14);
+        ctx.save();
+        ctx.translate(px, H - 54);
+        ctx.rotate(winkel);
+        ctx.fillStyle = farben.rot;
+        ctx.beginPath();
+        ctx.moveTo(-2, -10);
+        ctx.lineTo(laenge, -5);
+        ctx.arc(laenge, 0, 5, -Math.PI / 2, Math.PI / 2);
+        ctx.lineTo(-2, 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,.55)";
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(px, H - 54, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = farben.gold;
+        ctx.fill();
+      };
+      zeichneFlipper(W * 0.26, -1, flipperL);
+      zeichneFlipper(W * 0.74, 1, flipperR);
 
       // Kugel
       ctx.beginPath();
       ctx.arc(kugel.x, kugel.y, kugel.r, 0, Math.PI * 2);
-      ctx.fillStyle = "#e8eef7";
+      const kg = ctx.createRadialGradient(kugel.x - 3, kugel.y - 3, 1, kugel.x, kugel.y, kugel.r);
+      kg.addColorStop(0, "#ffffff");
+      kg.addColorStop(1, "#a9c3e6");
+      ctx.fillStyle = kg;
       ctx.shadowColor = "#7fb3ff";
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 12;
       ctx.fill();
       ctx.shadowBlur = 0;
-    }
 
-    function frame(zeit) {
+      // Untertitel unter dem Wasserzeichen
+      ctx.save();
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = "#dce9ff";
+      ctx.font = `600 ${Math.round(W * 0.028)}px system-ui, Segoe UI`;
+      ctx.textAlign = "center";
+      ctx.fillText("Hochschule Rhein-Waal", W / 2, H * 0.5);
+      ctx.restore();
+
+      // Zuckerstangen an den Seiten
+      const stange = (sx) => {
+        for (let i = 0; i < 12; i += 1) {
+          ctx.fillStyle = i % 2 === 0 ? "#f7f4ee" : "#d8452f";
+          ctx.fillRect(sx - 3, 96 + i * 26, 6, 26);
+        }
+        ctx.fillStyle = "rgba(247,244,238,.9)";
+        ctx.beginPath();
+        ctx.arc(sx, 92, 5, 0, Math.PI * 2);
+        ctx.fill();
+      };
+      stange(16);
+      stange(W - 16);
+
+      // Weihnachtsband
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "#ffd479";
+      ctx.font = `700 ${Math.round(W * 0.035)}px system-ui, Segoe UI`;
+      ctx.textAlign = "center";
+      ctx.fillText("Frohe Weihnachten", W / 2, H * 0.86);
+      ctx.restore();
+
+      // Baum zwischen den Flippern
+      zeichneBaum(W / 2, H - 26, 1.25);
+
+      // Rahmen
+      ctx.strokeStyle = "rgba(211,168,98,.85)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+    };
+
+    const frame = (zeit) => {
       if (!laeuft) return;
       const dt = letzterFrame ? zeit - letzterFrame : 16;
       letzterFrame = zeit;
-      for (let i = 0; i < 2; i += 1) schritt(dt / 2);
-      zeichnen();
+      if (spielLaeuft) {
+        schrittPhysik(dt / 2);
+        schrittPhysik(dt / 2);
+      }
+      zeichne();
       requestAnimationFrame(frame);
-    }
+    };
 
     const aufTaste = (event) => {
       const taste = event.key.toLowerCase();
@@ -10445,21 +10680,33 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         schliessen();
         return;
       }
-      if (taste === "arrowleft" || taste === "a") { tastatur.links = event.type === "keydown"; event.preventDefault(); }
-      if (taste === "arrowright" || taste === "d") { tastatur.rechts = event.type === "keydown"; event.preventDefault(); }
-      if (event.code === "Space") { tastatur.halten = event.type === "keydown"; event.preventDefault(); }
+      if (taste === "arrowleft" || taste === "a") { tasten.links = event.type === "keydown"; event.preventDefault(); }
+      if (taste === "arrowright" || taste === "d") { tasten.rechts = event.type === "keydown"; event.preventDefault(); }
     };
 
+    let geschlossen = false;
     function schliessen() {
+      if (geschlossen) return;
+      geschlossen = true;
       laeuft = false;
       window.removeEventListener("keydown", aufTaste);
       window.removeEventListener("keyup", aufTaste);
       host.remove();
+      removeStyle("zh-pinball-style");
     }
 
+    host.querySelector("#zh-pin-start").addEventListener("click", () => {
+      intro.classList.add("zh-weg");
+      spielLaeuft = true;
+      kugel.vx = (Math.random() - 0.5) * 2.5;
+      kugel.vy = 2.8;
+    });
     host.querySelector("#zh-pin-close").addEventListener("click", schliessen);
     window.addEventListener("keydown", aufTaste);
     window.addEventListener("keyup", aufTaste);
+    host.addEventListener("click", (event) => {
+      if (event.target === intro) intro.classList.add("zh-weg"), (spielLaeuft = true);
+    });
 
     requestAnimationFrame(frame);
   }
@@ -10489,7 +10736,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       <div class="zh-xmas-glow"></div>
       ${CHRISTMAS_DEFS}
       ${CHRISTMAS_MISTLETOE}
-      ${CHRISTMAS_TREE}
+      ${christmasTreeSvg()}
       <div class="zh-xmas-fly" hidden>${christmasSleighScene()}</div>
       ${CHRISTMAS_SPARKS}
     `;
@@ -10522,7 +10769,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     baum?.addEventListener("click", baumAnklicken);
     baum?.setAttribute("role", "button");
     baum?.setAttribute("aria-label", "Pinball (dreimal klicken)");
-    baum?.setAttribute("tabindex", "0");
 
     // Die Girlande haengt an der Fensterbreite: bei Aenderung neu zeichnen.
     let garlandTimer = 0;

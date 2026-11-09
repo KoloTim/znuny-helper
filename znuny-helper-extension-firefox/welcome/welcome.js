@@ -9,6 +9,14 @@
 
   const releases = [
     {
+      version: "1.6.22",
+      items: [
+        "Tannenbaum neu: gezahnte Nadel-Silhouette mit Schneehauben statt Dreiecken – und ohne Kasten beim Klicken.",
+        "Mistelzweig mit fünf Blättern und Beeren neu gezeichnet.",
+        "Pinball trägt jetzt das HSRW-Logo und begrüßt mit einer Elfe: „Oh, du hast eine kleine Auszeit verdient.“"
+      ]
+    },
+    {
       version: "1.6.21",
       items: [
         "Neu: HSRW-Pinball – dreimal auf den Tannenbaum klicken und losspielen (Pfeiltasten/A+D, Leertaste, Esc).",
