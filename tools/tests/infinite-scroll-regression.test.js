@@ -1424,6 +1424,35 @@ check("Glitzer liegt als eigene Ebene darueber",
   source.includes("zh-xmas-spark") && source.includes("CHRISTMAS_SPARKS"),
   true);
 
+console.log("\n22) EASM-Bewertung: Stufen aus dem Artikel");
+const parseEasm = new Function(`${extractDeclaration("parseEasmCriticalities")}; return parseEasmCriticalities;`)();
+const summarizeEasm = new Function(
+  "EASM_LEVELS",
+  `${extractDeclaration("summarizeEasm")}; return summarizeEasm;`
+)(["low", "medium", "high", "critical"]);
+
+const easmEins = "Schwachstellen:\n\n1.30 MB ... - webSize\n\nCVEs\nCVSS Score\t\nCriticality\nMedium";
+const easmDrei = "Criticality\nCritical\n\n...\n\nCriticality\nHigh";
+
+check("einzelne Einstufung wird gelesen", parseEasm(easmEins), ["medium"]);
+check("mehrere Einstufungen werden gelesen", parseEasm(easmDrei), ["critical", "high"]);
+check("ohne Criticality bleibt es leer", parseEasm("Kein Befund in diesem Text."), []);
+check("schwerste Stufe gewinnt",
+  summarizeEasm(parseEasm(easmDrei)).schwerste,
+  "critical");
+check("Funde je Stufe werden gezaehlt",
+  summarizeEasm(parseEasm(easmDrei)).zaehler,
+  { low: 0, medium: 0, high: 1, critical: 1 });
+check("nur Medium ergibt MED",
+  summarizeEasm(parseEasm(easmEins)).schwerste,
+  "medium");
+check("Gross- und Kleinschreibung egal",
+  parseEasm("criticality: HIGH"),
+  ["high"]);
+check("Knopf und Marke sind vorhanden",
+  source.includes("zh-easm-button") && source.includes("zh-easm-badge") && source.includes("AgentTicketArticleContent"),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

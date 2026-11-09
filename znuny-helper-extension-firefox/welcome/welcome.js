@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.18",
+      items: [
+        "Neu: EASM-Bewertung – Knopf neben dem Tickettitel liest die Criticality-Stufen aus dem neuesten Artikel und zeigt die schwerste als farbige Marke (z. B. CRIT · 1×CRIT 1×HIGH). Nur lesend, im Popup abschaltbar.",
+        "Deko: Baum und Mistelzweig bleiben sichtbar und rutschen bei wenig Platz nur zur Seite."
+      ]
+    },
+    {
       version: "1.6.17",
       items: [
         "Deko verdeckt keine Ticketzeilen mehr: Baum und Mistelzweig erscheinen nur, wenn die Seite nicht scrollt und das Fenster breit genug ist."

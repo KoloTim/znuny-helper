@@ -58,6 +58,7 @@
     assignedTicketSound: false,
     quickReply: false,
     directArticleActions: true,
+    easmRating: true,
     christmasMode: true
   };
 
@@ -9604,6 +9605,39 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       <path d="M12 0 L13.6 9.2 L24 12 L13.6 14.8 L12 24 L10.4 14.8 L0 12 L10.4 9.2 Z"/>
     </svg>`).join("");
 
+  function addEasmStyles() {
+    addStyle("zh-easm-style", `
+      .zh-easm-btn {
+        margin-left: 10px;
+        padding: 4px 10px;
+        border: 1px solid #c9d6e2;
+        border-radius: 999px;
+        background: #fff;
+        color: #1f5f9f;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .zh-easm-btn:hover { background: #eef4fa; }
+      .zh-easm-btn:disabled { opacity: .6; cursor: default; }
+      .zh-easm-badge {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        border: 1px solid transparent;
+        vertical-align: middle;
+      }
+      .zh-easm-badge--critical { background: #fde8e6; border-color: #b3261e; color: #8c1c14; }
+      .zh-easm-badge--high { background: #fff0dd; border-color: #d98200; color: #8a5200; }
+      .zh-easm-badge--medium { background: #fff8d6; border-color: #d4a800; color: #6f5800; }
+      .zh-easm-badge--low { background: #e8f6ea; border-color: #2e7d32; color: #1d5220; }
+      .zh-easm-badge--none { background: #eef1f4; border-color: #c3ccd6; color: #5b6672; }
+    `);
+  }
+
   function addChristmasStyles() {
     addStyle("zh-christmas-style", `
       #zh-christmas {
@@ -9747,8 +9781,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       }
       /* Kein Platz heisst: keine Deko ueber dem Inhalt. Die Seite meldet per
          Klasse, wenn sie scrollt; zusaetzlich greifen die Breitenschwellen. */
-      #zh-christmas.zh-xmas-knapp .zh-xmas-tree,
-      #zh-christmas.zh-xmas-knapp .zh-xmas-mistletoe { display: none; }
+      /* Bei wenig Platz nicht verschwinden, sondern zur Seite rutschen -
+         sichtbar bleiben, aber die Zeilen nicht mehr verdecken. */
+      #zh-christmas .zh-xmas-tree,
+      #zh-christmas .zh-xmas-mistletoe { transition: transform .45s ease, opacity .45s ease; }
+      #zh-christmas.zh-xmas-knapp .zh-xmas-tree { transform: translate(46%, 26%) scale(.94); opacity: .92; }
+      #zh-christmas.zh-xmas-knapp .zh-xmas-mistletoe { transform: scaleX(-1) translate(-34%, -18%) scale(.94); opacity: .92; }
       @media (max-width: 1100px) {
         #zh-christmas .zh-xmas-tree,
         #zh-christmas .zh-xmas-mistletoe { display: none; }
@@ -10164,6 +10202,172 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     removeStyle("zh-christmas-style");
   }
 
+  // ---- EASM-Bewertung ---------------------------------------------------
+  // Die EASM-Tickets enthalten je Schwachstelle einen Block "Criticality" mit
+  // Low/Medium/High/Critical. Der Artikeltext ist NICHT im Seiten-HTML; Znuny
+  // laedt ihn als eigenes Dokument (GET, ohne JavaScript):
+  //   Action=AgentTicketArticleContent;Subaction=HTMLView;TicketID=..;ArticleID=..
+  // Daraus lesen wir die Stufen, nehmen die schwerste und zeigen sie als Badge.
+  const EASM_LEVELS = ["low", "medium", "high", "critical"];
+  const EASM_LABELS = { low: "Niedrig", medium: "Mittel", high: "Hoch", critical: "Kritisch" };
+  const EASM_SHORT = { low: "LOW", medium: "MED", high: "HIGH", critical: "CRIT" };
+  const EASM_BUTTON_ID = "zh-easm-button";
+  const EASM_BADGE_ID = "zh-easm-badge";
+
+  function parseEasmCriticalities(text) {
+    const gefunden = [];
+    const muster = /Criticality\s*[:\-\u2013]?\s*(Low|Medium|High|Critical)\b/gi;
+    let treffer = muster.exec(String(text || ""));
+    while (treffer !== null) {
+      gefunden.push(treffer[1].toLowerCase());
+      treffer = muster.exec(String(text || ""));
+    }
+    return gefunden;
+  }
+
+  function summarizeEasm(stufen) {
+    if (!stufen || !stufen.length) return null;
+
+    const zaehler = { low: 0, medium: 0, high: 0, critical: 0 };
+    stufen.forEach((stufe) => {
+      if (zaehler[stufe] !== undefined) zaehler[stufe] += 1;
+    });
+
+    let schwerste = "low";
+    EASM_LEVELS.forEach((stufe) => {
+      if (zaehler[stufe] > 0) schwerste = stufe;
+    });
+
+    return { schwerste, zaehler, anzahl: stufen.length };
+  }
+
+  function easmTicketId() {
+    return location.href.match(/[?;&]TicketID=(\d+)/i)?.[1] || "";
+  }
+
+  async function ladeEasmArtikelIds(ticketId) {
+    const antwort = await fetch(`/otrs/index.pl?Action=AgentTicketZoom;TicketID=${encodeURIComponent(ticketId)}`, {
+      credentials: "same-origin"
+    });
+    if (!antwort.ok) throw new Error(`Ticketseite ${antwort.status}`);
+    const html = await antwort.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+
+    return [...doc.querySelectorAll("input.ArticleID")]
+      .map((feld) => feld.value)
+      .filter(Boolean)
+      .map((id) => Number(id))
+      .sort((links, rechts) => rechts - links);
+  }
+
+  async function ladeEasmArtikelText(ticketId, articleId) {
+    const url =
+      `/otrs/index.pl?Action=AgentTicketArticleContent;Subaction=HTMLView` +
+      `;TicketID=${encodeURIComponent(ticketId)};ArticleID=${encodeURIComponent(articleId)};FileID=;`;
+    const antwort = await fetch(url, { credentials: "same-origin" });
+    if (!antwort.ok) throw new Error(`Artikel ${antwort.status}`);
+    const html = await antwort.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return (doc.body?.textContent || "").trim();
+  }
+
+  function zeigeEasmErgebnis(zusammenfassung, fehler) {
+    let badge = document.getElementById(EASM_BADGE_ID);
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.id = EASM_BADGE_ID;
+      badge.className = "zh-easm-badge";
+      const knopf = document.getElementById(EASM_BUTTON_ID);
+      (knopf?.parentElement || document.body).insertBefore(badge, knopf?.nextSibling || null);
+    }
+
+    if (fehler) {
+      badge.className = "zh-easm-badge zh-easm-badge--none";
+      badge.textContent = "EASM: Fehler";
+      badge.title = fehler;
+      return;
+    }
+
+    if (!zusammenfassung) {
+      badge.className = "zh-easm-badge zh-easm-badge--none";
+      badge.textContent = "EASM: keine Einstufung";
+      badge.title = "Im neuesten Artikel wurde kein Block \"Criticality\" gefunden.";
+      return;
+    }
+
+    const teile = EASM_LEVELS
+      .slice()
+      .reverse()
+      .filter((stufe) => zusammenfassung.zaehler[stufe] > 0)
+      .map((stufe) => `${zusammenfassung.zaehler[stufe]}\u00d7${EASM_SHORT[stufe]}`);
+
+    badge.className = `zh-easm-badge zh-easm-badge--${zusammenfassung.schwerste}`;
+    badge.textContent = `${EASM_SHORT[zusammenfassung.schwerste]} \u00b7 ${teile.join(" ")}`;
+    badge.title =
+      `EASM-Einstufung aus dem neuesten Artikel: ${EASM_LABELS[zusammenfassung.schwerste]}\n` +
+      teile.join(", ") +
+      `\n(${zusammenfassung.anzahl} Fund(e), schwerste Stufe gewinnt)`;
+  }
+
+  async function bewerteEasmTicket() {
+    const knopf = document.getElementById(EASM_BUTTON_ID);
+    const ticketId = easmTicketId();
+    if (!ticketId) return;
+
+    if (knopf) {
+      knopf.disabled = true;
+      knopf.textContent = "EASM: \u2026";
+    }
+
+    try {
+      const ids = await ladeEasmArtikelIds(ticketId);
+      if (!ids.length) {
+        zeigeEasmErgebnis(null, "Keine Artikel gefunden.");
+        return;
+      }
+
+      const text = await ladeEasmArtikelText(ticketId, ids[0]);
+      zeigeEasmErgebnis(summarizeEasm(parseEasmCriticalities(text)), null);
+    } catch (error) {
+      zeigeEasmErgebnis(null, `Bewertung fehlgeschlagen: ${error.message}`);
+    } finally {
+      if (knopf) {
+        knopf.disabled = false;
+        knopf.textContent = "EASM bewerten";
+      }
+    }
+  }
+
+  function enableEasmRating() {
+    if (window.top !== window.self) return;
+    if (!/Action=AgentTicketZoom\b/i.test(location.href)) return;
+    if (document.getElementById(EASM_BUTTON_ID)) return;
+
+    const titel = document.querySelector("#Content h1, h1");
+    if (!titel) return;
+
+    addEasmStyles();
+
+    const knopf = document.createElement("button");
+    knopf.type = "button";
+    knopf.id = EASM_BUTTON_ID;
+    knopf.className = "zh-easm-btn";
+    knopf.textContent = "EASM bewerten";
+    knopf.title = "Einstufung des neuesten Artikels auslesen (nur lesend)";
+    knopf.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      bewerteEasmTicket();
+    });
+
+    titel.insertAdjacentElement("afterend", knopf);
+  }
+
+  function disableEasmRating() {
+    document.getElementById(EASM_BUTTON_ID)?.remove();
+    document.getElementById(EASM_BADGE_ID)?.remove();
+  }
+
   function runEnabledFeatures() {
     suppressMutationScanUntil = Date.now() + 500;
     dispatchPageSettings();
@@ -10208,6 +10412,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     if (settings.directArticleActions) enableDirectArticleActions();
     else disableDirectArticleActions();
+
+    if (settings.easmRating) enableEasmRating();
+    else disableEasmRating();
 
     if (settings.ticketListInfiniteScroll) enableTicketListInfiniteScroll();
     else disableTicketListInfiniteScroll();

@@ -21,6 +21,7 @@
     assignedTicketSound: false,
     quickReply: false,
     directArticleActions: true,
+    easmRating: true,
     christmasMode: true
   };
 

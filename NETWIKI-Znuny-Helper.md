@@ -89,6 +89,7 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Ton bei neuem Ticket**
 | Suchen | Case-Nummer kopieren | Die Case-/Ticketnummer oben links im geöffneten Ticket per Klick kopieren |
 | Ticketlisten | Ticket-Kategorien | Tickets lokal gruppieren, markieren und notieren – in den Agenten-Ansichten und im Kundenportal (`customer.pl`) |
 | Ticketlisten | Infinite Scroll | Weitere Ticketlistenseiten beim Scrollen automatisch laden (die Seitenzahlen bleiben als Fallback sichtbar) |
+| ServiceDesk | EASM-Bewertung | Einstufung (Low/Medium/High/Critical) aus EASM-Tickets auslesen und als farbige Marke anzeigen |
 | ServiceDesk | EB Helper | Empfangsbestätigungen aus Hardware-Tickets vorbereiten |
 | ServiceDesk | Prioritäts-Vorlagen | Prioritäts-, Besitzer- und Neues-Telefon-Ticket-Seiten mit anpassbaren Schnellbuttons vorbefüllen (inkl. Priorität und Auswirkung) |
 | Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status (Tage im Popup einstellbar) |
@@ -353,6 +354,17 @@ Unter **Saison** im Popup lässt sich der Weihnachtsmodus ein- und ausschalten. 
 Baum und Mistelzweig erscheinen nur, wenn Platz ist: scrollt die Seite oder ist das Fenster schmaler als etwa 1100 Pixel, bleiben sie weg, damit sie keine Ticketzeilen verdecken.
 
 Die Deko ist reine Anzeige: Sie liegt in einer Ebene, die **keine Klicks annimmt** – Bedienung und Lesbarkeit bleiben unverändert. Ist im System „Bewegung reduzieren" eingestellt, steht der Schnee still, und der Vorbeiflug entfällt. Alles entsteht lokal im Browser; es werden keine Daten gesendet und keine zusätzlichen Berechtigungen benötigt.
+
+## EASM-Bewertung
+
+EASM-Tickets der DATAGROUP enthalten je Schwachstelle einen Block „Criticality" mit **Low**, **Medium**, **High** oder **Critical**. Im geöffneten Ticket steht neben dem Titel der Knopf **EASM bewerten**. Ein Klick liest den **neuesten Artikel** des Tickets (nur lesend) und zeigt die schwerste Einstufung als farbige Marke, zum Beispiel `CRIT · 1×CRIT 1×HIGH`.
+
+- Kritisch = rot, Hoch = orange, Mittel = gelb, Niedrig = grün.
+- Maßgeblich ist die schwerste gefundene Stufe; die Marke nennt zusätzlich, wie viele Funde je Stufe im Artikel stehen.
+- Es wird nichts in Znuny geschrieben und nichts dauerhaft gespeichert – die Bewertung entsteht bei jedem Klick neu.
+- Passt der Artikel nicht zum Muster, erscheint „EASM: keine Einstufung"; bei Netzwerkfehlern „EASM: Fehler".
+
+Der Schalter **EASM-Bewertung** im Popup blendet Knopf und Marke aus.
 
 ## EB Helper
 

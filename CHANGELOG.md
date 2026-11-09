@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.18] – 2026-11-09
+
+### Added
+- **EASM-Bewertung:** Im geöffneten EASM-Ticket steht neben dem Titel der Knopf **EASM bewerten**. Er liest den neuesten Artikel (nur lesend), sucht alle Blöcke `Criticality` mit Low/Medium/High/Critical und zeigt die **schwerste** Stufe als farbige Marke, z. B. `CRIT · 1×CRIT 1×HIGH`. Rot = kritisch, orange = hoch, gelb = mittel, grün = niedrig; der Tooltip nennt die Verteilung. Neuer Schalter im Popup.
+  - Die Artikeltexte liegen nicht im Seiten-HTML; Znuny liefert sie über `Action=AgentTicketArticleContent;Subaction=HTMLView` als eigenes Dokument. Der Abruf ist ein **GET**, also ohne Schreibzugriff und ohne „gesehen"-Marker.
+  - Geprüft am echten Ticket 86134609: `Critical + High` → `CRIT · 1×CRIT 1×HIGH`.
+
+### Fixed
+- **Deko wieder sichtbar:** Baum und Mistelzweig wurden zuletzt bei scrollenden Seiten komplett ausgeblendet. Jetzt rutschen sie stattdessen etwas aus dem Bild (sichtbar, aber über den Zeilen), und nur bei schmalen Fenstern (< 1100 px) verschwinden sie ganz.
+
 ## [1.6.17] – 2026-11-09
 
 ### Fixed
