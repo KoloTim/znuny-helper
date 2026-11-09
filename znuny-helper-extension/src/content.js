@@ -29,6 +29,13 @@
   // safe to leave in place either way.
   // Keep this in sync with isQuickReplyEligibleUrl in page-bridge.js.
   const QUICK_REPLY_ACTION_PATTERN = /Action=(?:AgentTicket(?:Compose|Forward|Owner|Priority|Note|Close|Merge)|AgentLinkObject)\b/i;
+  // A quick-reply action is only finished when Znuny shows the ticket (or a
+  // list) again. Deliberately NOT "any URL without Action": the link action's
+  // search POSTs to /otrs/index.pl and renders its results under exactly that
+  // bare address. Treating that as "done" closed the drawer before the agent
+  // could pick a ticket - reported as "the modal closes immediately".
+  const QUICK_REPLY_FINISHED_PATTERN =
+    /Action=(?:AgentTicketZoom|AgentTicket(?:Queue|LockedView|OwnerView|ResponsibleView|WatchView|StatusView|EscalationView)|AgentDashboard)\b/i;
   // Visible captions of the article actions whose hover bar is rebuilt (see
   // markArticleActionLabel): localized Znuny names of reply and forward.
   const ARTICLE_ACTION_LABEL_PATTERN = /^(?:Antworten|Allen antworten|Weiterleiten|Reply|Reply to all|Forward)$/i;
@@ -3695,7 +3702,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     form.rel = "noopener noreferrer";
   }
 
-  function prepareTicketNumberOnlySearch(form, fulltextControl, ticketNumberControl, createdMonthsControl) {
+  function prepareTicketNumberOnlySearch(form, fulltextControl, ticketNumberControl) {
     const ticketNumber = getSearchControlValue(ticketNumberControl);
     if (!ticketNumber) return;
 
@@ -3708,7 +3715,22 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       ensureHiddenInput(form, "Fulltext", "*");
     }
 
-    ensureCreatedDateFilter(form, createdMonthsControl);
+    // Bewusst KEIN Zeitraum: Eine Ticketnummer ist eindeutig. Das frueher
+    // automatisch gesetzte Fenster "letzte 12 Monate" machte aeltere Tickets
+    // unsichtbar - genau die Nummern, die sich "einfach nicht finden" liessen.
+    // Reste alter Versionen werden entfernt, eine manuell gewaehlte Zeitspanne
+    // des Nutzers bleibt unangetastet.
+    removeLegacyCreatedTimeFilters(form);
+  }
+
+  // Eine Nummer im Formular heisst: nicht zusaetzlich auf ein Jahr einschraenken.
+  function hasTicketNumberValue(form) {
+    if (!form) return false;
+
+    const control = form.querySelector('[data-zh-ticketnumber-control="1"]') ||
+      form.querySelector('[name="TicketNumber"], [name="TicketNumberRaw"]');
+
+    return Boolean(getSearchControlValue(control));
   }
 
   // The alert-based fallback for a ticket-number-only search lives in
@@ -3739,10 +3761,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     });
   }
 
-  function handleTicketNumberOnlySearch(event, form, fulltextControl, ticketNumberControl, createdMonthsControl) {
+  function handleTicketNumberOnlySearch(event, form, fulltextControl, ticketNumberControl) {
     if (!isTicketNumberOnlySearch(fulltextControl, ticketNumberControl)) return false;
 
-    prepareTicketNumberOnlySearch(form, fulltextControl, ticketNumberControl, createdMonthsControl);
+    prepareTicketNumberOnlySearch(form, fulltextControl, ticketNumberControl);
     rememberSearchRun(form, fulltextControl, ticketNumberControl);
 
     event.preventDefault();
@@ -3762,8 +3784,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       event,
       controls.form,
       controls.fulltextControl,
-      controls.ticketNumberControl,
-      controls.createdMonthsControl
+      controls.ticketNumberControl
     );
   }
 
@@ -3853,7 +3874,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       prepareSearchFormNewTab(form);
       if (handleVisibleTicketNumberOnlySearch(event)) return;
 
-      ensureCreatedDateFilter(form, createdMonthsControl);
+      // Mit Ticketnummer nicht auf ein Jahr einschraenken - sonst bleiben
+      // aeltere Tickets unauffindbar.
+      if (!hasTicketNumberValue(form)) ensureCreatedDateFilter(form, createdMonthsControl);
       rememberSearchRun(form, fulltextControl, ticketNumberControl);
     }, true);
 
@@ -9231,6 +9254,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         return;
       }
 
+      // Zwischenseite desselben Vorgangs (z. B. die Trefferliste der
+      // Verknuepfen-Suche): Fenster offen lassen und die eigenen Funktionen
+      // auch dort anbieten.
+      if (!QUICK_REPLY_FINISHED_PATTERN.test(href)) {
+        retryDocumentFeatures();
+        return;
+      }
+
       if (actionPageSeen) finishQuickReply();
     });
 
@@ -9240,6 +9271,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       const href = getQuickReplyIframeHref(iframe);
       if (!isRealQuickReplyHref(href)) return;
       if (QUICK_REPLY_ACTION_PATTERN.test(href)) {
+        refreshQuickReplyPendingDates();
+        return;
+      }
+
+      if (!QUICK_REPLY_FINISHED_PATTERN.test(href)) {
         refreshQuickReplyPendingDates();
         return;
       }

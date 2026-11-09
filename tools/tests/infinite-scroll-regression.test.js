@@ -1368,6 +1368,38 @@ check("Nachladen bleibt bei der strengen Pruefung",
   ),
   true);
 
+console.log("\n19) Ticketnummer-Suche ohne verstecktes Zeitfenster");
+// Eine Ticketnummer ist eindeutig. Ein automatisches "letzte 12 Monate" machte
+// aeltere Tickets unauffindbar - die gemeldete "Schwaeche" bei manchen Nummern.
+check("Nummernsuche setzt keinen Zeitraum mehr",
+  !extractDeclaration("prepareTicketNumberOnlySearch").includes("ensureCreatedDateFilter"),
+  true);
+check("Nummernsuche raeumt alte Zeitfilter weg",
+  extractDeclaration("prepareTicketNumberOnlySearch").includes("removeLegacyCreatedTimeFilters"),
+  true);
+check("Normale Suche schraenkt bei vorhandener Nummer nicht ein",
+  extractDeclaration("rememberSearchOnSubmit").includes("hasTicketNumberValue(form)"),
+  true);
+check("Helfer erkennt eine eingetragene Nummer",
+  extractDeclaration("hasTicketNumberValue").includes("TicketNumberRaw"),
+  true);
+
+console.log("\n20) Schnellantwort: Verknuepfen-Suche bleibt offen");
+// Das Verknuepfen-Formular postet auf /otrs/index.pl und rendert die Treffer
+// unter genau dieser Adresse ohne Action. Ein "alles ohne Action ist fertig"
+// schloss das Fenster sofort - die Treffer waren weg.
+check("Fertig-Erkennung ist eine eigene Regel",
+  source.includes("const QUICK_REPLY_FINISHED_PATTERN") &&
+    source.includes("AgentTicketZoom|AgentTicket(?:Queue|LockedView"),
+  true);
+check("Fenster schliesst erst bei Ticket oder Liste",
+  Boolean(
+    extractDeclaration("openQuickReplyDrawer").includes("QUICK_REPLY_FINISHED_PATTERN.test(href)") &&
+    extractDeclaration("openQuickReplyDrawer").indexOf("finishQuickReply()") >
+      extractDeclaration("openQuickReplyDrawer").indexOf("QUICK_REPLY_FINISHED_PATTERN.test(href)")
+  ),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

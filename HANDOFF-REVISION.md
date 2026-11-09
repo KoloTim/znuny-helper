@@ -413,3 +413,10 @@ $py   = "$env:USERPROFILE\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\pyt
 | R2 – Regressionstest aufteilen | nicht gemacht (1.553 Zeilen, 255 Prüfungen, ein Helfer). |
 | F2 – Store-Texte | offen. |
 | F3 – `web-ext lint` | offen; auf diesem Rechner kein npm verfügbar. |
+
+### Nachtrag: 1.6.7 (gemeldete Fehler, 09.11.2026)
+
+| Meldung | Ursache | Beleg |
+| --- | --- | --- |
+| „Verknüpfen: Fenster schließt sich sofort nach Suchen" | Das Formular der Verknüpfen-Suche postet auf `/otrs/index.pl`; die Treffer erscheinen unter dieser Adresse **ohne `Action`**. Das Schnellantwort-Fenster hielt „kein Action mehr" für „fertig" und schloss. | Live geprüft: Fenster öffnet `AgentLinkObject`; bei `index.pl` ohne Action bleibt es offen, bei `AgentTicketZoom` schließt es. Neue Prüfungen 20) im Regressionstest. |
+| „Manche Ticketnummern werden nicht gefunden" | Jede Suche setzte unsichtbar den Zeitraum „letzte 12 Monate" auf die Ticket-Änderungszeit – auch bei reiner Nummernsuche. | Neue Prüfungen 19) im Regressionstest; Doku beschreibt die Ausnahme jetzt ausdrücklich. |

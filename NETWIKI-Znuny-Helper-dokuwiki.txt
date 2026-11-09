@@ -167,7 +167,7 @@ Wenn die Option deaktiviert ist, sollte die Suche wieder im aktuellen Tab laufen
 
 Die globale Znuny-Suche wird um ein gut sichtbares Feld **Ticketnummer** ergänzt. Damit kann direkt nach Ticketnummern gesucht werden, ohne dass der passende Znuny-Zusatzfilter manuell gesetzt werden muss.
 
-Zusätzlich setzt das Addon automatisch einen Zeitraumfilter:
+Bei einer Suche **ohne Ticketnummer** setzt das Addon automatisch einen Zeitraumfilter. Sobald eine Ticketnummer eingetragen ist, wird **kein** Zeitraum gesetzt: Eine Nummer ist eindeutig, und ein Zeitfenster würde ältere Tickets nur verstecken – genau die Nummern, die sich sonst „einfach nicht finden" lassen.
 
 * Attribut: **Letzte Ticket-Änderungszeit (zwischen)**
 * Zeitraum: **letztes Jahr bis heute**

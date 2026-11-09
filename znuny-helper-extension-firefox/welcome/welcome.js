@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.7",
+      items: [
+        "Behoben: Beim Verknüpfen schloss sich das Fenster sofort nach „Suchen“ – die Treffer waren weg. Es bleibt jetzt offen, bis Znuny wieder das Ticket zeigt.",
+        "Behoben: Die Ticketnummer-Suche setzte unsichtbar „letzte 12 Monate“ und fand deshalb ältere Tickets nicht. Mit Ticketnummer wird kein Zeitraum mehr gesetzt."
+      ]
+    },
+    {
       version: "1.6.6",
       items: [
         "Neu: Diagnose im Popup (Hilfe und Diagnose) – Version, erkannte Seite und Tabelle, Einstellungen, Speicherbelegung und die letzten Meldungen per Klick in die Zwischenablage. Rein lokal.",

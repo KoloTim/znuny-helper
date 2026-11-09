@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.7] – 2026-11-09
+
+### Fixed
+- **Verknüpfen: Das Fenster schloss sich direkt nach „Suchen":** Das Schnellantwort-Fenster hielt einen Vorgang für beendet, sobald die eingebettete Seite die Aktion verließ. Die Verknüpfen-Suche schickt ihr Formular aber an `/otrs/index.pl` und zeigt die Treffer unter **genau dieser Adresse ohne `Action`** an – für das Addon sah das wie „fertig" aus, es schloss das Fenster und lud das Ticket neu. Die Treffer waren damit weg; bei abgeschaltetem Addon (normales Znuny-Popup) traten sie wie gewohnt auf. Jetzt gilt ein Vorgang erst als beendet, wenn Znuny wieder das **Ticket oder eine Liste** zeigt; Zwischenseiten desselben Vorgangs – etwa die Trefferliste der Verknüpfen-Suche – bleiben im Fenster. Das betrifft auch das Zusammenfassen, das dieselbe Suche nutzt.
+- **Ticketnummer-Suche fand manche Nummern nicht:** Bei jeder Suche setzte das Addon unsichtbar den Zeitraum **„letzte 12 Monate"** auf die letzte Ticket-Änderungszeit – auch bei einer reinen Nummernsuche. Ältere Tickets waren damit grundsätzlich nicht auffindbar, ohne dass die Einschränkung im Formular zu sehen war. Sobald eine Ticketnummer eingetragen ist, wird jetzt **kein** Zeitraum mehr gesetzt (eine Nummer ist eindeutig). Bei reinen Textsuche bleibt der Standardzeitraum als Schutz vor sehr großen Suchläufen erhalten.
+
 ## [1.6.6] – 2026-11-09
 
 ### Added
