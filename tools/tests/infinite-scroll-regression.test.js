@@ -1508,8 +1508,14 @@ check("Mistelzweig hat fuenf Blaetter",
 check("Elfe mit Auszeit-Text vorhanden",
   source.includes("zh-pin-elf") && source.includes("Auszeit verdient"),
   true);
-check("Pinball hat HSRW-Schriftzug und Weihnachtsband",
-  source.includes("Hochschule Rhein-Waal") && source.includes("Frohe Weihnachten"),
+check("Pinball: Pins sind Kapseln im Logo-Stil",
+  source.includes("pinSetzen") && /lineWidth = p\.r \* 2/.test(source) && source.includes("const NAVY") && source.includes("const BLAU"),
+  true);
+check("Pinball: Abschuss mit Power-Leiste",
+  source.includes("powerLaeuft") && source.includes("abschiessen") && /Space/.test(source),
+  true);
+check("Pinball: kein Weihnachtsband mehr",
+  !source.includes("Frohe Weihnachten"),
   true);
 check("Pinball startet erst nach dem Intro-Knopf",
   source.includes("zh-pin-start") && source.includes("spielLaeuft = true"),

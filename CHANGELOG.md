@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.23] – 2026-11-09
+
+### Changed
+- **Pinball spielt sich jetzt richtig:** Das Feld wurde neu gebaut.
+  - **Pins sind Kapseln im Stil der HSRW-Y-Striche** (Violett-Navy `#2a2250`, Blau `#3c7fd1`) – gezeichnet *und* abgefragt mit derselben Form, also sitzen Treffer genau auf dem Strich. Zwei große Striche in der Mitte bilden das Logo-Motiv.
+  - **Echte Abschussrampe:** Leertaste halten lädt die Power-Leiste, loslassen schießt die Kugel über die Kurve ins Feld. Vorher fiel sie einfach wieder in die Rampe zurück.
+  - **Flipper als Kapseln** mit Stoßimpuls aus der Drehgeschwindigkeit, Slingshots über den Flippern, Kugel-Spur, Punkte-Popups und Trefferringe.
+  - „Frohe Weihnachten" ist raus; die Kugel startet unten rechts in der Rampe.
+
 ## [1.6.22] – 2026-11-09
 
 ### Changed

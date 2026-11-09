@@ -10232,51 +10232,42 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     addStyle("zh-pinball-style", `
       #zh-pinball {
         position: fixed; inset: 0; z-index: 2147483600;
-        background:
-          radial-gradient(120% 90% at 50% 0%, #17335c 0%, #0b1830 45%, #060d1a 100%);
+        background: radial-gradient(120% 90% at 50% 0%, #1b1a3d 0%, #12142c 48%, #08080f 100%);
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         font-family: system-ui, Segoe UI, sans-serif; color: #eaf1fb; gap: 10px;
       }
-      #zh-pinball .zh-pin-top {
-        display: flex; align-items: baseline; gap: 16px; padding: 0 12px;
-      }
-      #zh-pinball .zh-pin-title {
-        font-size: 22px; font-weight: 800; letter-spacing: .6px;
-        text-shadow: 0 0 18px rgba(95,168,255,.55);
-      }
-      #zh-pinball .zh-pin-title b { color: #7fb3ff; }
+      #zh-pinball .zh-pin-top { display: flex; align-items: center; gap: 14px; padding: 0 12px; }
+      #zh-pinball .zh-pin-logo { height: 32px; width: auto; display: block; }
+      #zh-pinball .zh-pin-title { font-size: 20px; font-weight: 800; letter-spacing: .5px; }
       #zh-pinball .zh-pin-score {
-        font-size: 24px; font-weight: 800; color: #ffd479;
-        text-shadow: 0 0 16px rgba(255,212,121,.5);
+        font-size: 24px; font-weight: 800; color: #ffd479; min-width: 84px; text-align: right;
+        text-shadow: 0 0 16px rgba(255,212,121,.45);
       }
-      #zh-pinball .zh-pin-logo { height: 34px; width: auto; display: block; }
-      #zh-pinball canvas { display: block; border-radius: 16px; }
+      #zh-pinball canvas { display: block; border-radius: 16px; touch-action: none; }
       #zh-pinball .zh-pin-hint {
-        font-size: 13px; color: #cfe0f7; background: rgba(12,26,48,.85);
-        border: 1px solid rgba(127,179,255,.28); border-radius: 999px;
-        padding: 7px 16px; line-height: 1.35; text-align: center;
+        font-size: 13px; color: #cfe0f7; background: rgba(12,20,40,.85);
+        border: 1px solid rgba(127,179,255,.25); border-radius: 999px;
+        padding: 7px 16px; line-height: 1.4; text-align: center;
       }
       #zh-pinball .zh-pin-hint b { color: #ffd479; }
       #zh-pinball .zh-pin-close {
         position: absolute; top: 14px; right: 18px; width: 42px; height: 42px;
         border: 1px solid rgba(127,179,255,.35); border-radius: 50%;
-        background: rgba(18,34,58,.9); color: #eaf1fb; font-size: 22px; line-height: 1;
+        background: rgba(18,26,48,.9); color: #eaf1fb; font-size: 22px; line-height: 1;
         cursor: pointer; transition: background .15s ease, transform .15s ease;
       }
-      #zh-pinball .zh-pin-close:hover { background: #24385c; transform: scale(1.06); }
-
-      /* Elfe mit Sprechblase */
+      #zh-pinball .zh-pin-close:hover { background: #2a2f52; transform: scale(1.06); }
       #zh-pinball .zh-pin-intro {
         position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-        background: rgba(4, 10, 20, .72); backdrop-filter: blur(3px);
+        background: rgba(4, 6, 16, .74); backdrop-filter: blur(3px);
       }
       #zh-pinball .zh-pin-intro.zh-weg { display: none; }
       #zh-pinball .zh-pin-card {
-        width: min(560px, 88vw); background: linear-gradient(180deg, #16294a, #0d1a30);
-        border: 1px solid rgba(127,179,255,.35); border-radius: 20px; padding: 26px 28px 22px;
+        width: min(560px, 88vw); background: linear-gradient(180deg, #221f45, #14162e);
+        border: 1px solid rgba(127,179,255,.3); border-radius: 20px; padding: 26px 28px 22px;
         box-shadow: 0 24px 60px rgba(0,0,0,.6); text-align: center;
       }
-      #zh-pinball .zh-pin-card h2 { margin: 0 0 6px; font-size: 22px; color: #ffd479; }
+      #zh-pinball .zh-pin-card h2 { margin: 0 0 6px; font-size: 21px; color: #ffd479; }
       #zh-pinball .zh-pin-card p { margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: #dbe8fa; }
       #zh-pinball .zh-pin-card button {
         margin-top: 20px; padding: 11px 26px; border-radius: 999px; border: 0;
@@ -10284,8 +10275,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         font-size: 15px; font-weight: 800; cursor: pointer;
       }
       #zh-pinball .zh-pin-card button:hover { filter: brightness(1.07); }
-      #zh-pinball .zh-pin-card button:focus-visible { outline: 2px solid #fff3c4; outline-offset: 3px; }
-      #zh-pinball svg.zh-pin-elf { width: 120px; height: 120px; margin-bottom: 4px; }
+      #zh-pinball svg.zh-pin-elf { width: 116px; height: 116px; margin-bottom: 4px; }
     `);
   }
 
@@ -10294,7 +10284,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   function pinballLogo(hell) {
     const wort = hell ? "#eef4ff" : "#14131f";
     return `
-      <svg class="zh-pin-logo ${hell ? "zh-pin-logo--hell" : ""}" viewBox="0 0 232 64" aria-label="HSRW">
+      <svg class="zh-pin-logo" viewBox="0 0 232 64" aria-label="HSRW">
         <path d="M15,11 C19,30 29,45 44,54" fill="none" stroke="#2a2250" stroke-width="11" stroke-linecap="round"/>
         <path d="M59,11 C55,30 45,45 32,54" fill="none" stroke="#3c7fd1" stroke-width="11" stroke-linecap="round"/>
         <text x="74" y="47" font-family="system-ui, Segoe UI, sans-serif" font-size="38" font-weight="800" fill="${wort}">HSRW</text>
@@ -10324,8 +10314,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (document.getElementById("zh-pinball")) return;
     pinballStyle();
 
-    const breite = Math.max(360, Math.min(680, window.innerWidth - 80));
-    const hoehe = Math.max(420, Math.min(560, window.innerHeight - 230));
+    const breite = Math.max(380, Math.min(720, window.innerWidth - 80));
+    const hoehe = Math.max(440, Math.min(580, window.innerHeight - 220));
 
     const host = document.createElement("div");
     host.id = "zh-pinball";
@@ -10337,7 +10327,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       </div>
       <canvas id="zh-pin-board" width="${breite}" height="${hoehe}"></canvas>
       <div class="zh-pin-hint">
-        <b>Pfeiltasten</b> oder <b>A</b>/<b>D</b> steuern die Flipper &middot; <b>Esc</b> beendet
+        <b>Leertaste</b> halten und loslassen zum Abschuss &middot;
+        <b>Pfeiltasten</b> oder <b>A</b>/<b>D</b> f&uuml;r die Flipper &middot; <b>Esc</b> beendet
       </div>
       <button class="zh-pin-close" id="zh-pin-close" title="Schlie\u00dfen">\u00d7</button>
       <div class="zh-pin-intro" id="zh-pin-intro">
@@ -10359,10 +10350,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const W = canvas.width;
     const H = canvas.height;
-    const farben = {
-      blau: "#3c7fd1", tief: "#1b1740", cyan: "#5fa8ff",
-      gold: "#ffd479", rot: "#e0492f", gruen: "#1d6b46", weiss: "#f4f8ff"
-    };
+    const NAVY = "#2a2250";
+    const BLAU = "#3c7fd1";
+    const GOLD = "#ffd479";
+    const ROT = "#e0492f";
 
     let punkte = 0;
     let laeuft = true;
@@ -10370,301 +10361,406 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     let letzterFrame = 0;
     let flipperL = 0;
     let flipperR = 0;
-    let tasten = { links: false, rechts: false };
+    let flipperLAlt = 0;
+    let flipperRAlt = 0;
+    let power = 0;
+    let powerLaeuft = false;
 
-    const kugel = { x: W / 2, y: H * 0.28, vx: 0, vy: 0, r: 8 };
+    let schuetteln = 0;
 
-    // Christbaumkugeln als Bumper: drei Bogenreihen.
-    const bumper = [];
-    const reihen = [
-      { y: 0.26, radius: 12, farbe: farben.gold, punkte: 30, anzahl: 5 },
-      { y: 0.38, radius: 10.5, farbe: farben.cyan, punkte: 20, anzahl: 6 },
-      { y: 0.5, radius: 9.5, farbe: "#8fd3a8", punkte: 15, anzahl: 5 }
-    ];
-    // Zusaetzliche Bumper in der Mitte, damit das Feld nicht leer wirkt.
-    reihen.push({ y: 0.63, radius: 9, farbe: "#ffd479", punkte: 25, anzahl: 4 });
-    reihen.push({ y: 0.72, radius: 8, farbe: "#7fb3ff", punkte: 25, anzahl: 3 });
-    reihen.forEach((reihe, rIndex) => {
-      const rand = 0.16 + rIndex * 0.03;
-      for (let i = 0; i < reihe.anzahl; i += 1) {
-        const t2 = reihe.anzahl === 1 ? 0.5 : i / (reihe.anzahl - 1);
-        bumper.push({
-          x: W * (rand + (1 - 2 * rand) * t2),
-          y: H * reihe.y,
-          r: reihe.radius,
-          farbe: reihe.farbe,
-          punkte: reihe.punkte
-        });
-      }
+    const kugel = { x: W - 34, y: H - 46, vx: 0, vy: 0, r: 7, imStart: true };
+    const spur = [];
+    const popups = [];
+    const blitze = [];
+
+    // ---------------- Geometrie ----------------
+    const wandLinks = 20;
+    const wandRechts = W - 20;
+    const bahnWand = W - 58; // Trennwand der Abschussrampe
+    const bahnOben = 96;
+
+    // Pins als Kapseln im Stil der HSRW-Y-Striche: Laenge + Radius ergeben
+    // exakt die gezeichnete Form, damit Treffer passen.
+    const pins = [];
+    const pinSetzen = (x, y, a, len, r, farbe, wert) => {
+      pins.push({ x, y, a, len, r, farbe, wert });
+    };
+    // Zwei grosse Y-Striche in der Mitte (Logo-Motiv)
+    pinSetzen(W * 0.42, H * 0.3, -1.05, 96, 11, NAVY, 50);
+    pinSetzen(W * 0.58, H * 0.3, -1.95, 96, 11, BLAU, 50);
+    // Umlaufende kleine Striche
+    pinSetzen(W * 0.24, H * 0.44, 0.5, 52, 8, BLAU, 25);
+    pinSetzen(W * 0.76, H * 0.44, 2.6, 52, 8, NAVY, 25);
+    pinSetzen(W * 0.33, H * 0.62, -0.7, 44, 7, NAVY, 20);
+    pinSetzen(W * 0.67, H * 0.62, -2.4, 44, 7, BLAU, 20);
+    pinSetzen(W * 0.5, H * 0.7, 0.06, 40, 7, GOLD, 30);
+    pinSetzen(W * 0.32, H * 0.24, 1.1, 46, 7.5, BLAU, 20);
+    pinSetzen(W * 0.68, H * 0.24, 2.0, 46, 7.5, NAVY, 20);
+    pinSetzen(W * 0.5, H * 0.52, 1.57, 40, 7, BLAU, 35);
+
+    // Umlenkung oben: leitet die Kugel aus der Rampe nach links ins Feld.
+    // Slingshots ueber den Flippern (Dreiecke)
+    const slingL = { x1: wandLinks + 8, y1: H - 150, x2: W * 0.3 - 42, y2: H - 92 };
+    const slingR = { x1: bahnWand - 10, y1: H - 150, x2: W * 0.7 + 30, y2: H - 92 };
+
+    const flipperGeom = () => ({
+      links: { px: W * 0.32, py: H - 74, len: Math.min(96, W * 0.16), r: 9, ruhe: 0.42, aktiv: -0.32 },
+      rechts: { px: W * 0.68, py: H - 74, len: Math.min(96, W * 0.16), r: 9, ruhe: Math.PI - 0.42, aktiv: Math.PI + 0.32 }
     });
 
-    // Schnee im Spielfeld
-    const flocken = Array.from({ length: 42 }, () => ({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      r: 0.8 + Math.random() * 1.9,
-      v: 0.16 + Math.random() * 0.5,
-      a: 0.25 + Math.random() * 0.45
-    }));
+    // ---------------- Helfer ----------------
+    const naechsterPunkt = (px, py, x1, y1, x2, y2) => {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const laenge2 = dx * dx + dy * dy || 1;
+      let t2 = ((px - x1) * dx + (py - y1) * dy) / laenge2;
+      t2 = Math.max(0, Math.min(1, t2));
+      return { x: x1 + t2 * dx, y: y1 + t2 * dy };
+    };
 
+    // Kapsel-Kollision: exakt dieselbe Form, die gezeichnet wird.
+    const kapsel = (x1, y1, x2, y2, radius, elastisch, wert) => {
+      const cp = naechsterPunkt(kugel.x, kugel.y, x1, y1, x2, y2);
+      const dx = kugel.x - cp.x;
+      const dy = kugel.y - cp.y;
+      const ab = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+      const grenze = radius + kugel.r;
+      if (ab >= grenze) return false;
+
+      const nx = dx / ab;
+      const ny = dy / ab;
+      kugel.x = cp.x + nx * grenze;
+      kugel.y = cp.y + ny * grenze;
+      const dot = kugel.vx * nx + kugel.vy * ny;
+      kugel.vx -= (1 + elastisch) * dot * nx;
+      kugel.vy -= (1 + elastisch) * dot * ny;
+      if (wert) treffer(wert, cp.x, cp.y);
+      return true;
+    };
+
+    const treffer = (wert, x, y) => {
+      punkte += wert;
+      popups.push({ x, y, text: `+${wert}`, leben: 1 });
+      blitze.push({ x, y, leben: 1 });
+      schuetteln = Math.min(6, schuetteln + 1.6);
+    };
+
+    // ---------------- Simulation ----------------
     const schrittPhysik = (dt) => {
-      const sch = Math.min(dt, 34) / 16.67;
+      const sch = Math.min(dt, 24) / 16.67;
 
-      if (tasten.links) flipperL = Math.min(1, flipperL + 0.2 * sch);
-      else flipperL = Math.max(0, flipperL - 0.14 * sch);
-      if (tasten.rechts) flipperR = Math.min(1, flipperR + 0.2 * sch);
-      else flipperR = Math.max(0, flipperR - 0.14 * sch);
+      // Flipper
+      flipperLAlt = flipperL;
+      flipperRAlt = flipperR;
+      const zielL = tastenLinks() ? 1 : 0;
+      const zielR = tastenRechts() ? 1 : 0;
+      flipperL += (zielL - flipperL) * 0.42 * sch;
+      flipperR += (zielR - flipperR) * 0.42 * sch;
 
-      kugel.vy += 0.14 * sch;
-      kugel.x += kugel.vx * sch;
-      kugel.y += kugel.vy * sch;
+      if (!kugel.imStart) {
+        kugel.vy += 0.2 * sch;
+        kugel.x += kugel.vx * sch;
+        kugel.y += kugel.vy * sch;
 
-      if (kugel.x - kugel.r < 10) { kugel.x = 10 + kugel.r; kugel.vx = Math.abs(kugel.vx); }
-      if (kugel.x + kugel.r > W - 10) { kugel.x = W - 10 - kugel.r; kugel.vx = -Math.abs(kugel.vx); }
-      if (kugel.y - kugel.r < 10) { kugel.y = 10 + kugel.r; kugel.vy = Math.abs(kugel.vy); }
 
-      for (const b of bumper) {
-        const dx = kugel.x - b.x;
-        const dy = kugel.y - b.y;
-        const ab = Math.sqrt(dx * dx + dy * dy);
-        if (ab < b.r + kugel.r) {
-          const nx = dx / (ab || 1);
-          const ny = dy / (ab || 1);
-          kugel.x = b.x + nx * (b.r + kugel.r);
-          kugel.y = b.y + ny * (b.r + kugel.r);
-          kugel.vx = nx * 7.5;
-          kugel.vy = ny * 7.5;
-          punkte += b.punkte;
+        // Waende
+        if (kugel.x - kugel.r < wandLinks) { kugel.x = wandLinks + kugel.r; kugel.vx = Math.abs(kugel.vx) * 0.96; }
+        if (kugel.x + kugel.r > wandRechts) { kugel.x = wandRechts - kugel.r; kugel.vx = -Math.abs(kugel.vx) * 0.96; }
+        if (kugel.y - kugel.r < 22) { kugel.y = 22 + kugel.r; kugel.vy = Math.abs(kugel.vy) * 0.96; }
+
+        // Bahnwand (Trennwand der Abschussrampe)
+        if (kugel.y > bahnOben) {
+          kapsel(bahnWand, bahnOben, bahnWand, H - 20, 3, 0.7, 0);
         }
-      }
 
-      // Flipper: zwei Dreiecke unten links/rechts
-      const flipperStoss = (px, seite, stellung) => {
-        const grund = seite < 0 ? Math.PI + 0.42 : -0.42;
-        const winkel = grund + seite * stellung * 0.9;
-        const laenge = Math.min(86, W * 0.14);
-        const ex = px + Math.cos(winkel) * laenge;
-        const ey = H - 54 + Math.sin(winkel) * laenge;
-        const dx = kugel.x - ex;
-        const dy = kugel.y - ey;
-        const ab = Math.sqrt(dx * dx + dy * dy);
-        if (ab < 14 + kugel.r) {
-          const nx = dx / (ab || 1);
-          const ny = dy / (ab || 1);
-          kugel.x = ex + nx * (14 + kugel.r);
-          kugel.y = ey + ny * (14 + kugel.r);
-          const kraft = 6.4 + stellung * 4.4;
-          kugel.vx = nx * kraft;
-          kugel.vy = ny * kraft - 3;
+        // Aus der Abschussrampe ins Spielfeld: oben ueber die Trennwand
+        // hinweg nach links (die Kurve ist nur Optik).
+        if (kugel.x > bahnWand && kugel.y < bahnOben + 46 && kugel.vy < 0) {
+          kugel.vx = -8.4;
+          kugel.vy = -4.2;
         }
-      };
-      flipperStoss(W * 0.26, -1, flipperL);
-      flipperStoss(W * 0.74, 1, flipperR);
 
-      if (kugel.y > H + 26) {
-        kugel.x = W / 2;
-        kugel.y = H * 0.2;
-        kugel.vx = (Math.random() - 0.5) * 3;
-        kugel.vy = 2.6;
-        punkte = Math.max(0, punkte - 20);
+        // Pins
+        for (const p of pins) {
+          const dx = Math.cos(p.a) * p.len / 2;
+          const dy = Math.sin(p.a) * p.len / 2;
+          kapsel(p.x - dx, p.y - dy, p.x + dx, p.y + dy, p.r, 0.92, p.wert);
+        }
+
+        // Slingshots
+        kapsel(slingL.x1, slingL.y1, slingL.x2, slingL.y2, 5, 0.95, 15);
+        kapsel(slingR.x1, slingR.y1, slingR.x2, slingR.y2, 5, 0.95, 15);
+
+        // Flipper als Kapseln
+        const g = flipperGeom();
+        const flipperStoss = (f, stellung, alt) => {
+          const winkel = f.ruhe + (f.aktiv - f.ruhe) * stellung;
+          const altWinkel = f.ruhe + (f.aktiv - f.ruhe) * alt;
+          const x2 = f.px + Math.cos(winkel) * f.len;
+          const y2 = f.py + Math.sin(winkel) * f.len;
+          const getroffen = kapsel(f.px, f.py, x2, y2, f.r, 0.55, 0);
+          if (getroffen) {
+            const w = (winkel - altWinkel) * 22;
+            kugel.vx += -Math.sin(winkel) * w;
+            kugel.vy += Math.cos(winkel) * w;
+            const kraft = 4.6 + Math.abs(w) * 0.5;
+            const nx = kugel.x - f.px;
+            const ny = kugel.y - f.py;
+            const ab = Math.sqrt(nx * nx + ny * ny) || 1;
+            kugel.vx += (nx / ab) * kraft * 0.35;
+            kugel.vy += (ny / ab) * kraft * 0.35 - 1.4;
+            popups.push({ x: kugel.x, y: kugel.y, text: "", leben: 0.6 });
+          }
+        };
+        flipperStoss(g.links, flipperL, flipperLAlt);
+        flipperStoss(g.rechts, flipperR, flipperRAlt);
+
+        // Ball ins Aus
+        if (kugel.y > H + 20) {
+          kugel.imStart = true;
+          kugel.x = W - 34;
+          kugel.y = H - 46;
+          kugel.vx = 0;
+          kugel.vy = 0;
+          power = 0;
+          punkte = Math.max(0, punkte - 15);
+        }
+
+        // Spur
+        spur.push({ x: kugel.x, y: kugel.y, leben: 1 });
+        if (spur.length > 14) spur.shift();
       }
 
-      for (const f of flocken) {
-        f.y += f.v * sch;
-        if (f.y > H) { f.y = -4; f.x = Math.random() * W; }
+      // Abschuss
+      if (kugel.imStart) {
+        if (powerLaeuft) power = Math.min(1, power + 0.022 * sch);
       }
+
+      for (const s of spur) s.leben -= 0.05 * sch;
+      for (let i = popups.length - 1; i >= 0; i -= 1) {
+        popups[i].leben -= 0.018 * sch;
+        popups[i].y -= 0.7 * sch;
+        if (popups[i].leben <= 0) popups.splice(i, 1);
+      }
+      for (let i = blitze.length - 1; i >= 0; i -= 1) {
+        blitze[i].leben -= 0.05 * sch;
+        if (blitze[i].leben <= 0) blitze.splice(i, 1);
+      }
+      schuetteln *= 0.9;
 
       punkteAnzeige.textContent = String(punkte);
     };
 
+    // ---------------- Zeichnen ----------------
     const zeichne = () => {
-      // Grundflaeche
+      ctx.save();
+      const sx = (Math.random() - 0.5) * schuetteln;
+      const sy = (Math.random() - 0.5) * schuetteln;
+      ctx.translate(sx, sy);
+
       const grund = ctx.createLinearGradient(0, 0, 0, H);
       grund.addColorStop(0, "#1b1a3d");
-      grund.addColorStop(0.55, "#12142c");
-      grund.addColorStop(1, "#0a0a18");
+      grund.addColorStop(0.55, "#11132a");
+      grund.addColorStop(1, "#08080f");
       ctx.fillStyle = grund;
-      ctx.fillRect(0, 0, W, H);
+      ctx.fillRect(-10, -10, W + 20, H + 20);
 
-      // HSRW-Marke als grosses Wasserzeichen (Y aus zwei Boegen + Wortmarke)
+      // Wasserzeichen: Y-Marke + Wortmarke
       ctx.save();
-      ctx.globalAlpha = 0.13;
+      ctx.globalAlpha = 0.09;
       ctx.lineCap = "round";
-      ctx.lineWidth = Math.max(10, W * 0.028);
-      const my = H * 0.34;
-      const mx = W / 2 - W * 0.16;
-      const arm = W * 0.045;
-      ctx.strokeStyle = "#2a2250";
+      ctx.lineWidth = Math.max(11, W * 0.026);
+      const my = H * 0.4;
+      const mx = W * 0.52;
+      const arm = W * 0.075;
+      ctx.strokeStyle = NAVY;
       ctx.beginPath();
-      ctx.moveTo(mx - arm, my - 34);
-      ctx.bezierCurveTo(mx - arm * 0.7, my - 6, mx - arm * 0.1, my + 16, mx + arm * 0.5, my + 34);
+      ctx.moveTo(mx - arm, my - 60);
+      ctx.bezierCurveTo(mx - arm * 0.75, my - 16, mx - arm * 0.2, my + 26, mx + arm * 0.35, my + 58);
       ctx.stroke();
-      ctx.strokeStyle = "#3c7fd1";
+      ctx.strokeStyle = BLAU;
       ctx.beginPath();
-      ctx.moveTo(mx + arm, my - 34);
-      ctx.bezierCurveTo(mx + arm * 0.7, my - 6, mx + arm * 0.1, my + 16, mx - arm * 0.5, my + 34);
+      ctx.moveTo(mx + arm, my - 60);
+      ctx.bezierCurveTo(mx + arm * 0.75, my - 16, mx + arm * 0.2, my + 26, mx - arm * 0.35, my + 58);
       ctx.stroke();
-      ctx.globalAlpha = 0.12;
-      ctx.fillStyle = "#dfe9ff";
-      ctx.font = `800 ${Math.round(W * 0.17)}px system-ui, Segoe UI`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillText("HSRW", mx + 48, my + 2);
       ctx.restore();
 
       // Schnee
       for (const f of flocken) {
         ctx.beginPath();
         ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(244,248,255,${f.a})`;
+        ctx.fillStyle = `rgba(240,246,255,${f.a})`;
         ctx.fill();
       }
 
-      // Girlande am oberen Rand
-      ctx.save();
+      // Girlande
       ctx.strokeStyle = "#d3a862";
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2.4;
       ctx.beginPath();
-      ctx.moveTo(10, 16);
-      ctx.quadraticCurveTo(W / 2, 54, W - 10, 16);
+      ctx.moveTo(wandLinks, 18);
+      ctx.quadraticCurveTo(W / 2, 58, wandRechts, 18);
       ctx.stroke();
-      const lichter = 9;
-      for (let i = 0; i < lichter; i += 1) {
-        const t2 = i / (lichter - 1);
-        const x = 10 + (W - 20) * t2;
-        const y = 16 + Math.sin(Math.PI * t2) * 31;
+      for (let i = 0; i < 9; i += 1) {
+        const t2 = i / 8;
+        const x = wandLinks + (wandRechts - wandLinks) * t2;
+        const y = 18 + Math.sin(Math.PI * t2) * 33;
         ctx.beginPath();
         ctx.arc(x, y + 5, 3.4, 0, Math.PI * 2);
-        ctx.fillStyle = i % 3 === 0 ? "#ffd479" : i % 3 === 1 ? "#ff8f7a" : "#8fd3a8";
+        ctx.fillStyle = i % 3 === 0 ? GOLD : i % 3 === 1 ? "#ff8f7a" : "#8fd3a8";
         ctx.shadowColor = ctx.fillStyle;
         ctx.shadowBlur = 10;
         ctx.fill();
         ctx.shadowBlur = 0;
       }
-      ctx.restore();
 
-      // Bumper als Christbaumkugeln
-      for (const b of bumper) {
+      // Pins: Kapsel-Strich wie im Logo (Zeichnung entspricht der Hitbox)
+      for (const p of pins) {
+        const dx = Math.cos(p.a) * p.len / 2;
+        const dy = Math.sin(p.a) * p.len / 2;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = p.farbe;
+        ctx.lineWidth = p.r * 2;
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-        ctx.fillStyle = b.farbe;
-        ctx.shadowColor = b.farbe;
-        ctx.shadowBlur = 16;
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        ctx.moveTo(p.x - dx, p.y - dy);
+        ctx.lineTo(p.x + dx, p.y + dy);
+        ctx.stroke();
+        // Glanzkante
+        ctx.strokeStyle = "rgba(255,255,255,.22)";
+        ctx.lineWidth = Math.max(1.6, p.r * 0.34);
         ctx.beginPath();
-        ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.35, b.r * 0.3, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,.85)";
-        ctx.fill();
+        ctx.moveTo(p.x - dx * 0.72 - 2, p.y - dy * 0.72 - 3);
+        ctx.lineTo(p.x + dx * 0.72 - 2, p.y + dy * 0.72 - 3);
+        ctx.stroke();
       }
 
-      // Weihnachtsbaeume links/rechts unten
-      const zeichneBaum = (bx, by, groesse) => {
-        ctx.save();
-        ctx.translate(bx, by);
-        ctx.scale(groesse, groesse);
-        ctx.fillStyle = "rgba(29,107,70,.9)";
+      // Slingshots
+      const sling = (s) => {
         ctx.beginPath();
-        ctx.moveTo(0, -30);
-        ctx.lineTo(16, -6);
-        ctx.lineTo(8, -6);
-        ctx.lineTo(20, 14);
-        ctx.lineTo(-20, 14);
-        ctx.lineTo(-8, -6);
-        ctx.lineTo(-16, -6);
+        ctx.moveTo(s.x1, s.y1);
+        ctx.lineTo(s.x2, s.y2);
+        ctx.lineTo(s.x1, s.y2);
         ctx.closePath();
+        ctx.fillStyle = "rgba(224,73,47,.16)";
         ctx.fill();
-        ctx.fillStyle = "#6b4226";
-        ctx.fillRect(-3, 14, 6, 8);
-        ctx.restore();
+        ctx.strokeStyle = "rgba(224,73,47,.75)";
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(s.x1, s.y1);
+        ctx.lineTo(s.x2, s.y2);
+        ctx.stroke();
       };
-      zeichneBaum(38, H - 30, 1);
-      zeichneBaum(W - 38, H - 30, 1);
+      sling(slingL);
+      sling(slingR);
+
+      // Bahnkurve oben rechts (nur Optik)
+      ctx.strokeStyle = "rgba(211,168,98,.5)";
+      ctx.lineWidth = 6;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(W - 24, 168);
+      ctx.quadraticCurveTo(W - 34, 74, W * 0.64, 40);
+      ctx.stroke();
+
+      // Abschussrampe
+      ctx.strokeStyle = "rgba(211,168,98,.5)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(bahnWand, bahnOben);
+      ctx.lineTo(bahnWand, H - 20);
+      ctx.stroke();
+      if (kugel.imStart) {
+        const bh = (H - 60) * power;
+        ctx.fillStyle = "rgba(255,212,121,.85)";
+        ctx.fillRect(W - 30, H - 40 - bh, 8, bh);
+        ctx.strokeStyle = "rgba(255,212,121,.35)";
+        ctx.lineWidth = 1.4;
+        ctx.strokeRect(W - 31.5, H - 41 - (H - 60), 11, H - 60);
+      }
 
       // Flipper
-      const zeichneFlipper = (px, seite, stellung) => {
-        const grund2 = seite < 0 ? Math.PI + 0.42 : -0.42;
-        const winkel = grund2 + seite * stellung * 0.9;
-        const laenge = Math.min(86, W * 0.14);
-        ctx.save();
-        ctx.translate(px, H - 54);
-        ctx.rotate(winkel);
-        ctx.fillStyle = farben.rot;
+      const g = flipperGeom();
+      const zeichneFlipper = (f, stellung) => {
+        const winkel = f.ruhe + (f.aktiv - f.ruhe) * stellung;
+        const x2 = f.px + Math.cos(winkel) * f.len;
+        const y2 = f.py + Math.sin(winkel) * f.len;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = ROT;
+        ctx.lineWidth = f.r * 2;
         ctx.beginPath();
-        ctx.moveTo(-2, -10);
-        ctx.lineTo(laenge, -5);
-        ctx.arc(laenge, 0, 5, -Math.PI / 2, Math.PI / 2);
-        ctx.lineTo(-2, 10);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,.55)";
-        ctx.lineWidth = 1.4;
+        ctx.moveTo(f.px, f.py);
+        ctx.lineTo(x2, y2);
         ctx.stroke();
-        ctx.restore();
+        ctx.strokeStyle = "rgba(255,255,255,.35)";
+        ctx.lineWidth = Math.max(1.5, f.r * 0.3);
         ctx.beginPath();
-        ctx.arc(px, H - 54, 4.5, 0, Math.PI * 2);
-        ctx.fillStyle = farben.gold;
+        ctx.moveTo(f.px + 2, f.py - 2);
+        ctx.lineTo(x2 + 2, y2 - 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(f.px, f.py, 4.6, 0, Math.PI * 2);
+        ctx.fillStyle = GOLD;
         ctx.fill();
       };
-      zeichneFlipper(W * 0.26, -1, flipperL);
-      zeichneFlipper(W * 0.74, 1, flipperR);
+      zeichneFlipper(g.links, flipperL);
+      zeichneFlipper(g.rechts, flipperR);
+
+      // Spur
+      for (const s of spur) {
+        if (s.leben <= 0) continue;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, kugel.r * s.leben * 0.85, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(127,179,255,${0.16 * s.leben})`;
+        ctx.fill();
+      }
 
       // Kugel
       ctx.beginPath();
       ctx.arc(kugel.x, kugel.y, kugel.r, 0, Math.PI * 2);
-      const kg = ctx.createRadialGradient(kugel.x - 3, kugel.y - 3, 1, kugel.x, kugel.y, kugel.r);
+      const kg = ctx.createRadialGradient(kugel.x - 2.4, kugel.y - 2.6, 0.6, kugel.x, kugel.y, kugel.r);
       kg.addColorStop(0, "#ffffff");
-      kg.addColorStop(1, "#a9c3e6");
+      kg.addColorStop(1, "#9fbde3");
       ctx.fillStyle = kg;
-      ctx.shadowColor = "#7fb3ff";
-      ctx.shadowBlur = 12;
+      ctx.shadowColor = "#8fbfff";
+      ctx.shadowBlur = 14;
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Untertitel unter dem Wasserzeichen
-      ctx.save();
-      ctx.globalAlpha = 0.22;
-      ctx.fillStyle = "#dce9ff";
-      ctx.font = `600 ${Math.round(W * 0.028)}px system-ui, Segoe UI`;
-      ctx.textAlign = "center";
-      ctx.fillText("Hochschule Rhein-Waal", W / 2, H * 0.5);
-      ctx.restore();
-
-      // Zuckerstangen an den Seiten
-      const stange = (sx) => {
-        for (let i = 0; i < 12; i += 1) {
-          ctx.fillStyle = i % 2 === 0 ? "#f7f4ee" : "#d8452f";
-          ctx.fillRect(sx - 3, 96 + i * 26, 6, 26);
-        }
-        ctx.fillStyle = "rgba(247,244,238,.9)";
+      // Trefferblitze
+      for (const b of blitze) {
         ctx.beginPath();
-        ctx.arc(sx, 92, 5, 0, Math.PI * 2);
-        ctx.fill();
-      };
-      stange(16);
-      stange(W - 16);
+        ctx.arc(b.x, b.y, (1 - b.leben) * 30 + 6, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,212,121,${b.leben * 0.55})`;
+        ctx.lineWidth = 2.4;
+        ctx.stroke();
+      }
 
-      // Weihnachtsband
-      ctx.save();
-      ctx.globalAlpha = 0.9;
-      ctx.fillStyle = "#ffd479";
-      ctx.font = `700 ${Math.round(W * 0.035)}px system-ui, Segoe UI`;
+      // Punkte-Popups
       ctx.textAlign = "center";
-      ctx.fillText("Frohe Weihnachten", W / 2, H * 0.86);
-      ctx.restore();
-
-      // Baum zwischen den Flippern
-      zeichneBaum(W / 2, H - 26, 1.25);
+      for (const p of popups) {
+        if (!p.text) continue;
+        ctx.fillStyle = `rgba(255,235,180,${Math.min(1, p.leben)})`;
+        ctx.font = "700 15px system-ui, Segoe UI";
+        ctx.fillText(p.text, p.x, p.y);
+      }
 
       // Rahmen
-      ctx.strokeStyle = "rgba(211,168,98,.85)";
+      ctx.strokeStyle = "rgba(211,168,98,.8)";
       ctx.lineWidth = 3;
       ctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+      ctx.restore();
     };
+
+    // ---------------- Tasten ----------------
+    let linksGedrueckt = false;
+    let rechtsGedrueckt = false;
+    const tastenLinks = () => linksGedrueckt;
+    const tastenRechts = () => rechtsGedrueckt;
 
     const frame = (zeit) => {
       if (!laeuft) return;
       const dt = letzterFrame ? zeit - letzterFrame : 16;
+
       letzterFrame = zeit;
       if (spielLaeuft) {
         schrittPhysik(dt / 2);
@@ -10676,12 +10772,27 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const aufTaste = (event) => {
       const taste = event.key.toLowerCase();
-      if (event.key === "Escape") {
-        schliessen();
-        return;
+      const unten = event.type === "keydown";
+      if (event.key === "Escape") { schliessen(); return; }
+      if (taste === "arrowleft" || taste === "a") { linksGedrueckt = unten; event.preventDefault(); }
+      if (taste === "arrowright" || taste === "d") { rechtsGedrueckt = unten; event.preventDefault(); }
+      if (event.code === "Space") {
+        event.preventDefault();
+        if (unten && kugel.imStart) powerLaeuft = true;
+        if (!unten && powerLaeuft) abschiessen();
       }
-      if (taste === "arrowleft" || taste === "a") { tasten.links = event.type === "keydown"; event.preventDefault(); }
-      if (taste === "arrowright" || taste === "d") { tasten.rechts = event.type === "keydown"; event.preventDefault(); }
+    };
+
+    const abschiessen = () => {
+      powerLaeuft = false;
+      if (!kugel.imStart) return;
+      const kraft = 13 + power * 12;
+      kugel.imStart = false;
+      kugel.vx = -1.8;
+      kugel.vy = -kraft;
+
+      power = 0;
+      schuetteln = 3;
     };
 
     let geschlossen = false;
@@ -10698,15 +10809,20 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     host.querySelector("#zh-pin-start").addEventListener("click", () => {
       intro.classList.add("zh-weg");
       spielLaeuft = true;
-      kugel.vx = (Math.random() - 0.5) * 2.5;
-      kugel.vy = 2.8;
     });
     host.querySelector("#zh-pin-close").addEventListener("click", schliessen);
     window.addEventListener("keydown", aufTaste);
     window.addEventListener("keyup", aufTaste);
-    host.addEventListener("click", (event) => {
-      if (event.target === intro) intro.classList.add("zh-weg"), (spielLaeuft = true);
-    });
+
+    // Schnee
+    const flocken = Array.from({ length: 46 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: 0.8 + Math.random() * 1.9,
+      v: 0.16 + Math.random() * 0.5,
+      a: 0.2 + Math.random() * 0.4
+    }));
+
 
     requestAnimationFrame(frame);
   }
@@ -10763,7 +10879,13 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       baumTimer = window.setTimeout(() => { baumKlicks = 0; }, 1800);
       if (baumKlicks >= 3) {
         baumKlicks = 0;
-        if (!pinballAktiv()) startPinball();
+        if (!pinballAktiv()) {
+          try {
+            startPinball();
+          } catch (fehler) {
+            window.__zhPinErr = String(fehler && fehler.stack ? fehler.stack : fehler);
+          }
+        }
       }
     };
     baum?.addEventListener("click", baumAnklicken);

@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.6.23",
+      items: [
+        "Pinball überarbeitet: Die Pins sind jetzt Kapseln im Stil der HSRW-Y-Striche, Treffer sitzen genau. Abschussrampe mit Power-Leiste (Leertaste), kräftigere Flipper, Punkte-Popups und Kugelspur."
+      ]
+    },
+    {
       version: "1.6.22",
       items: [
         "Tannenbaum neu: gezahnte Nadel-Silhouette mit Schneehauben statt Dreiecken – und ohne Kasten beim Klicken.",
