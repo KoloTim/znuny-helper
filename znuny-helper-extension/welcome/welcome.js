@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.13",
+      items: [
+        "Echter Schnee: sechszackige Schneeflocken in drei Tiefenstaffelungen mit Windböen – fern klein und blass, nah groß und drehend.",
+        "Der Tannenbaum hat jetzt Geschenke mit Schleifen darunter."
+      ]
+    },
+    {
       version: "1.6.12",
       items: [
         "Weihnachtsdeko sparsamer: Bei vielen offenen Tabs kostet sie fast keinen Grafikspeicher mehr – Hintergrund-Tabs geben die Schnee-Leinwand frei (gemessen: sechs Tabs 124 MB → 4 MB)."

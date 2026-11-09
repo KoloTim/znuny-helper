@@ -9484,6 +9484,18 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       <circle cx="60" cy="132" r="4.2" fill="url(#zhXmasBaubleGold)"/>
       <circle cx="110" cy="170" r="4.4" fill="url(#zhXmasBaubleRed)"/>
       <circle cx="78" cy="150" r="4" fill="url(#zhXmasBaubleGold)"/>
+      <g class="zh-xmas-tree-gifts">
+        <rect x="36" y="194" width="32" height="21" rx="3" fill="#b3261e"/>
+        <rect x="36" y="194" width="32" height="7" rx="3" fill="#8f1d16"/>
+        <rect x="50" y="194" width="4" height="21" fill="#f6e3b4"/>
+        <path d="M52,194 C48,187 41,188 43,192 C45,196 49,196 52,194 Z" fill="#e8b34b"/>
+        <rect x="94" y="198" width="26" height="17" rx="2.5" fill="#1f6b4a"/>
+        <rect x="94" y="198" width="26" height="6" rx="2.5" fill="#17573a"/>
+        <rect x="105" y="198" width="4" height="17" fill="#f6e3b4"/>
+        <rect x="66" y="204" width="24" height="15" rx="2.5" fill="#3976bb"/>
+        <rect x="75" y="204" width="4" height="15" fill="#f6e3b4"/>
+        <path d="M77,204 C73,199 67,200 69,203 C71,206 75,205 77,204 Z" fill="#e8b34b"/>
+      </g>
     </svg>`;
 
   // Rentiere, Schlitten und Weihnachtsmann als Vektorgrafik. Alles in lokalen
@@ -9615,7 +9627,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-christmas .zh-xmas-mistleaf { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1.1; }
       #zh-christmas .zh-xmas-mistleberry { fill: #f7f4ee; stroke: #cfc6b4; stroke-width: .8; }
       #zh-christmas .zh-xmas-tree {
-        position: absolute; left: -18px; bottom: -8px; width: 150px; height: 200px;
+        position: absolute; left: -18px; bottom: 2px; width: 150px; height: 200px;
         filter: drop-shadow(0 6px 10px rgba(0,0,0,.2));
       }
       #zh-christmas .zh-xmas-tree-trunk { fill: #6b4226; }
@@ -9682,6 +9694,47 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     `);
   }
 
+  // Schneeflocken-Sprites: einmal vorgerendert, dann nur noch als Bild
+  // gezeichnet. Das ist deutlich guenstiger als pro Flocke Pfade zu malen.
+  // Drei Groessen mit Aestchen - die kleinen bleiben schlichte Sternchen.
+  function zeichneSchneeflocke(groesse, mitAesten) {
+    const sprite = document.createElement("canvas");
+    sprite.width = groesse * 2;
+    sprite.height = groesse * 2;
+    const g = sprite.getContext("2d");
+
+    g.translate(groesse, groesse);
+    g.strokeStyle = "rgba(146, 174, 205, 0.95)";
+    g.fillStyle = "rgba(255, 255, 255, 0.95)";
+    g.lineWidth = Math.max(0.7, groesse / 16);
+    g.lineCap = "round";
+
+    for (let arm = 0; arm < 6; arm += 1) {
+      g.save();
+      g.rotate((Math.PI / 3) * arm);
+      g.beginPath();
+      g.moveTo(0, 0);
+      g.lineTo(0, -groesse * 0.86);
+      if (mitAesten) {
+        [0.42, 0.66].forEach((anteil) => {
+          const y = -groesse * 0.86 * anteil;
+          const laenge = groesse * 0.26 * (1 - anteil * 0.45);
+          g.moveTo(0, y);
+          g.lineTo(laenge, y + laenge * 0.85);
+          g.moveTo(0, y);
+          g.lineTo(-laenge, y + laenge * 0.85);
+        });
+      }
+      g.stroke();
+      g.restore();
+    }
+
+    g.beginPath();
+    g.arc(0, 0, Math.max(0.8, groesse * 0.09), 0, Math.PI * 2);
+    g.fill();
+    return sprite;
+  }
+
   function startChristmasSnow(canvas) {
     if (!canvas || !canvas.getContext) return () => {};
 
@@ -9693,6 +9746,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     let frame = 0;
     let letzteZeit = 0;
     let laeuft = false;
+
+    // Drei Tiefen: weit (klein, blass, langsam), mittel, nah (gross, schnell,
+    // drehend). Das erzeugt den Eindruck von Raum statt einer flachen Wand.
+    const EBENEN = [
+      { groesse: 7, mitAesten: false, alpha: 0.42, tempo: 0.28, anteil: 0.42, dreht: false },
+      { groesse: 11, mitAesten: true, alpha: 0.62, tempo: 0.62, anteil: 0.36, dreht: false },
+      { groesse: 16, mitAesten: true, alpha: 0.88, tempo: 1.05, anteil: 0.22, dreht: true }
+    ];
+    const sprites = EBENEN.map((ebene) => zeichneSchneeflocke(ebene.groesse * 2, ebene.mitAesten));
 
     const messen = () => {
       // Schnee braucht keine Retina-Aufloesung: bei 1.25 statt 2 spart die
@@ -9707,49 +9769,77 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     };
 
     const anlegen = () => {
-      const anzahl = Math.max(24, Math.min(80, Math.round(breite / 20)));
-      flocken = Array.from({ length: anzahl }, () => ({
-        x: Math.random() * breite,
-        y: Math.random() * hoehe,
-        r: 0.8 + Math.random() * 2.3,
-        v: 0.22 + Math.random() * 0.75,
-        drift: -0.35 + Math.random() * 0.7,
-        phase: Math.random() * Math.PI * 2,
-        alpha: 0.4 + Math.random() * 0.55
-      }));
-    };
-
-    const zeichneFlocke = (flocke) => {
-      // Heller Kern plus weicher blauer Rand: auf dem fast weissen Znuny-Hintergrund
-      // waeren rein weisse Punkte unsichtbar.
-      ctx.beginPath();
-      ctx.arc(flocke.x, flocke.y, flocke.r + 1.2, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(120, 150, 190, 0.18)";
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(flocke.x, flocke.y, flocke.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${flocke.alpha})`;
-      ctx.fill();
+      const gesamt = Math.max(26, Math.min(88, Math.round(breite / 19)));
+      flocken = [];
+      EBENEN.forEach((ebene, index) => {
+        const anzahl = Math.round(gesamt * ebene.anteil);
+        for (let i = 0; i < anzahl; i += 1) {
+          flocken.push({
+            x: Math.random() * breite,
+            y: Math.random() * hoehe,
+            ebene: index,
+            r: ebene.groesse * (0.55 + Math.random() * 0.5),
+            tempo: ebene.tempo * (0.7 + Math.random() * 0.6),
+            drift: -0.25 + Math.random() * 0.5,
+            phase: Math.random() * Math.PI * 2,
+            winkel: Math.random() * Math.PI * 2,
+            drehTempo: (Math.random() - 0.5) * 0.03,
+            alpha: ebene.alpha * (0.75 + Math.random() * 0.35)
+          });
+        }
+      });
     };
 
     const zeichnen = (zeit) => {
       const schritt = letzteZeit ? Math.min(60, zeit - letzteZeit) / 16.67 : 1;
       letzteZeit = zeit;
 
+      // Windböen: mal sanft nach rechts, mal fast still.
+      const wind = Math.sin(zeit / 5200) * 0.55 + Math.sin(zeit / 1700) * 0.18;
+
       ctx.clearRect(0, 0, breite, hoehe);
       for (const flocke of flocken) {
-        flocke.y += flocke.v * schritt;
-        flocke.x += (flocke.drift + Math.sin(zeit / 1600 + flocke.phase) * 0.35) * schritt;
+        const ebene = EBENEN[flocke.ebene];
+        flocke.y += flocke.tempo * schritt;
+        flocke.x += (flocke.drift + wind + Math.sin(zeit / 1500 + flocke.phase) * 0.45) * schritt;
 
-        if (flocke.y > hoehe + 4) { flocke.y = -4; flocke.x = Math.random() * breite; }
-        if (flocke.x < -6) flocke.x = breite + 6;
-        else if (flocke.x > breite + 6) flocke.x = -6;
+        if (ebene.dreht) flocke.winkel += flocke.drehTempo * schritt;
 
-        zeichneFlocke(flocke);
+        if (flocke.y > hoehe + 12) {
+          flocke.y = -12;
+          flocke.x = Math.random() * breite;
+        }
+        if (flocke.x < -16) flocke.x = breite + 16;
+        else if (flocke.x > breite + 16) flocke.x = -16;
+
+        const sprite = sprites[flocke.ebene];
+        const durchmesser = flocke.r * 2;
+        ctx.globalAlpha = flocke.alpha;
+        if (ebene.dreht) {
+          ctx.save();
+          ctx.translate(flocke.x, flocke.y);
+          ctx.rotate(flocke.winkel);
+          ctx.drawImage(sprite, -durchmesser / 2, -durchmesser / 2, durchmesser, durchmesser);
+          ctx.restore();
+        } else {
+          ctx.drawImage(sprite, flocke.x - durchmesser / 2, flocke.y - durchmesser / 2, durchmesser, durchmesser);
+        }
       }
+      ctx.globalAlpha = 1;
 
       frame = window.requestAnimationFrame(zeichnen);
+    };
+
+    // Ohne Bewegung: ein ruhiges Flockenbild, kein Dauerlauf.
+    const stillZeichnen = () => {
+      ctx.clearRect(0, 0, breite, hoehe);
+      for (const flocke of flocken) {
+        const sprite = sprites[flocke.ebene];
+        const durchmesser = flocke.r * 2;
+        ctx.globalAlpha = flocke.alpha;
+        ctx.drawImage(sprite, flocke.x - durchmesser / 2, flocke.y - durchmesser / 2, durchmesser, durchmesser);
+      }
+      ctx.globalAlpha = 1;
     };
 
     const starten = () => {
@@ -9767,25 +9857,22 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const neuMessen = () => {
       messen();
       anlegen();
-      if (reducedMotion) {
-        // Ohne Bewegung: ein ruhiges Schneefeld zeichnen, kein Dauerlauf.
-        ctx.clearRect(0, 0, breite, hoehe);
-        for (const flocke of flocken) zeichneFlocke(flocke);
-      }
+      if (reducedMotion) stillZeichnen();
     };
 
+    // Erst messen, dann verteilen: anlegen() braucht die Fenstergroesse.
+    messen();
     anlegen();
 
     if (document.hidden) {
       // Beim Laden im Hintergrund gar nicht erst Speicher belegen: die
       // Leinwand wird erst beim Sichtbarwerden aufgebaut.
-      messen();
       canvas.width = 0;
       canvas.height = 0;
+    } else if (reducedMotion) {
+      stillZeichnen();
     } else {
-      messen();
-      if (reducedMotion) neuMessen();
-      else starten();
+      starten();
     }
 
     const onResize = () => neuMessen();
@@ -9877,7 +9964,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       void fly.offsetWidth;
       fly.classList.add("zh-xmas-fly--go");
 
-      // Fuenf Geschenke waehrend des Flugs, leicht versetzt.
+      // Sechs Geschenke waehrend des Flugs, leicht versetzt.
       [900, 1900, 2900, 3900, 4900, 5900].forEach((zeit) => {
         merken(window.setTimeout(() => dropChristmasGift(overlay, fly), zeit));
       });

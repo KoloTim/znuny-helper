@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.13] – 2026-11-09
+
+### Changed
+- **Echter Schnee:** Statt heller Punkte fallen jetzt **sechszackige Schneeflocken** in drei Tiefenstaffelungen – klein und blass in der Ferne, mittig mit Ästchen, nah groß und sich langsam drehend. Dazu wehen **Windböen** (mal kräftig nach rechts, mal fast still) und jede Flocke pendelt individuell. Die Flocken sind einmal vorgerendert und werden als Bild gezeichnet, damit die Animation günstig bleibt.
+- **Geschenke unterm Baum:** Der Tannenbaum unten links hat jetzt drei Geschenke mit Schleifen und Bändern – rot, grün und blau – passend zum Baum.
+
 ## [1.6.12] – 2026-11-09
 
 ### Changed

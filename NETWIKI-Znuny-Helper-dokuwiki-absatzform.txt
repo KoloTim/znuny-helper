@@ -424,13 +424,13 @@ Zehn Sounds sind bereits eingebaut: drei dezente Standardtöne (Sanfter Ping, Zw
 
 Unter **Saison** im Popup lässt sich der Weihnachtsmodus ein- und ausschalten. Ist er an, legt sich eine Dekoschicht über die Znuny-Seite:
 
-* **Schnee:** feine Flocken ziehen langsam über den Bildschirm; im Hintergrund-Tab pausiert die Animation.
+* **Schnee:** echte Schneeflocken in drei Tiefenstaffelungen – klein und fern bis groß und drehend – mit Windböen. Im Hintergrund-Tab pausiert die Animation und die Leinwand wird freigegeben.
 
 * **Girlande:** durchhängende Schnur mit farbigen Lämpchen und vier Kugeln an der oberen Kante – oberhalb der Navigation, damit nichts verdeckt wird.
 
 * **Mistelzweig:** oben rechts in der Ecke, mit weißen Beeren.
 
-* **Tannenbaum:** ein kleiner geschmückter Baum unten links.
+* **Tannenbaum:** ein kleiner geschmückter Baum unten links, mit Geschenken darunter.
 
 * **Glitzer:** kleine Sterne funkeln an mehreren Stellen.
 
