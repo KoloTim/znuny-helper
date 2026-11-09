@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.16] – 2026-11-09
+
+### Changed
+- **Mistelzweig im klassischen Motiv:** gelappte Stechpalmenblätter mit Mittelrippen und rote Beeren mit Glanzpunkt – vorher waren es schlichte Blattellipsen mit weißen Beeren. Das Motiv sitzt kompakter in der oberen rechten Ecke und verdeckt den Benutzernamen nicht mehr.
+- **Tannenbaum unten rechts** statt unten links, eine Etage weniger (drei statt vier) und mehr Glitzer: achtzehn funkelnde Sterne statt zehn, etwas größer.
+
 ## [1.6.15] – 2026-11-09
 
 ### Changed

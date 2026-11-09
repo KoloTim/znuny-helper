@@ -9454,35 +9454,44 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     else overlay.insertBefore(neu, overlay.firstChild);
   }
 
-  // Mistelzweig: gebogener Stiel mit paarweise sitzenden, runden Blaettern
-  // und einer Beerentraube am Ende - so ist er als Mistel erkennbar.
+  // Mistelzweig im klassischen Motiv: drei gelappte Stechpalmen-Blaetter mit
+  // Mittelrippe und eine Traube roter Beeren mit Glanzpunkt.
   const CHRISTMAS_MISTLETOE = `
-    <svg class="zh-xmas-mistletoe" viewBox="0 0 240 200" aria-hidden="true">
-      <path class="zh-xmas-mistlestem" d="M6,8 C40,42 84,70 128,92 C150,103 168,112 186,124"/>
-      <g class="zh-xmas-mistleaves">
-        <ellipse cx="40" cy="30" rx="27" ry="12.5" transform="rotate(48 40 30)"/>
-        <ellipse cx="34" cy="58" rx="25" ry="12" transform="rotate(-4 34 58)"/>
-        <ellipse cx="82" cy="52" rx="27" ry="12.5" transform="rotate(62 82 52)"/>
-        <ellipse cx="74" cy="82" rx="24" ry="11.5" transform="rotate(2 74 82)"/>
-        <ellipse cx="120" cy="80" rx="25" ry="12" transform="rotate(66 120 80)"/>
-        <ellipse cx="110" cy="110" rx="23" ry="11" transform="rotate(6 110 110)"/>
+    <svg class="zh-xmas-mistletoe" viewBox="0 0 240 210" aria-hidden="true">
+      <defs>
+        <path id="zhHollyLeaf" d="M0,0
+          Q-20,-6 -20,-16 Q-20,-24 -8,-24
+          Q-24,-30 -24,-40 Q-22,-48 -9,-46
+          Q-18,-56 -12,-64 Q-4,-68 0,-70
+          Q4,-68 12,-64 Q18,-56 9,-46
+          Q22,-48 24,-40 Q24,-30 8,-24
+          Q20,-24 20,-16 Q20,-6 0,0 Z"/>
+      </defs>
+
+      <g class="zh-xmas-holly">
+        <use href="#zhHollyLeaf" transform="translate(96,150) rotate(-34) scale(1.15)"/>
+        <use href="#zhHollyLeaf" transform="translate(150,146) rotate(38) scale(1.1)"/>
+        <use href="#zhHollyLeaf" transform="translate(122,158) rotate(4) scale(0.92)"/>
       </g>
-      <g class="zh-xmas-mistleveins">
-        <path d="M16,14 C40,34 62,50 88,62"/>
-        <path d="M70,44 C86,52 100,60 114,68"/>
+
+      <g class="zh-xmas-holly-veins">
+        <path d="M96,150 L92,72" transform="rotate(-34 96 150)"/>
+        <path d="M150,146 L146,70" transform="rotate(38 150 146)"/>
+        <path d="M122,158 L120,102" transform="rotate(4 122 158)"/>
       </g>
-      <g class="zh-xmas-mistleberries">
-        <circle cx="150" cy="96" r="7"/>
-        <circle cx="166" cy="106" r="6.4"/>
-        <circle cx="154" cy="114" r="6"/>
-        <circle cx="172" cy="122" r="5.6"/>
-        <circle cx="140" cy="118" r="5.2"/>
+
+      <g class="zh-xmas-holly-berries">
+        <circle cx="108" cy="150" r="13"/>
+        <circle cx="134" cy="158" r="11.5"/>
+        <circle cx="120" cy="172" r="9.5"/>
       </g>
-      <g class="zh-xmas-mistleberry-shines">
-        <circle cx="147.5" cy="93.5" r="2"/>
-        <circle cx="163.8" cy="103.6" r="1.8"/>
-        <circle cx="151.8" cy="111.6" r="1.6"/>
+      <g class="zh-xmas-holly-shines">
+        <circle cx="104" cy="145" r="3.4"/>
+        <circle cx="130.4" cy="153.6" r="3"/>
+        <circle cx="117" cy="168.4" r="2.4"/>
       </g>
+
+      <path class="zh-xmas-mistlestem" d="M176,6 C168,44 158,86 140,126"/>
     </svg>`;
 
   // Tannenbaum: vier Etagen mit Wellenrand, Schnee auf den Spitzen, Lichter
@@ -9492,8 +9501,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       <rect class="zh-xmas-tree-trunk" x="76" y="176" width="18" height="32" rx="4"/>
       <path class="zh-xmas-tree-green" d="M85,10 L112,58 C104,52 95,62 85,54 C75,62 66,52 58,58 Z"/>
       <path class="zh-xmas-tree-green" d="M85,44 L120,104 C110,96 99,108 85,98 C71,108 60,96 50,104 Z"/>
-      <path class="zh-xmas-tree-green" d="M85,82 L130,150 C118,140 105,154 85,142 C65,154 52,140 40,150 Z"/>
-      <path class="zh-xmas-tree-green" d="M85,122 L140,190 C126,178 110,194 85,180 C60,194 44,178 30,190 Z"/>
+      <path class="zh-xmas-tree-green" d="M85,112 L140,190 C126,178 110,194 85,180 C60,194 44,178 30,190 Z"/>
       <circle class="zh-xmas-tree-star" cx="85" cy="8" r="7"/>
       <circle class="zh-xmas-tree-light" cx="66" cy="56" r="2.6"/>
       <circle class="zh-xmas-tree-light" cx="104" cy="66" r="2.6"/>
@@ -9588,7 +9596,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   const CHRISTMAS_SPARKS = [
     [6, 18, 0], [14, 62, 1.4], [31, 8, 0.6], [47, 26, 2.1], [63, 6, 1.1],
-    [76, 20, 2.6], [88, 48, 0.3], [95, 12, 1.8], [22, 84, 2.3], [71, 74, 0.9]
+    [76, 20, 2.6], [88, 48, 0.3], [95, 12, 1.8], [22, 84, 2.3], [71, 74, 0.9],
+    [38, 44, 3.2], [55, 66, 0.2], [67, 38, 2.9], [82, 84, 1.6], [10, 34, 3.6],
+    [92, 70, 2.0], [26, 12, 4.1], [50, 90, 1.2]
   ].map(([links, oben, verzoegerung]) => `
     <svg class="zh-xmas-spark" style="left:${links}%;top:${oben}%;animation-delay:${verzoegerung}s" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 0 L13.6 9.2 L24 12 L13.6 14.8 L12 24 L10.4 14.8 L0 12 L10.4 9.2 Z"/>
@@ -9642,14 +9652,39 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         100% { transform: translate(116vw, 4px) rotate(-1deg); }
       }
       #zh-christmas .zh-xmas-mistletoe {
-        position: absolute; top: 0; right: 2px; width: 165px; height: 138px;
+        position: absolute; top: -6px; right: 0; width: 150px; height: 126px;
+        transform: scaleX(-1);
+        filter: drop-shadow(0 5px 8px rgba(0,0,0,.2));
+      }
+      #zh-christmas .zh-xmas-mistlestem { fill: none; stroke: #3f6b3a; stroke-width: 3.4; stroke-linecap: round; }
+      #zh-christmas .zh-xmas-holly use { fill: #2f7b4a; stroke: #1b4a2c; stroke-width: 1.6; stroke-linejoin: round; }
+      #zh-christmas .zh-xmas-holly-veins path { fill: none; stroke: #1b4a2c; stroke-width: 1.4; opacity: .55; stroke-linecap: round; }
+      #zh-christmas .zh-xmas-holly-berries circle { fill: url(#zhXmasBaubleRed); stroke: #6f1712; stroke-width: 1.2; }
+      #zh-christmas .zh-xmas-holly-shines circle { fill: rgba(255,255,255,.8); }
+      #zh-christmas .zh-xmas-mistleberry-shine,\n      #zh-christmas .zh-xmas-mistleberry-shines circle { fill: rgba(255,255,255,.85); }
+      #zh-christmas .zh-xmas-thread { stroke: #d9c48a; stroke-width: 1.2; }
+      #zh-christmas .zh-xmas-fly {
+        position: absolute; top: 7%; left: 0; width: 700px; height: 276px;
+        will-change: transform;
+        filter: drop-shadow(0 12px 18px rgba(0,0,0,.16));
+      }
+      #zh-christmas .zh-xmas-fly--go { animation: zh-xmas-fly-across 7s linear forwards; }
+      @keyframes zh-xmas-fly-across {
+        0%   { transform: translate(-660px, 0) rotate(-2deg); }
+        20%  { transform: translate(12vw, -28px) rotate(1deg); }
+        45%  { transform: translate(42vw, 16px) rotate(-1deg); }
+        70%  { transform: translate(70vw, -18px) rotate(1.5deg); }
+        100% { transform: translate(116vw, 4px) rotate(-1deg); }
+      }
+      #zh-christmas .zh-xmas-mistletoe {
+        position: absolute; top: -6px; right: 0; width: 150px; height: 126px;
         transform: scaleX(-1);
         filter: drop-shadow(0 5px 8px rgba(0,0,0,.2));
       }
       #zh-christmas .zh-xmas-mistlestem { fill: none; stroke: #2f6b46; stroke-width: 3; stroke-linecap: round; }
       #zh-christmas .zh-xmas-mistleaf { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1.1; }
       #zh-christmas .zh-xmas-tree {
-        position: absolute; left: -18px; bottom: 2px; width: 150px; height: 200px;
+        position: absolute; right: 6px; bottom: 14px; width: 148px; height: 197px;
         filter: drop-shadow(0 6px 10px rgba(0,0,0,.2));
       }
       #zh-christmas .zh-xmas-tree-trunk { fill: #6b4226; }
@@ -9691,7 +9726,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         100% { transform: translate(var(--zh-gift-dx, 30px), 52vh) rotate(var(--zh-gift-rot, 220deg)); opacity: 0; }
       }
       #zh-christmas .zh-xmas-spark {
-        position: absolute; width: 16px; height: 16px; fill: #fff6d8;
+        position: absolute; width: 18px; height: 18px; fill: #fff6d8;
         opacity: 0; animation: zh-xmas-spark 4.8s ease-in-out infinite;
         filter: drop-shadow(0 0 4px rgba(255, 236, 179, .9));
       }

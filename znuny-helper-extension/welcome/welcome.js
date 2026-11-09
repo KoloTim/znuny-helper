@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.16",
+      items: [
+        "Mistelzweig jetzt im klassischen Motiv: gelappte Stechpalmenblätter mit roten Beeren, kompakter in der Ecke.",
+        "Tannenbaum unten rechts, eine Etage weniger und mehr Glitzer."
+      ]
+    },
+    {
       version: "1.6.15",
       items: [
         "Schnee ruhiger: weniger Flocken, langsamer und transparenter – Schneefall statt Schneesturm.",
