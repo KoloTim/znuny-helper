@@ -9,6 +9,14 @@
 
   const releases = [
     {
+      version: "1.6.24",
+      items: [
+        "EASM-Bewertung nur noch bei EASM-Tickets und standardmäßig aus – im Popup einschaltbar.",
+        "Die große Suchverlaufs-Anzeige ist entfernt; die kleinen Vorschläge unter den Suchfeldern bleiben.",
+        "HSRW-Logo in der Pinball-Kopfzeile exakt nachgebaut, Kugeln und Lämpchen weichen jetzt dem Mauszeiger aus."
+      ]
+    },
+    {
       version: "1.6.23",
       items: [
         "Pinball überarbeitet: Die Pins sind jetzt Kapseln im Stil der HSRW-Y-Striche, Treffer sitzen genau. Abschussrampe mit Power-Leiste (Leertaste), kräftigere Flipper, Punkte-Popups und Kugelspur."

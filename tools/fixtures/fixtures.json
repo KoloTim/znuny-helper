@@ -36,7 +36,7 @@
       "beschreibung": "Suchdialog (Ticketnummer-Suche)",
       "url": "https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketSearch",
       "datei": "agent-suche.html",
-      "fest": ["#zh-search-primary-fields", ".zh-search-history-block"],
+      "fest": ["#zh-search-primary-fields", ".zh-search-primary-input"],
       "beobachtet": [".zh-search-primary-input", ".zh-search-daterange-buttons"]
     }
   ]

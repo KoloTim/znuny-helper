@@ -1482,8 +1482,8 @@ check("Pinball per Escape schliessbar",
 check("Baum bleibt im Bild (kein Rausrutschen)",
   /transform-origin:\s*bottom right/.test(source) && !/translate\(46%, 26%\)/.test(source),
   true);
-check("HSRW-Logo im Pinball (Marke + Wortmarke)",
-  source.includes("zh-pin-logo") && source.includes("#2a2250") && source.includes("#3c7fd1"),
+check("HSRW-Farben im Pinball",
+  source.includes("#2a2250") && source.includes("#3c7fd1"),
   true);
 
 console.log("\n25) Weihnachts-Deko: Baum, Mistelzweig, Elfe");
@@ -1519,6 +1519,26 @@ check("Pinball: kein Weihnachtsband mehr",
   true);
 check("Pinball startet erst nach dem Intro-Knopf",
   source.includes("zh-pin-start") && source.includes("spielLaeuft = true"),
+  true);
+
+console.log("\n26) EASM nur bei EASM-Tickets, Suchverlauf-Panel raus");
+check("EASM standardmaessig aus (Content)",
+  /easmRating: false/.test(source),
+  true);
+check("EASM-Knopf nur bei EASM im Betreff",
+  /\\bEASM\\b/.test(source) && source.includes("kopfText"),
+  true);
+check("grosses Verlaufs-Panel wird nicht mehr aufgebaut",
+  !source.includes("block.id = \"zh-search-history-block\""),
+  true);
+check("kleine Vorschlaege bleiben",
+  source.includes("renderSearchHistoryHints"),
+  true);
+check("HSRW-Marke exakt (runder Strich + abgeschnittener Balken)",
+  source.includes("hswrMarkSvg") && source.includes("A19,19 0 0 1 124,162"),
+  true);
+check("Kugeln weichen dem Zeiger aus",
+  source.includes("startChristmasMagnet") && /translate\(\$\{nx\.toFixed/.test(source),
   true);
 
 const chromeManifest = JSON.parse(

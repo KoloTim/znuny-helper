@@ -21,7 +21,7 @@
     assignedTicketSound: false,
     quickReply: false,
     directArticleActions: true,
-    easmRating: true,
+    easmRating: false,
     christmasMode: true
   };
 

@@ -58,7 +58,7 @@
     assignedTicketSound: false,
     quickReply: false,
     directArticleActions: true,
-    easmRating: true,
+    easmRating: false,
     christmasMode: true
   };
 
@@ -3330,74 +3330,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function renderSearchHistoryBlock() {
-    const block = document.getElementById("zh-search-history-block");
-    if (!block) return;
-
-    const list = block.querySelector(".zh-search-history-list");
-    if (!list) return;
-
-    const all = getSearchHistory().entries;
-    const entries = all.slice(0, searchHistoryVisibleCount(all.length, searchHistoryExpanded));
-    list.replaceChildren();
-
-    entries.forEach((entry) => {
-      const item = document.createElement("li");
-      item.className = "zh-search-history-entry";
-
-      const apply = document.createElement("button");
-      apply.type = "button";
-      apply.className = "zh-search-history-apply";
-      apply.title = "Diese Suche in die Felder übernehmen";
-
-      const text = document.createElement("span");
-      text.className = "zh-search-history-text";
-      text.textContent = describeSearchHistoryEntry(entry);
-      apply.appendChild(text);
-
-      const meta = describeSearchHistoryMeta(entry);
-      if (meta) {
-        const metaElement = document.createElement("span");
-        metaElement.className = "zh-search-history-meta";
-        metaElement.textContent = meta;
-        apply.appendChild(metaElement);
-      }
-
-      apply.addEventListener("click", (event) => {
-        stopEvent(event);
-        applySearchHistoryEntry(entry);
-      });
-      item.appendChild(apply);
-
-      const remove = document.createElement("button");
-      remove.type = "button";
-      remove.className = "zh-search-history-remove";
-      remove.title = "Eintrag entfernen";
-      remove.setAttribute("aria-label", "Eintrag entfernen");
-      remove.textContent = "\u00d7";
-      remove.addEventListener("click", (event) => {
-        stopEvent(event);
-        removeSearchHistoryEntry(entry);
-      });
-      item.appendChild(remove);
-
-      list.appendChild(item);
-    });
-
-    block.dataset.empty = all.length ? "0" : "1";
-
-    const toggle = block.querySelector(".zh-search-history-toggle");
-    if (toggle) {
-      toggle.hidden = all.length <= SEARCH_HISTORY_VISIBLE;
-      toggle.textContent = searchHistoryExpanded ? "Weniger anzeigen" : `Alle ${all.length} anzeigen`;
-    }
-
-    const clear = block.querySelector(".zh-search-history-clear");
-    if (clear) clear.hidden = all.length === 0;
+    document.getElementById("zh-search-history-block")?.remove();
   }
 
-  // Puts a past search back into the fields - including the period - and leaves
-  // starting it to the agent, because the remaining filters (templates, attributes)
-  // are not part of the entry.
   function applySearchHistoryEntry(entry) {
     const form = findVisibleSearchForm();
     if (!form) return;
@@ -3430,62 +3365,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     focusTarget?.focus?.();
   }
 
-  function getOrCreateSearchHistoryBlock(form, primaryBlock) {
-    let block = document.getElementById("zh-search-history-block");
-
-    if (!block) {
-      block = document.createElement("div");
-      block.id = "zh-search-history-block";
-      block.className = "zh-search-history-block";
-
-      const head = document.createElement("div");
-      head.className = "zh-search-history-head";
-
-      const title = document.createElement("span");
-      title.className = "zh-search-history-title";
-      title.textContent = "Suchverlauf";
-      head.appendChild(title);
-
-      const actions = document.createElement("span");
-      actions.className = "zh-search-history-actions";
-
-      const toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.className = "zh-search-history-toggle";
-      toggle.addEventListener("click", (event) => {
-        stopEvent(event);
-        searchHistoryExpanded = !searchHistoryExpanded;
-        renderSearchHistoryBlock();
-      });
-      actions.appendChild(toggle);
-
-      const clear = document.createElement("button");
-      clear.type = "button";
-      clear.className = "zh-search-history-clear";
-      clear.textContent = "Verlauf leeren";
-      clear.addEventListener("click", (event) => {
-        stopEvent(event);
-        clearSearchHistory();
-      });
-      actions.appendChild(clear);
-
-      head.appendChild(actions);
-      block.appendChild(head);
-
-      const list = document.createElement("ul");
-      list.className = "zh-search-history-list";
-      block.appendChild(list);
-
-      const empty = document.createElement("p");
-      empty.className = "zh-search-history-empty";
-      empty.textContent = "Noch kein Suchverlauf – ausgeführte Suchen erscheinen hier.";
-      block.appendChild(empty);
-    }
-
-    primaryBlock.appendChild(block);
-    bindSearchRangeTouchedTracking(form);
-    renderSearchHistoryBlock();
-    return block;
+  // Das grosse Verlaufs-Panel ist entfernt: Die kurzen Vorschlaege direkt
+  // unter den Suchfeldern reichen. Der gespeicherte Verlauf bleibt erhalten,
+  // wird aber nicht mehr als eigener Block angezeigt.
+  function getOrCreateSearchHistoryBlock() {
+    document.getElementById("zh-search-history-block")?.remove();
+    return null;
   }
 
   // The global search dialog lives in its own window on this Znuny version: the search
@@ -9777,6 +9662,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-christmas .zh-xmas-tree-green { fill: #1c5c3a; stroke: #14432a; stroke-width: 1.5; }
       #zh-christmas .zh-xmas-tree-star { fill: #e8b34b; }
       #zh-christmas .zh-xmas-tree-snow { fill: #f2f7fb; opacity: .92; }
+      /* Damit sich Kugeln und Laempchen verschieben lassen: Bezug auf die eigene Flaeche. */
+      #zh-christmas .zh-xmas-bauble,
+      #zh-christmas .zh-xmas-bulb-glow,
+      #zh-christmas .zh-xmas-tree-light { transform-box: fill-box; transform-origin: center; }
       #zh-christmas .zh-xmas-deer-body { fill: url(#zhXmasDeer); }
       #zh-christmas .zh-xmas-deer-muzzle { fill: none; stroke: #5b3620; stroke-width: 2; stroke-linecap: round; }
       #zh-christmas .zh-xmas-deer-eye { fill: #f6e3b4; }
@@ -10237,7 +10126,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         font-family: system-ui, Segoe UI, sans-serif; color: #eaf1fb; gap: 10px;
       }
       #zh-pinball .zh-pin-top { display: flex; align-items: center; gap: 14px; padding: 0 12px; }
-      #zh-pinball .zh-pin-logo { height: 32px; width: auto; display: block; }
+      #zh-pinball .zh-pin-brand { display: flex; align-items: center; gap: 9px; }
+      #zh-pinball .zh-pin-mark { height: 30px; width: auto; display: block; }
+      #zh-pinball .zh-pin-word { font-size: 19px; font-weight: 800; letter-spacing: .6px; color: #eef4ff; }
       #zh-pinball .zh-pin-title { font-size: 20px; font-weight: 800; letter-spacing: .5px; }
       #zh-pinball .zh-pin-score {
         font-size: 24px; font-weight: 800; color: #ffd479; min-width: 84px; text-align: right;
@@ -10279,16 +10170,22 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     `);
   }
 
-  // HSRW-Marke: zwei geschwungene Striche (violett-navy + blau), daneben die
-  // Wortmarke. Farben aus dem Logo: #2a2250, #3c7fd1, Wortmarke fast schwarz.
-  function pinballLogo(hell) {
-    const wort = hell ? "#eef4ff" : "#14131f";
+  // HSRW-Marke, exakt nach Logo: links ein runder Strich, der schraeg nach
+  // unten rechts laeuft und dann senkrecht wird; rechts ein Balken, dessen
+  // Oberkante schraeg abgeschnitten ist (Fahne) und der unten rund endet.
+  // Farben: #2a2250 (violett-navy) und #3c7fd1 (blau), dazwischen Weiss.
+  function hswrMarkSvg(klasse) {
     return `
-      <svg class="zh-pin-logo" viewBox="0 0 232 64" aria-label="HSRW">
-        <path d="M15,11 C19,30 29,45 44,54" fill="none" stroke="#2a2250" stroke-width="11" stroke-linecap="round"/>
-        <path d="M59,11 C55,30 45,45 32,54" fill="none" stroke="#3c7fd1" stroke-width="11" stroke-linecap="round"/>
-        <text x="74" y="47" font-family="system-ui, Segoe UI, sans-serif" font-size="38" font-weight="800" fill="${wort}">HSRW</text>
+      <svg class="${klasse}" viewBox="0 0 200 220" aria-hidden="true">
+        <path d="M62,44 L104,92 L104,170"
+              fill="none" stroke="#2a2250" stroke-width="38"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M126,72 L162,28 L162,162 A19,19 0 0 1 124,162 Z" fill="#3c7fd1"/>
       </svg>`;
+  }
+
+  function pinballBrand() {
+    return `<span class="zh-pin-brand">${hswrMarkSvg("zh-pin-mark")}<span class="zh-pin-word">HSRW</span></span>`;
   }
 
   function pinballElf() {
@@ -10321,7 +10218,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     host.id = "zh-pinball";
     host.innerHTML = `
       <div class="zh-pin-top">
-        ${pinballLogo(true)}
+        ${pinballBrand()}
         <div class="zh-pin-title">Pinball</div>
         <div class="zh-pin-score" id="zh-pin-score">0</div>
       </div>
@@ -10565,24 +10462,31 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       ctx.fillStyle = grund;
       ctx.fillRect(-10, -10, W + 20, H + 20);
 
-      // Wasserzeichen: Y-Marke + Wortmarke
+      // Wasserzeichen: HSRW-Marke (Logo-Form)
       ctx.save();
-      ctx.globalAlpha = 0.09;
+      ctx.globalAlpha = 0.1;
+      const mx = W * 0.5;
+      const my = H * 0.46;
+      const sk = Math.min(W, H) / 220 * 0.9;
+      ctx.translate(mx, my);
+      ctx.scale(sk, sk);
       ctx.lineCap = "round";
-      ctx.lineWidth = Math.max(11, W * 0.026);
-      const my = H * 0.4;
-      const mx = W * 0.52;
-      const arm = W * 0.075;
+      ctx.lineJoin = "round";
       ctx.strokeStyle = NAVY;
+      ctx.lineWidth = 38;
       ctx.beginPath();
-      ctx.moveTo(mx - arm, my - 60);
-      ctx.bezierCurveTo(mx - arm * 0.75, my - 16, mx - arm * 0.2, my + 26, mx + arm * 0.35, my + 58);
+      ctx.moveTo(-56, -50);
+      ctx.lineTo(-14, -2);
+      ctx.lineTo(-14, 60);
       ctx.stroke();
-      ctx.strokeStyle = BLAU;
+      ctx.fillStyle = BLAU;
       ctx.beginPath();
-      ctx.moveTo(mx + arm, my - 60);
-      ctx.bezierCurveTo(mx + arm * 0.75, my - 16, mx + arm * 0.2, my + 26, mx - arm * 0.35, my + 58);
-      ctx.stroke();
+      ctx.moveTo(8, -22);
+      ctx.lineTo(44, -66);
+      ctx.lineTo(44, 52);
+      ctx.arc(26, 52, 18, 0, Math.PI);
+      ctx.closePath();
+      ctx.fill();
       ctx.restore();
 
       // Schnee
@@ -10832,6 +10736,97 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     removeStyle("zh-pinball-style");
   }
 
+  // Kugeln und Laempchen der Deko wirken ebenfalls antimagnetisch: Sie weichen
+  // dem Zeiger aus und schwingen zurueck, sobald er weiterzieht.
+  function startChristmasMagnet(overlay) {
+    const sammeln = () =>
+      Array.from(overlay.querySelectorAll(".zh-xmas-bauble, .zh-xmas-bulb-glow, .zh-xmas-tree-light"));
+
+    let ziele = [];
+    let rects = [];
+    let frame = 0;
+    let laeuft = true;
+    const versatz = new Map();
+    const maus = { x: -9999, y: -9999, aktiv: false, zeit: 0 };
+
+    const messen = () => {
+      ziele = sammeln();
+      rects = ziele.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { el, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+      });
+    };
+
+    const aufZeiger = (event) => {
+      maus.x = event.clientX;
+      maus.y = event.clientY;
+      maus.aktiv = true;
+      maus.zeit = performance.now();
+    };
+
+    const zeigerWeg = () => {
+      maus.aktiv = false;
+    };
+
+    const radius = 130;
+
+    const schleife = () => {
+      if (!laeuft) return;
+      const aktiv = maus.aktiv && performance.now() - maus.zeit < 1500;
+
+      for (const ziel of rects) {
+        let zielX = 0;
+        let zielY = 0;
+
+        if (aktiv) {
+          const dx = ziel.cx - maus.x;
+          const dy = ziel.cy - maus.y;
+          const abstand = Math.sqrt(dx * dx + dy * dy) || 1;
+          if (abstand < radius) {
+            const kraft = (1 - abstand / radius) * 16;
+            zielX = (dx / abstand) * kraft;
+            zielY = (dy / abstand) * kraft;
+          }
+        }
+
+        const alt = versatz.get(ziel.el) || { x: 0, y: 0 };
+        const nx = alt.x + (zielX - alt.x) * 0.16;
+        const ny = alt.y + (zielY - alt.y) * 0.16;
+        versatz.set(ziel.el, { x: nx, y: ny });
+
+        if (Math.abs(nx) < 0.05 && Math.abs(ny) < 0.05) {
+          ziel.el.style.transform = "";
+        } else {
+          ziel.el.style.transform = `translate(${nx.toFixed(2)}px, ${ny.toFixed(2)}px)`;
+        }
+      }
+
+      frame = window.requestAnimationFrame(schleife);
+    };
+
+    let messTimer = 0;
+    const beiGroesse = () => {
+      window.clearTimeout(messTimer);
+      messTimer = window.setTimeout(messen, 220);
+    };
+
+    messen();
+    window.addEventListener("pointermove", aufZeiger, { passive: true });
+    window.addEventListener("pointerleave", zeigerWeg);
+    window.addEventListener("resize", beiGroesse);
+    frame = window.requestAnimationFrame(schleife);
+
+    return () => {
+      laeuft = false;
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(messTimer);
+      window.removeEventListener("pointermove", aufZeiger);
+      window.removeEventListener("pointerleave", zeigerWeg);
+      window.removeEventListener("resize", beiGroesse);
+      for (const el of ziele) el.style.transform = "";
+    };
+  }
+
   function enableChristmasMode() {
     if (window.top !== window.self) return;
     if (document.getElementById(CHRISTMAS_OVERLAY_ID)) return;
@@ -10913,6 +10908,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     christmasCleanupFns = [
       startChristmasSnow(overlay.querySelector("canvas.zh-xmas-snow")),
       startChristmasFlyover(overlay),
+      startChristmasMagnet(overlay),
       () => {
         window.clearTimeout(garlandTimer);
         window.removeEventListener("resize", onGarlandResize);
@@ -11083,6 +11079,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const titel = document.querySelector("#Content h1, h1");
     if (!titel) return;
+
+    // Nur bei EASM-Tickets: Betreff oder sichtbarer Titel muss "EASM" enthalten.
+    const kopfText = `${titel.textContent || ""} ${document.title || ""}`;
+    if (!/\bEASM\b|\[EASM\]|EASM\s*-/i.test(kopfText)) return;
 
     addEasmStyles();
 

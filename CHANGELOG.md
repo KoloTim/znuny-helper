@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.24] – 2026-11-09
+
+### Changed
+- **EASM-Bewertung nur noch bei EASM-Tickets:** Der Knopf erscheint nur, wenn im Betreff „EASM" steht (geprüft an Titel und Seitentitel). Der Schalter im Popup heißt jetzt eindeutig **EASM-Bewertung** und ist **standardmäßig aus**.
+- **Große Suchverlaufs-Anzeige entfernt:** Der Block unter dem Suchformular ist weg. Die kleinen Vorschläge direkt unter den Suchfeldern bleiben – ein Klick übernimmt den Begriff.
+- **HSRW-Logo korrekt:** Die Marke ist jetzt exakt nachgebaut – links ein runder Strich, der schräg nach unten läuft und senkrecht wird, rechts ein Balken mit schräg abgeschnittener Oberkante und rundem Fuß. In der Kopfzeile steht die Marke getrennt von der Wortmarke „HSRW", damit nichts mehr abgeschnitten wird.
+- **Deko reagiert auf die Maus:** Kugeln und Lämpchen der Girlande weichen dem Zeiger aus und schwingen zurück, sobald er weiterzieht.
+
 ## [1.6.23] – 2026-11-09
 
 ### Changed
