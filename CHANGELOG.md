@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.29] – 2026-11-09
+
+### Changed
+- **Deko liegt jetzt hinter Znunys Fenstern:** Baum, Girlande und Mistelzweig sind in eine eigene Ebene mit `z-index: 500` gewandert – Dialoge (z. B. „Besitzer ändern", Schnellantwort) liegen mit `z-index: 1000` darüber und werden nicht mehr überdeckt. **Schnee und Schlitten** bleiben in der oberen Ebene (`z-index: 2147483000`), weil sie nur den Hintergrund betreffen.
+- **Weihnachtsmann seltener:** erster Flug nach **3 Minuten** statt 90 Sekunden, danach alle **30 Minuten** statt alle 15. Auf jeder Seite neu gezählt war er sonst zu präsent.
+
 ## [1.6.28] – 2026-11-09
 
 ### Fixed

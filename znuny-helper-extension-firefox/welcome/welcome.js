@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.29",
+      items: [
+        "Deko liegt hinter Znunys Fenstern: Baum, Girlande und Zweig überdecken keine Dialoge mehr; Schnee und Schlitten bleiben obenauf.",
+        "Der Weihnachtsmann fliegt seltener (erster Flug nach 3 Minuten, danach alle 30 Minuten)."
+      ]
+    },
+    {
       version: "1.6.28",
       items: [
         "„Priorität setzen“ nutzt jetzt das echte Znuny-Formular statt eines selbst gebauten POST – kein „Ungültiger Service“ mehr.",

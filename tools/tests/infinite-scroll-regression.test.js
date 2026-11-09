@@ -1408,7 +1408,7 @@ check("Wird mit den Funktionen geschaltet",
     extractDeclaration("runEnabledFeatures").includes("disableChristmasMode()"),
   true);
 check("Deko-Ebene faengt keine Klicks ab",
-  /#zh-christmas\s*\{[^}]*pointer-events:\s*none/.test(source),
+  /\.zh-xmas-layer\s*\{[^}]*pointer-events:\s*none/.test(source),
   true);
 check("Schnee respektiert reduzierte Bewegung",
   extractDeclaration("startChristmasSnow").includes("prefers-reduced-motion"),
@@ -1594,6 +1594,20 @@ check("fehlende Pflichtfelder werden erkannt",
   true);
 check("Rueckfall oeffnet das Formular mit Vorauswahl",
   source.includes("zh-prio=") && source.includes("wendeEasmVorwahlAn"),
+  true);
+
+console.log("\n30) Weihnachts-Deko: Ebenen und Haeufigkeit");
+check("Deko liegt in einer eigenen Ebene unter Dialogen",
+  source.includes("zh-xmas-layer--back") && /z-index: 500/.test(source),
+  true);
+check("Schnee bleibt obenauf",
+  source.includes("zh-xmas-layer--front") && /z-index: 2147483000/.test(source),
+  true);
+check("Baum und Girlande im Hintergrund",
+  source.includes("CHRISTMAS_BACK_ID") && source.includes("renderChristmasGarland(hintergrund)"),
+  true);
+check("Weihnachtsmann seltener (3 min / 30 min)",
+  source.includes("3 * 60 * 1000") && source.includes("30 * 60 * 1000"),
   true);
 
 const chromeManifest = JSON.parse(

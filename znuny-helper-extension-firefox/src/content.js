@@ -9216,6 +9216,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   // bedient werden, Klicks gehen immer an Znuny. Bei "prefers-reduced-motion"
   // liegt der Schnee still und die Animationen entfallen.
   const CHRISTMAS_OVERLAY_ID = "zh-christmas";
+  const CHRISTMAS_BACK_ID = "zh-christmas-back";
   let christmasCleanupFns = [];
 
   // Farbverlaeufe und Filter einmal zentral. Alle Teile referenzieren sie
@@ -9595,49 +9596,52 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function addChristmasStyles() {
     addStyle("zh-christmas-style", `
-      #zh-christmas {
+      .zh-xmas-layer {
         position: fixed;
         inset: 0;
-        z-index: 2147483000;
         pointer-events: none;
         overflow: hidden;
         contain: strict;
       }
-      #zh-christmas canvas.zh-xmas-snow { position: absolute; inset: 0; width: 100%; height: 100%; }
-      #zh-christmas .zh-xmas-glow {
+      /* Deko (Baum, Girlande, Zweig) liegt UNTER Znunys Dialogen. */
+      .zh-xmas-layer--back { z-index: 500; }
+      /* Schnee und Schlitten duerfen obenauf liegen. */
+      .zh-xmas-layer--front { z-index: 2147483000; }
+      .zh-xmas-layer canvas.zh-xmas-snow { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .zh-xmas-layer .zh-xmas-glow {
         position: absolute; left: 0; right: 0; top: 0; height: 220px;
         background: radial-gradient(120% 100% at 50% 0%, rgba(255, 196, 120, .22), rgba(255, 196, 120, 0) 70%);
       }
-      #zh-christmas svg { display: block; }
-      #zh-christmas .zh-xmas-lights {
+      .zh-xmas-layer svg { display: block; }
+      .zh-xmas-layer .zh-xmas-lights {
         position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 92px;
         filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
       }
-      #zh-christmas .zh-xmas-defs { position: absolute; width: 0; height: 0; }
+      .zh-xmas-layer .zh-xmas-defs { position: absolute; width: 0; height: 0; }
       /* Zweifarbig: dunkle Kante plus helle Schnur - sichtbar auf hellem
          Inhalt und auf der dunklen Kopfleiste. */
-      #zh-christmas .zh-xmas-wire-shadow { stroke: #4a3517; stroke-width: 3.6; opacity: .85; }
-      #zh-christmas .zh-xmas-wire { stroke: #d3a862; stroke-width: 2; }
-      #zh-christmas .zh-xmas-sprig path { fill: none; stroke: #1b5a38; stroke-width: 2.2; stroke-linecap: round; opacity: .95; }
-      #zh-christmas .zh-xmas-bulb-glow { fill: #ffd479; opacity: .28; filter: url(#zhXmasGlow); }
-      #zh-christmas .zh-xmas-cap { fill: #c9a227; }
-      #zh-christmas .zh-xmas-shine { fill: rgba(255,255,255,.75); }
-      #zh-christmas .zh-xmas-tree-green { fill: url(#zhXmasTree); stroke: #0d3520; stroke-width: 1.2; stroke-linejoin: round; }
-      #zh-christmas .zh-xmas-treesnow { fill: #f4f8fb; opacity: .92; }
-      #zh-christmas .zh-xmas-tree-light { fill: #ffe9a8; filter: url(#zhXmasGlow); }
-      #zh-christmas .zh-xmas-tree-star { fill: #ffe9a8; filter: url(#zhXmasGlow); }
-      #zh-christmas .zh-xmas-holly-fill { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1.4; stroke-linejoin: round; }
-      #zh-christmas .zh-xmas-holly-vein { fill: none; stroke: #1c4a2f; stroke-width: 1.2; opacity: .6; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-mistlestem { fill: none; stroke: #2f6b46; stroke-width: 3.2; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-holly-berries circle { fill: url(#zhXmasBaubleRed); stroke: #6f1712; stroke-width: 1.2; }
-      #zh-christmas .zh-xmas-holly-shines circle { fill: rgba(255,255,255,.85); }
-      #zh-christmas .zh-xmas-thread { stroke: #d9c48a; stroke-width: 1.2; }
-      #zh-christmas .zh-xmas-fly {
+      .zh-xmas-layer .zh-xmas-wire-shadow { stroke: #4a3517; stroke-width: 3.6; opacity: .85; }
+      .zh-xmas-layer .zh-xmas-wire { stroke: #d3a862; stroke-width: 2; }
+      .zh-xmas-layer .zh-xmas-sprig path { fill: none; stroke: #1b5a38; stroke-width: 2.2; stroke-linecap: round; opacity: .95; }
+      .zh-xmas-layer .zh-xmas-bulb-glow { fill: #ffd479; opacity: .28; filter: url(#zhXmasGlow); }
+      .zh-xmas-layer .zh-xmas-cap { fill: #c9a227; }
+      .zh-xmas-layer .zh-xmas-shine { fill: rgba(255,255,255,.75); }
+      .zh-xmas-layer .zh-xmas-tree-green { fill: url(#zhXmasTree); stroke: #0d3520; stroke-width: 1.2; stroke-linejoin: round; }
+      .zh-xmas-layer .zh-xmas-treesnow { fill: #f4f8fb; opacity: .92; }
+      .zh-xmas-layer .zh-xmas-tree-light { fill: #ffe9a8; filter: url(#zhXmasGlow); }
+      .zh-xmas-layer .zh-xmas-tree-star { fill: #ffe9a8; filter: url(#zhXmasGlow); }
+      .zh-xmas-layer .zh-xmas-holly-fill { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1.4; stroke-linejoin: round; }
+      .zh-xmas-layer .zh-xmas-holly-vein { fill: none; stroke: #1c4a2f; stroke-width: 1.2; opacity: .6; stroke-linecap: round; }
+      .zh-xmas-layer .zh-xmas-mistlestem { fill: none; stroke: #2f6b46; stroke-width: 3.2; stroke-linecap: round; }
+      .zh-xmas-layer .zh-xmas-holly-berries circle { fill: url(#zhXmasBaubleRed); stroke: #6f1712; stroke-width: 1.2; }
+      .zh-xmas-layer .zh-xmas-holly-shines circle { fill: rgba(255,255,255,.85); }
+      .zh-xmas-layer .zh-xmas-thread { stroke: #d9c48a; stroke-width: 1.2; }
+      .zh-xmas-layer .zh-xmas-fly {
         position: absolute; top: 7%; left: 0; width: 700px; height: 276px;
         will-change: transform;
         filter: drop-shadow(0 12px 18px rgba(0,0,0,.16));
       }
-      #zh-christmas .zh-xmas-fly--go { animation: zh-xmas-fly-across 7s linear forwards; }
+      .zh-xmas-layer .zh-xmas-fly--go { animation: zh-xmas-fly-across 7s linear forwards; }
       @keyframes zh-xmas-fly-across {
         0%   { transform: translate(-660px, 0) rotate(-2deg); }
         20%  { transform: translate(12vw, -28px) rotate(1deg); }
@@ -9645,24 +9649,24 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         70%  { transform: translate(70vw, -18px) rotate(1.5deg); }
         100% { transform: translate(116vw, 4px) rotate(-1deg); }
       }
-      #zh-christmas .zh-xmas-mistletoe {
+      .zh-xmas-layer .zh-xmas-mistletoe {
         position: absolute; top: -8px; right: -4px; width: 132px; height: 111px;
         transform: scaleX(-1);
         filter: drop-shadow(0 5px 8px rgba(0,0,0,.2));
       }
-      #zh-christmas .zh-xmas-mistlestem { fill: none; stroke: #3f6b3a; stroke-width: 3.4; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-holly use { fill: #2f7b4a; stroke: #1b4a2c; stroke-width: 1.6; stroke-linejoin: round; }
-      #zh-christmas .zh-xmas-holly-veins path { fill: none; stroke: #1b4a2c; stroke-width: 1.4; opacity: .55; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-holly-berries circle { fill: url(#zhXmasBaubleRed); stroke: #6f1712; stroke-width: 1.2; }
-      #zh-christmas .zh-xmas-holly-shines circle { fill: rgba(255,255,255,.8); }
-      #zh-christmas .zh-xmas-mistleberry-shine,\n      #zh-christmas .zh-xmas-mistleberry-shines circle { fill: rgba(255,255,255,.85); }
-      #zh-christmas .zh-xmas-thread { stroke: #d9c48a; stroke-width: 1.2; }
-      #zh-christmas .zh-xmas-fly {
+      .zh-xmas-layer .zh-xmas-mistlestem { fill: none; stroke: #3f6b3a; stroke-width: 3.4; stroke-linecap: round; }
+      .zh-xmas-layer .zh-xmas-holly use { fill: #2f7b4a; stroke: #1b4a2c; stroke-width: 1.6; stroke-linejoin: round; }
+      .zh-xmas-layer .zh-xmas-holly-veins path { fill: none; stroke: #1b4a2c; stroke-width: 1.4; opacity: .55; stroke-linecap: round; }
+      .zh-xmas-layer .zh-xmas-holly-berries circle { fill: url(#zhXmasBaubleRed); stroke: #6f1712; stroke-width: 1.2; }
+      .zh-xmas-layer .zh-xmas-holly-shines circle { fill: rgba(255,255,255,.8); }
+      .zh-xmas-layer .zh-xmas-mistleberry-shine,\n      .zh-xmas-layer .zh-xmas-mistleberry-shines circle { fill: rgba(255,255,255,.85); }
+      .zh-xmas-layer .zh-xmas-thread { stroke: #d9c48a; stroke-width: 1.2; }
+      .zh-xmas-layer .zh-xmas-fly {
         position: absolute; top: 7%; left: 0; width: 700px; height: 276px;
         will-change: transform;
         filter: drop-shadow(0 12px 18px rgba(0,0,0,.16));
       }
-      #zh-christmas .zh-xmas-fly--go { animation: zh-xmas-fly-across 7s linear forwards; }
+      .zh-xmas-layer .zh-xmas-fly--go { animation: zh-xmas-fly-across 7s linear forwards; }
       @keyframes zh-xmas-fly-across {
         0%   { transform: translate(-660px, 0) rotate(-2deg); }
         20%  { transform: translate(12vw, -28px) rotate(1deg); }
@@ -9670,56 +9674,56 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         70%  { transform: translate(70vw, -18px) rotate(1.5deg); }
         100% { transform: translate(116vw, 4px) rotate(-1deg); }
       }
-      #zh-christmas .zh-xmas-mistletoe {
+      .zh-xmas-layer .zh-xmas-mistletoe {
         position: absolute; top: -8px; right: -4px; width: 132px; height: 111px;
         transform: scaleX(-1);
         filter: drop-shadow(0 5px 8px rgba(0,0,0,.2));
       }
-      #zh-christmas .zh-xmas-mistlestem { fill: none; stroke: #2f6b46; stroke-width: 3; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-mistleaf { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1.1; }
-      #zh-christmas .zh-xmas-tree {
+      .zh-xmas-layer .zh-xmas-mistlestem { fill: none; stroke: #2f6b46; stroke-width: 3; stroke-linecap: round; }
+      .zh-xmas-layer .zh-xmas-mistleaf { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1.1; }
+      .zh-xmas-layer .zh-xmas-tree {
         position: absolute; right: 8px; bottom: 12px; width: 132px; height: 176px;
         outline: none !important; -webkit-tap-highlight-color: transparent;
         filter: drop-shadow(0 6px 10px rgba(0,0,0,.2));
         /* Der Baum ist der einzige Teil der Deko, der Klicks annimmt (Pinball). */
         pointer-events: auto; cursor: pointer;
       }
-      #zh-christmas .zh-xmas-tree-trunk { fill: #6b4226; }
-      #zh-christmas .zh-xmas-tree-green { fill: #1c5c3a; stroke: #14432a; stroke-width: 1.5; }
-      #zh-christmas .zh-xmas-tree-star { fill: #e8b34b; }
-      #zh-christmas .zh-xmas-tree-snow { fill: #f2f7fb; opacity: .92; }
+      .zh-xmas-layer .zh-xmas-tree-trunk { fill: #6b4226; }
+      .zh-xmas-layer .zh-xmas-tree-green { fill: #1c5c3a; stroke: #14432a; stroke-width: 1.5; }
+      .zh-xmas-layer .zh-xmas-tree-star { fill: #e8b34b; }
+      .zh-xmas-layer .zh-xmas-tree-snow { fill: #f2f7fb; opacity: .92; }
       /* Damit sich Kugeln und Laempchen verschieben lassen: Bezug auf die eigene Flaeche. */
-      #zh-christmas .zh-xmas-bauble,
-      #zh-christmas .zh-xmas-bulb-glow,
-      #zh-christmas .zh-xmas-tree-light { transform-box: fill-box; transform-origin: center; }
-      #zh-christmas .zh-xmas-deer-body { fill: url(#zhXmasDeer); }
-      #zh-christmas .zh-xmas-deer-muzzle { fill: none; stroke: #5b3620; stroke-width: 2; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-deer-eye { fill: #f6e3b4; }
-      #zh-christmas .zh-xmas-deer-collar { fill: none; stroke: #b3261e; stroke-width: 3; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-deer-bell { fill: #e8b34b; }
-      #zh-christmas .zh-xmas-deer-line { fill: none; stroke: #7a4a2b; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
-      #zh-christmas .zh-xmas-deer-antler { fill: none; stroke: #e8b34b; stroke-width: 2.6; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-harness path { stroke: #e8b34b; stroke-width: 1.8; fill: none; opacity: .9; }
-      #zh-christmas .zh-xmas-sleigh-body { fill: url(#zhXmasSleigh); stroke: #6f1712; stroke-width: 2; }
-      #zh-christmas .zh-xmas-sleigh-back { fill: url(#zhXmasSleigh); stroke: #6f1712; stroke-width: 2; }
-      #zh-christmas .zh-xmas-sleigh-trim { fill: none; stroke: #e8b34b; stroke-width: 3; }
-      #zh-christmas .zh-xmas-sleigh-runner { fill: none; stroke: #e8b34b; stroke-width: 3.5; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-sleigh-ground { fill: none; stroke: #e8b34b; stroke-width: 2; opacity: .6; }
-      #zh-christmas .zh-xmas-sack > path:first-child { fill: #8a5a2b; stroke: #5b3620; stroke-width: 2; }
-      #zh-christmas .zh-xmas-sack-tie { fill: none; stroke: #e8b34b; stroke-width: 2; }
-      #zh-christmas .zh-xmas-santa-coat { fill: url(#zhXmasCoat); stroke: #7d160f; stroke-width: 1.6; }
-      #zh-christmas .zh-xmas-santa-hat { fill: url(#zhXmasCoat); stroke: #7d160f; stroke-width: 1.6; }
-      #zh-christmas .zh-xmas-santa-arm { fill: none; stroke: #b3261e; stroke-width: 10; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-santa-belt { fill: #2b2b2b; }
-      #zh-christmas .zh-xmas-santa-buckle { fill: #e8b34b; }
-      #zh-christmas .zh-xmas-santa-trim { fill: #f7f4ee; }
-      #zh-christmas .zh-xmas-santa-face { fill: #f2c9a0; }
-      #zh-christmas .zh-xmas-santa-beard { fill: url(#zhXmasBeard); stroke: #d8d1c2; stroke-width: .8; }
-      #zh-christmas .zh-xmas-santa-glove { fill: #2b2b2b; }
-      #zh-christmas .zh-xmas-santa-eye { fill: #2b2b2b; }
-      #zh-christmas .zh-xmas-santa-cheek { fill: #e8928a; opacity: .85; }
-      #zh-christmas .zh-xmas-santa-smile { fill: none; stroke: #8c4a42; stroke-width: 1.6; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-gift {
+      .zh-xmas-layer .zh-xmas-bauble,
+      .zh-xmas-layer .zh-xmas-bulb-glow,
+      .zh-xmas-layer .zh-xmas-tree-light { transform-box: fill-box; transform-origin: center; }
+      .zh-xmas-layer .zh-xmas-deer-body { fill: url(#zhXmasDeer); }
+      .zh-xmas-layer .zh-xmas-deer-muzzle { fill: none; stroke: #5b3620; stroke-width: 2; stroke-linecap: round; }
+      .zh-xmas-layer .zh-xmas-deer-eye { fill: #f6e3b4; }
+      .zh-xmas-layer .zh-xmas-deer-collar { fill: none; stroke: #b3261e; stroke-width: 3; stroke-linecap: round; }
+      .zh-xmas-layer .zh-xmas-deer-bell { fill: #e8b34b; }
+      .zh-xmas-layer .zh-xmas-deer-line { fill: none; stroke: #7a4a2b; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+      .zh-xmas-layer .zh-xmas-deer-antler { fill: none; stroke: #e8b34b; stroke-width: 2.6; stroke-linecap: round; }
+      .zh-xmas-layer .zh-xmas-harness path { stroke: #e8b34b; stroke-width: 1.8; fill: none; opacity: .9; }
+      .zh-xmas-layer .zh-xmas-sleigh-body { fill: url(#zhXmasSleigh); stroke: #6f1712; stroke-width: 2; }
+      .zh-xmas-layer .zh-xmas-sleigh-back { fill: url(#zhXmasSleigh); stroke: #6f1712; stroke-width: 2; }
+      .zh-xmas-layer .zh-xmas-sleigh-trim { fill: none; stroke: #e8b34b; stroke-width: 3; }
+      .zh-xmas-layer .zh-xmas-sleigh-runner { fill: none; stroke: #e8b34b; stroke-width: 3.5; stroke-linecap: round; }
+      .zh-xmas-layer .zh-xmas-sleigh-ground { fill: none; stroke: #e8b34b; stroke-width: 2; opacity: .6; }
+      .zh-xmas-layer .zh-xmas-sack > path:first-child { fill: #8a5a2b; stroke: #5b3620; stroke-width: 2; }
+      .zh-xmas-layer .zh-xmas-sack-tie { fill: none; stroke: #e8b34b; stroke-width: 2; }
+      .zh-xmas-layer .zh-xmas-santa-coat { fill: url(#zhXmasCoat); stroke: #7d160f; stroke-width: 1.6; }
+      .zh-xmas-layer .zh-xmas-santa-hat { fill: url(#zhXmasCoat); stroke: #7d160f; stroke-width: 1.6; }
+      .zh-xmas-layer .zh-xmas-santa-arm { fill: none; stroke: #b3261e; stroke-width: 10; stroke-linecap: round; }
+      .zh-xmas-layer .zh-xmas-santa-belt { fill: #2b2b2b; }
+      .zh-xmas-layer .zh-xmas-santa-buckle { fill: #e8b34b; }
+      .zh-xmas-layer .zh-xmas-santa-trim { fill: #f7f4ee; }
+      .zh-xmas-layer .zh-xmas-santa-face { fill: #f2c9a0; }
+      .zh-xmas-layer .zh-xmas-santa-beard { fill: url(#zhXmasBeard); stroke: #d8d1c2; stroke-width: .8; }
+      .zh-xmas-layer .zh-xmas-santa-glove { fill: #2b2b2b; }
+      .zh-xmas-layer .zh-xmas-santa-eye { fill: #2b2b2b; }
+      .zh-xmas-layer .zh-xmas-santa-cheek { fill: #e8928a; opacity: .85; }
+      .zh-xmas-layer .zh-xmas-santa-smile { fill: none; stroke: #8c4a42; stroke-width: 1.6; stroke-linecap: round; }
+      .zh-xmas-layer .zh-xmas-gift {
         position: absolute; width: 30px; height: 30px;
         animation: zh-xmas-gift-fall 2.4s cubic-bezier(.35,.05,.75,.6) forwards;
       }
@@ -9727,7 +9731,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
         100% { transform: translate(var(--zh-gift-dx, 30px), 52vh) rotate(var(--zh-gift-rot, 220deg)); opacity: 0; }
       }
-      #zh-christmas .zh-xmas-spark {
+      .zh-xmas-layer .zh-xmas-spark {
         position: absolute; width: 18px; height: 18px; fill: #fff6d8;
         opacity: 0; animation: zh-xmas-spark 4.8s ease-in-out infinite;
         filter: drop-shadow(0 0 4px rgba(255, 236, 179, .9));
@@ -9741,31 +9745,31 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         70% { opacity: .15; transform: scale(.7) rotate(70deg); }
       }
       @media (prefers-reduced-motion: reduce) {
-        #zh-christmas .zh-xmas-bulb,
-        #zh-christmas .zh-xmas-bauble,
-        #zh-christmas .zh-xmas-sleigh,
-        #zh-christmas .zh-xmas-spark { animation: none; }
-        #zh-christmas .zh-xmas-spark { opacity: .65; }
+        .zh-xmas-layer .zh-xmas-bulb,
+        .zh-xmas-layer .zh-xmas-bauble,
+        .zh-xmas-layer .zh-xmas-sleigh,
+        .zh-xmas-layer .zh-xmas-spark { animation: none; }
+        .zh-xmas-layer .zh-xmas-spark { opacity: .65; }
       }
       /* Kein Platz heisst: keine Deko ueber dem Inhalt. Die Seite meldet per
          Klasse, wenn sie scrollt; zusaetzlich greifen die Breitenschwellen. */
       /* Bei wenig Platz nicht verschwinden, sondern zur Seite rutschen -
          sichtbar bleiben, aber die Zeilen nicht mehr verdecken. */
-      #zh-christmas .zh-xmas-tree,
-      #zh-christmas .zh-xmas-mistletoe { transition: transform .45s ease, opacity .45s ease; }
+      .zh-xmas-layer .zh-xmas-tree,
+      .zh-xmas-layer .zh-xmas-mistletoe { transition: transform .45s ease, opacity .45s ease; }
       /* Bei wenig Platz nur zart verkleinern - der Baum bleibt vollstaendig
          im Bild und nimmt den unteren Rand als Anker (kein Rausrutschen). */
-      #zh-christmas.zh-xmas-knapp .zh-xmas-tree { transform: translateY(6%) scale(.9); transform-origin: bottom right; opacity: .9; }
-      #zh-christmas.zh-xmas-knapp .zh-xmas-mistletoe { transform: scale(.9); transform-origin: top right; opacity: .9; }
+      .zh-xmas-layer.zh-xmas-knapp .zh-xmas-tree { transform: translateY(6%) scale(.9); transform-origin: bottom right; opacity: .9; }
+      .zh-xmas-layer.zh-xmas-knapp .zh-xmas-mistletoe { transform: scale(.9); transform-origin: top right; opacity: .9; }
       @media (max-width: 1100px) {
-        #zh-christmas .zh-xmas-tree,
-        #zh-christmas .zh-xmas-mistletoe { display: none; }
+        .zh-xmas-layer .zh-xmas-tree,
+        .zh-xmas-layer .zh-xmas-mistletoe { display: none; }
       }
       @media (max-width: 760px) {
-        #zh-christmas .zh-xmas-lights { display: none; }
+        .zh-xmas-layer .zh-xmas-lights { display: none; }
       }
       @media (max-width: 700px) {
-        #zh-christmas .zh-xmas-sleigh { width: 230px; height: 92px; bottom: 10px; }
+        .zh-xmas-layer .zh-xmas-sleigh { width: 230px; height: 92px; bottom: 10px; }
       }
     `);
   }
@@ -10032,8 +10036,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   // paar Geschenke. 15 Minuten Abstand, der erste Flug nach 90 s - sonst sieht
   // die Deko am Anfang niemand. Ausloesbar ueber das Event
   // "znuny-helper-christmas-fly" (Tests, Vorfuehrung).
-  const CHRISTMAS_FLY_FIRST_MS = 90 * 1000;
-  const CHRISTMAS_FLY_EVERY_MS = 15 * 60 * 1000;
+  const CHRISTMAS_FLY_FIRST_MS = 3 * 60 * 1000;
+  const CHRISTMAS_FLY_EVERY_MS = 30 * 60 * 1000;
   const CHRISTMAS_FLY_DURATION_MS = 7000;
   const CHRISTMAS_GIFT_COLORS = ["#b3261e", "#1f6b4a", "#e8b34b", "#3976bb"];
   // Gemeinsamer Zustand von Flug und Schnee: Wo ist der Schlitten gerade, und
@@ -10972,26 +10976,36 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     addChristmasStyles();
 
-    const overlay = document.createElement("div");
-    overlay.id = CHRISTMAS_OVERLAY_ID;
-    // Der Baum braucht Klicks, daher ist das Overlay nicht mehr rein
-    // dekorativ - aber die uebrigen Teile bleiben pointer-events:none.
-    overlay.innerHTML = `
-      <canvas class="zh-xmas-snow"></canvas>
-      <div class="zh-xmas-glow"></div>
+    // Zwei Ebenen: Die Deko liegt unter Znunys Dialogen, Schnee und
+    // Schlitten duerfen obenauf liegen.
+    const hintergrund = document.createElement("div");
+    hintergrund.id = CHRISTMAS_BACK_ID;
+    hintergrund.className = "zh-xmas-layer zh-xmas-layer--back";
+    hintergrund.setAttribute("aria-hidden", "true");
+    hintergrund.innerHTML = `
       ${CHRISTMAS_DEFS}
       ${CHRISTMAS_MISTLETOE}
       ${christmasTreeSvg()}
-      <div class="zh-xmas-fly" hidden>${christmasSleighScene()}</div>
       ${CHRISTMAS_SPARKS}
     `;
 
+    const overlay = document.createElement("div");
+    overlay.id = CHRISTMAS_OVERLAY_ID;
+    overlay.className = "zh-xmas-layer zh-xmas-layer--front";
+    overlay.setAttribute("aria-hidden", "true");
+    overlay.innerHTML = `
+      <canvas class="zh-xmas-snow"></canvas>
+      <div class="zh-xmas-glow"></div>
+      <div class="zh-xmas-fly" hidden>${christmasSleighScene()}</div>
+    `;
+
+    document.body.appendChild(hintergrund);
     document.body.appendChild(overlay);
-    renderChristmasGarland(overlay);
+    renderChristmasGarland(hintergrund);
 
     // Dreimal auf den Baum klicken (innerhalb von 1,8 s) startet das Pinball-
     // Minigame. Ein eigener Zaehler verhindert, dass normale Klicks stoeren.
-    const baum = overlay.querySelector(".zh-xmas-tree");
+    const baum = hintergrund.querySelector(".zh-xmas-tree");
     let baumKlicks = 0;
     let baumTimer = 0;
     const baumAnim = document.createElement("style");
@@ -11034,6 +11048,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const pruefePlatz = () => {
       const knapp = document.documentElement.scrollHeight > window.innerHeight + 60;
       overlay.classList.toggle("zh-xmas-knapp", knapp);
+      hintergrund.classList.toggle("zh-xmas-knapp", knapp);
     };
     pruefePlatz();
     window.setTimeout(pruefePlatz, 1200);
@@ -11067,6 +11082,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     christmasCleanupFns = [];
 
     document.getElementById(CHRISTMAS_OVERLAY_ID)?.remove();
+    document.getElementById(CHRISTMAS_BACK_ID)?.remove();
     removeStyle("zh-christmas-style");
   }
 
