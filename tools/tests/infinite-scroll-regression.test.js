@@ -1555,6 +1555,27 @@ check("Levelziel und Fortschritt",
   source.includes("levelPunkte >= ziel") && source.includes("zh-pin-level"),
   true);
 
+console.log("\n28) EASM: alle Artikel scannen und Prioritaet ableiten");
+const prioMap = new Function(`${extractDeclaration("EASM_PRIO_MAP")}; return EASM_PRIO_MAP;`)();
+const prioWahl = new Function("EASM_PRIO_MAP", `${extractDeclaration("easmPrioritaetAusOptionen")}; return easmPrioritaetAusOptionen;`)(prioMap);
+const prioOptionen = [
+  { wert: "1", text: "Critical" },
+  { wert: "2", text: "High" },
+  { wert: "4", text: "Low" },
+  { wert: "3", text: "Normal" }
+];
+check("Critical wird auf Critical abgebildet", prioWahl(prioOptionen, "critical").text, "Critical");
+check("High wird auf High abgebildet", prioWahl(prioOptionen, "high").text, "High");
+check("Medium wird auf Normal abgebildet", prioWahl(prioOptionen, "medium").text, "Normal");
+check("Low wird auf Low abgebildet", prioWahl(prioOptionen, "low").text, "Low");
+check("unbekannte Prioritaeten ergeben nichts", prioWahl([{ wert: "1", text: "Egal" }], "critical"), null);
+check("alle Artikel werden durchsucht",
+  source.includes("for (const id of ids)") && source.includes("quelle = id"),
+  true);
+check("Prioritaet erst nach Bestaetigung",
+  source.includes("zh-easm-confirm") && source.includes("setzeEasmPrioritaet"),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

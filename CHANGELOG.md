@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.26] – 2026-11-09
+
+### Fixed
+- **EASM-Bewertung fand oft nichts:** Ausgewertet wurde nur der **neueste** Artikel – der ist bei EASM-Tickets häufig nur eine Notiz („Meldungen werden nicht bearbeitet"). Jetzt werden **alle Artikel von neu nach alt** gelesen und der erste mit einer Einstufung genommen; im Tooltip steht, aus welchem Artikel sie stammt. Geprüft an Ticket 86134602: `MED · 3×MED` aus Artikel 743402.
+
+### Added
+- **Priorität setzen:** Neben der Marke steht **Priorität: … setzen** (Critical → Critical, High → High, Medium → Normal, Low → Low – die Zuordnung kommt aus dem Prioritätsformular). Nach dem Klick erscheint eine Rückfrage; **erst mit „Setzen" wird geschrieben**. Ohne Bestätigung passiert nichts.
+
 ## [1.6.25] – 2026-11-09
 
 ### Changed

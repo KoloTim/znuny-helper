@@ -9564,6 +9564,32 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       .zh-easm-badge--medium { background: #fff8d6; border-color: #d4a800; color: #6f5800; }
       .zh-easm-badge--low { background: #e8f6ea; border-color: #2e7d32; color: #1d5220; }
       .zh-easm-badge--none { background: #eef1f4; border-color: #c3ccd6; color: #5b6672; }
+      .zh-easm-prio-btn {
+        margin-left: 8px; padding: 4px 10px; border: 1px solid #b3261e; border-radius: 999px;
+        background: #fff; color: #8c1c14; font-size: 12px; font-weight: 700; cursor: pointer;
+      }
+      .zh-easm-prio-btn:hover { background: #fdeceb; }
+      .zh-easm-confirm {
+        position: fixed; inset: 0; z-index: 2147483001; display: flex;
+        align-items: center; justify-content: center; background: rgba(15, 22, 34, .55);
+      }
+      .zh-easm-confirm__card {
+        width: min(440px, 90vw); background: #fff; border-radius: 14px; padding: 20px 22px;
+        box-shadow: 0 18px 50px rgba(0,0,0,.35); font-family: system-ui, Segoe UI, sans-serif;
+      }
+      .zh-easm-confirm__card h3 { margin: 0 0 8px; font-size: 17px; color: #1b2436; }
+      .zh-easm-confirm__card p { margin: 4px 0; font-size: 13px; color: #44506a; }
+      .zh-easm-confirm__hinweis { color: #8c1c14; font-weight: 600; }
+      .zh-easm-confirm__actions { display: flex; gap: 8px; margin-top: 16px; }
+      .zh-easm-confirm__ja {
+        padding: 8px 16px; border: 0; border-radius: 8px; background: #b3261e; color: #fff;
+        font-weight: 700; cursor: pointer;
+      }
+      .zh-easm-confirm__nein {
+        padding: 8px 16px; border: 1px solid #c3ccd6; border-radius: 8px; background: #f7f9fc;
+        color: #33405a; font-weight: 600; cursor: pointer;
+      }
+      .zh-easm-confirm__ja:disabled { opacity: .6; cursor: default; }
     `);
   }
 
@@ -11071,7 +11097,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function parseEasmCriticalities(text) {
     const gefunden = [];
-    const muster = /Criticality\s*[:\-\u2013]?\s*(Low|Medium|High|Critical)\b/gi;
+    // Zwischen "Criticality" und dem Wert koennen Labels oder Zellen stehen.
+    const muster = /Criticality[^A-Za-z]{0,40}(Low|Medium|High|Critical)\b/gi;
     let treffer = muster.exec(String(text || ""));
     while (treffer !== null) {
       gefunden.push(treffer[1].toLowerCase());
@@ -11126,7 +11153,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return (doc.body?.textContent || "").trim();
   }
 
-  function zeigeEasmErgebnis(zusammenfassung, fehler) {
+  function zeigeEasmErgebnis(zusammenfassung, fehler, quelle) {
     let badge = document.getElementById(EASM_BADGE_ID);
     if (!badge) {
       badge = document.createElement("span");
@@ -11159,9 +11186,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     badge.className = `zh-easm-badge zh-easm-badge--${zusammenfassung.schwerste}`;
     badge.textContent = `${EASM_SHORT[zusammenfassung.schwerste]} \u00b7 ${teile.join(" ")}`;
     badge.title =
-      `EASM-Einstufung aus dem neuesten Artikel: ${EASM_LABELS[zusammenfassung.schwerste]}\n` +
+      `EASM-Einstufung: ${EASM_LABELS[zusammenfassung.schwerste]}\n` +
       teile.join(", ") +
-      `\n(${zusammenfassung.anzahl} Fund(e), schwerste Stufe gewinnt)`;
+      `\n(${zusammenfassung.anzahl} Fund(e), schwerste Stufe gewinnt)` +
+      (quelle ? `\naus Artikel ${quelle}` : "");
+
+    zeigeEasmPrioritaetsKnopf(zusammenfassung.schwerste);
   }
 
   async function bewerteEasmTicket() {
@@ -11181,8 +11211,21 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         return;
       }
 
-      const text = await ladeEasmArtikelText(ticketId, ids[0]);
-      zeigeEasmErgebnis(summarizeEasm(parseEasmCriticalities(text)), null);
+      // Der neueste Artikel ist oft nur eine Notiz ("wird nicht bearbeitet").
+      // Deshalb alle Artikel von neu nach alt lesen und den ersten mit einer
+      // Einstufung nehmen.
+      let zusammenfassung = null;
+      let quelle = "";
+      for (const id of ids) {
+        const text = await ladeEasmArtikelText(ticketId, id);
+        const stufen = parseEasmCriticalities(text);
+        if (!stufen.length) continue;
+        zusammenfassung = summarizeEasm(stufen);
+        quelle = id;
+        break;
+      }
+
+      zeigeEasmErgebnis(zusammenfassung, null, quelle);
     } catch (error) {
       zeigeEasmErgebnis(null, `Bewertung fehlgeschlagen: ${error.message}`);
     } finally {
@@ -11191,6 +11234,138 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         knopf.textContent = "EASM bewerten";
       }
     }
+  }
+
+  // ---- Prioritaet setzen -------------------------------------------------
+  // Die Einstufung wird auf Wunsch direkt in die Ticketprioritaet uebernommen.
+  // Dazu wird das Prioritaetsformular geladen, der passende Eintrag gewaehlt
+  // und nach ausdruecklicher Bestaetigung abgeschickt.
+  const EASM_PRIO_ID = "zh-easm-prio";
+  const EASM_PRIO_MAP = {
+    critical: ["critical", "kritisch"],
+    high: ["high", "hoch"],
+    medium: ["normal", "medium", "mittel"],
+    low: ["low", "niedrig"]
+  };
+  const EASM_PRIO_LABEL = { critical: "Critical", high: "High", medium: "Normal", low: "Low" };
+
+  function easmPrioritaetAusOptionen(optionen, stufe) {
+    const namen = EASM_PRIO_MAP[stufe] || [];
+    for (const name of namen) {
+      const treffer = optionen.find((o) => o.wert && o.text.toLowerCase() === name);
+      if (treffer) return treffer;
+    }
+    for (const name of namen) {
+      const treffer = optionen.find((o) => o.wert && o.text.toLowerCase().includes(name));
+      if (treffer) return treffer;
+    }
+    return null;
+  }
+
+  async function ladeEasmPrioritaetsFormular(ticketId) {
+    const antwort = await fetch(`/otrs/index.pl?Action=AgentTicketPriority;TicketID=${encodeURIComponent(ticketId)}`, {
+      credentials: "same-origin"
+    });
+    if (!antwort.ok) throw new Error(`Prioritaetsseite ${antwort.status}`);
+    const html = await antwort.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const form = doc.querySelector("form");
+    if (!form) throw new Error("Prioritaetsformular nicht gefunden");
+
+    const felder = [...form.querySelectorAll("input, select, textarea")]
+      .filter((el) => el.name && el.type !== "submit" && el.type !== "file" && el.type !== "button")
+      .map((el) => ({ name: el.name, value: el.value || "" }));
+
+    const auswahl = doc.querySelector('select[name="NewPriorityID"]');
+    const optionen = auswahl
+      ? [...auswahl.options].map((o) => ({ wert: o.value, text: o.textContent.trim() }))
+      : [];
+
+    return { felder, optionen };
+  }
+
+  async function setzeEasmPrioritaet(ticketId, stufe) {
+    const { felder, optionen } = await ladeEasmPrioritaetsFormular(ticketId);
+    const ziel = easmPrioritaetAusOptionen(optionen, stufe);
+    if (!ziel) throw new Error("Keine passende Prioritaet im Formular");
+
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = "/otrs/index.pl";
+    form.style.display = "none";
+
+    for (const feld of felder) {
+      const eingabe = document.createElement("input");
+      eingabe.type = "hidden";
+      eingabe.name = feld.name;
+      eingabe.value = feld.name === "NewPriorityID" ? ziel.wert : feld.value;
+      form.appendChild(eingabe);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+    return ziel.text;
+  }
+
+  function zeigeEasmPrioritaetsKnopf(stufe) {
+    document.getElementById(EASM_PRIO_ID)?.remove();
+    const badge = document.getElementById(EASM_BADGE_ID);
+    if (!badge) return;
+
+    const knopf = document.createElement("button");
+    knopf.type = "button";
+    knopf.id = EASM_PRIO_ID;
+    knopf.className = "zh-easm-prio-btn";
+    knopf.textContent = `Priorität: ${EASM_PRIO_LABEL[stufe]} setzen`;
+    knopf.title = "Setzt die Ticketpriorität auf die EASM-Einstufung (mit Rückfrage)";
+
+    knopf.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      zeigeEasmBestaetigung(stufe);
+    });
+
+    badge.insertAdjacentElement("afterend", knopf);
+  }
+
+  function zeigeEasmBestaetigung(stufe) {
+    document.getElementById("zh-easm-confirm")?.remove();
+
+    const ticketId = easmTicketId();
+    const karte = document.createElement("div");
+    karte.id = "zh-easm-confirm";
+    karte.className = "zh-easm-confirm";
+    karte.innerHTML = `
+      <div class="zh-easm-confirm__card">
+        <h3>Priorität auf ${EASM_PRIO_LABEL[stufe]} setzen?</h3>
+        <p>Ticket ${ticketId} &middot; EASM-Einstufung: ${EASM_LABELS[stufe]}</p>
+        <p class="zh-easm-confirm__hinweis">Das ändert die Priorität im Ticketsystem.</p>
+        <div class="zh-easm-confirm__actions">
+          <button type="button" class="zh-easm-confirm__ja">Setzen</button>
+          <button type="button" class="zh-easm-confirm__nein">Abbrechen</button>
+        </div>
+      </div>`;
+
+    const schliessen = () => karte.remove();
+    karte.querySelector(".zh-easm-confirm__nein").addEventListener("click", schliessen);
+    karte.addEventListener("click", (event) => {
+      if (event.target === karte) schliessen();
+    });
+
+    karte.querySelector(".zh-easm-confirm__ja").addEventListener("click", async (event) => {
+      const knopf = event.currentTarget;
+      knopf.disabled = true;
+      knopf.textContent = "Setze \u2026";
+      try {
+        await setzeEasmPrioritaet(ticketId, stufe);
+      } catch (fehler) {
+        knopf.disabled = false;
+        knopf.textContent = "Setzen";
+        karte.querySelector(".zh-easm-confirm__hinweis").textContent = `Fehler: ${fehler.message}`;
+      }
+    });
+
+    document.body.appendChild(karte);
   }
 
   function enableEasmRating() {
@@ -11225,6 +11400,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   function disableEasmRating() {
     document.getElementById(EASM_BUTTON_ID)?.remove();
     document.getElementById(EASM_BADGE_ID)?.remove();
+    document.getElementById(EASM_PRIO_ID)?.remove();
+    document.getElementById("zh-easm-confirm")?.remove();
   }
 
   function runEnabledFeatures() {

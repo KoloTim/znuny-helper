@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.26",
+      items: [
+        "EASM-Bewertung liest jetzt alle Artikel – der neueste ist oft nur eine Notiz, dadurch blieb die Marke leer.",
+        "Neu: Knopf „Priorität: … setzen“ übernimmt die Einstufung ins Ticket – mit Rückfrage, geschrieben wird erst nach „Setzen“."
+      ]
+    },
+    {
       version: "1.6.25",
       items: [
         "Pinball mit vier Leveln (Y-Kreuz, Stern, Zickzack, Tannenbaum) – jedes Level mit Punktziel, jeder Durchlauf neu gemischt und mit weniger Hindernissen.",
