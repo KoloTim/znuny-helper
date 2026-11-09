@@ -1511,8 +1511,14 @@ check("Elfe mit Auszeit-Text vorhanden",
 check("Pinball: Pins sind Kapseln im Logo-Stil",
   source.includes("const kapsel") && /lineWidth = p\.r \* 2/.test(source) && source.includes("const NAVY") && source.includes("const BLAU"),
   true);
-check("Pinball: Abschuss mit Power-Leiste",
-  source.includes("powerLaeuft") && source.includes("abschiessen") && /Space/.test(source),
+check("Pinball: Kugelstart ohne Rampe",
+  source.includes("abschiessen") && /W \* 0\.6, y: 44/.test(source),
+  true);
+check("Pinball: Aussenbahnen schliessen die Ecken",
+  source.includes("aussenbahnen") && /kapsel\(b\.x1, b\.y1, b\.x2, b\.y2, 4, 0\.15, 0\)/.test(source),
+  true);
+check("Pinball: Haenger-Schutz vorhanden",
+  source.includes("stillZeit") && /stillZeit > 1\.6/.test(source),
   true);
 check("Pinball: kein Weihnachtsband mehr",
   !source.includes("Frohe Weihnachten"),

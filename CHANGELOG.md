@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.27] – 2026-11-09
+
+### Fixed
+- **Pinball: die Seiten waren offene Löcher.** Die Flipper drehten mitten im Feld, daneben blieb ein rund 220 Pixel breites Loch bis zur Wand – die Kugel fiel dort jedes Mal durch. Jetzt sitzen die Drehpunkte wieder bei 33 % und 66 %, und **Außenbahn-Rampen** führen vom Rand zum Flipper. Zwischen den Flipperspitzen bleibt nur der übliche schmale Durchlass.
+- **Abschussrampe entfernt.** Sie war die Ursache für drei Fehler hintereinander (Kugel kam nicht ins Feld, blieb in der Rampe, wurde von einer Schiene blockiert). Die Kugel startet jetzt oben im Feld und läuft durch die Pins.
+- **Kugel blieb liegen:** Ein Hänger-Schutz gibt ihr nach 1,6 Sekunden ohne Bewegung einen leichten Anstoß.
+- **Flipper dämpften die Kugel** fast vollständig (Energieverlust 155 %). Jetzt mit realistischem Abprallen.
+- **Level zu leicht:** Ziele auf 200 / 260 / 320 / 400 angehoben, mehr Pins je Karte, und keine Pins mehr im Flipperbereich.
+
 ## [1.6.26] – 2026-11-09
 
 ### Fixed

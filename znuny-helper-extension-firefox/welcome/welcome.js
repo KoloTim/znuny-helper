@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.27",
+      items: [
+        "Pinball: Die Seitenlöcher sind zu (Außenbahn-Rampen), kein Hängenbleiben mehr und die Kugel startet oben im Feld statt in der Rampe.",
+        "Levelziele angehoben (200/260/320/400) und mehr Pins – die Level waren zu leicht."
+      ]
+    },
+    {
       version: "1.6.26",
       items: [
         "EASM-Bewertung liest jetzt alle Artikel – der neueste ist oft nur eine Notiz, dadurch blieb die Marke leer.",

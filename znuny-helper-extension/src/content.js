@@ -10252,7 +10252,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       </div>
       <canvas id="zh-pin-board" width="${breite}" height="${hoehe}"></canvas>
       <div class="zh-pin-hint">
-        <b>Leertaste</b> halten und loslassen zum Abschuss &middot;
+        <b>Leertaste</b> bringt die Kugel ins Spiel &middot;
         <b>Pfeiltasten</b> oder <b>A</b>/<b>D</b> f&uuml;r die Flipper &middot; <b>Esc</b> beendet
       </div>
       <button class="zh-pin-close" id="zh-pin-close" title="Schlie\u00dfen">\u00d7</button>
@@ -10292,9 +10292,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     let akkumulator = 0;
     let flipperL = 0;
     let flipperR = 0;
-    let power = 0;
-    let powerLaeuft = false;
     let schuetteln = 0;
+    let stillZeit = 0;
     let banner = null;
     let linksGedrueckt = false;
     let rechtsGedrueckt = false;
@@ -10302,18 +10301,24 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     // Feste Schrittweite: 240 Hz. Damit ist die Bewegung unabhaengig von der
     // Bildrate und die Kugel springt nicht durch duenne Hindernisse.
     const SCHRITT = 1 / 240;
-    const GRAVITATION = 820;
-    const DAEMPFUNG = 0.55;
+    const GRAVITATION = 900;
+    const DAEMPFUNG = 0.3;
 
-    const kugel = { x: W - 36, y: H - 52, vx: 0, vy: 0, r: 7, imStart: true };
+    // Die Kugel kommt oben rechts ins Feld - ohne Abschussrampe.
+    const kugel = { x: W * 0.6, y: 44, vx: 0, vy: 0, r: 7, imStart: true };
     const spur = [];
     const popups = [];
     const blitze = [];
 
+    // Aussenbahn-Rampen: schliessen das Loch neben den Flippern und leiten
+    // die Kugel auf den Flipper, ohne eine Tasche zu bilden.
+    const aussenbahnen = [
+      { x1: 22, y1: H - 200, x2: W * 0.335 - 8, y2: H - 86 },
+      { x1: W - 22, y1: H - 200, x2: W * 0.665 + 8, y2: H - 86 }
+    ];
+
     const wandLinks = 20;
     const wandRechts = W - 20;
-    const bahnWand = W - 60;
-    const bahnOben = 104;
 
     // ---------------- Level ----------------
     // Jede Karte hat wenige, grosse Hindernisse und wird pro Durchlauf leicht
@@ -10321,18 +10326,20 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const KARTEN = [
       {
         name: "Y-Kreuz",
-        ziel: 120,
+        ziel: 200,
         bauen: (add) => {
           add(W * 0.42, H * 0.3, -1.05, 118, 13, NAVY, 50);
           add(W * 0.58, H * 0.3, -1.95, 118, 13, BLAU, 50);
-          add(W * 0.5, H * 0.62, 0.1, 52, 9, GOLD, 30);
+          add(W * 0.5, H * 0.2, 0.1, 52, 9, GOLD, 40);
+          add(W * 0.22, H * 0.42, 0.9, 44, 8, BLAU, 25);
+          add(W * 0.78, H * 0.42, -0.9, 44, 8, NAVY, 25);
         }
       },
       {
         name: "Stern",
-        ziel: 150,
+        ziel: 260,
         bauen: (add) => {
-          const n = 5;
+          const n = 6;
           const radius = Math.min(W, H) * 0.17;
           for (let i = 0; i < n; i += 1) {
             const winkel = -Math.PI / 2 + (i * 2 * Math.PI) / n;
@@ -10350,12 +10357,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       },
       {
         name: "Zickzack",
-        ziel: 180,
+        ziel: 320,
         bauen: (add) => {
           for (let reihe = 0; reihe < 3; reihe += 1) {
-            for (let i = 0; i < 2; i += 1) {
+            for (let i = 0; i < 3; i += 1) {
               add(
-                W * (0.3 + i * 0.4) + (reihe % 2 === 0 ? -W * 0.06 : W * 0.06),
+                W * (0.24 + i * 0.26) + (reihe % 2 === 0 ? -W * 0.04 : W * 0.04),
                 H * (0.26 + reihe * 0.17),
                 reihe % 2 === 0 ? 0.6 : -0.6,
                 52,
@@ -10369,7 +10376,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       },
       {
         name: "Tannenbaum",
-        ziel: 200,
+        ziel: 400,
         bauen: (add) => {
           const stufen = 4;
           for (let i = 0; i < stufen; i += 1) {
@@ -10395,12 +10402,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       };
     })();
 
-    const slings = () => [
-      { x1: wandLinks + 10, y1: H - 150, x2: W * 0.3 - 44, y2: H - 94 },
-      { x1: bahnWand - 12, y1: H - 150, x2: W * 0.7 + 34, y2: H - 94 }
-    ];
-    let slingL = slings()[0];
-    let slingR = slings()[1];
+
 
     const levelAufbau = () => {
       const karte = KARTEN[stufe % KARTEN.length];
@@ -10408,9 +10410,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       const jitterX = W * 0.03;
       const jitterY = H * 0.02;
       karte.bauen((x, y, a, len, r, farbe, wert) => {
+        // Nichts im Bereich der Flipper und der Auslaeufe platzieren.
+        const sicherY = Math.min(y + (zufall() - 0.5) * jitterY * 2, H - 250);
         pins.push({
           x: x + (zufall() - 0.5) * jitterX * 2,
-          y: y + (zufall() - 0.5) * jitterY * 2,
+          y: sicherY,
           a: a + (zufall() - 0.5) * 0.26,
           len,
           r,
@@ -10418,17 +10422,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           wert
         });
       });
-      [slingL, slingR] = slings();
       ziel = karte.ziel;
       levelPunkte = 0;
       levelAnzeige.textContent = `Level ${stufe + 1}/${KARTEN.length} · ${karte.name}`;
       banner = { text: `Level ${stufe + 1}: ${karte.name}`, leben: 1 };
       kugel.imStart = true;
-      kugel.x = W - 36;
-      kugel.y = H - 52;
+      kugel.x = W * 0.6;
+      kugel.y = 44;
       kugel.vx = 0;
       kugel.vy = 0;
-      power = 0;
     };
 
     // ---------------- Kollision ----------------
@@ -10477,10 +10479,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       flipperL += (zielL - flipperL) * Math.min(1, dt * 26);
       flipperR += (zielR - flipperR) * Math.min(1, dt * 26);
 
-      if (kugel.imStart) {
-        if (powerLaeuft) power = Math.min(1, power + dt * 1.35);
-        return;
-      }
+      if (kugel.imStart) return;
 
       kugel.vy += GRAVITATION * dt;
       const daempfung = Math.max(0, 1 - DAEMPFUNG * dt);
@@ -10503,15 +10502,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         kugel.vy = Math.abs(kugel.vy) * 0.9;
       }
 
-      // Trennwand der Rampe
-      if (kugel.y > bahnOben) kapsel(bahnWand, bahnOben, bahnWand, H - 24, 3, 0.75, 0);
-
-      // Aus der Rampe ins Feld
-      if (kugel.x > bahnWand && kugel.y < bahnOben + 44 && kugel.vy < 0) {
-        kugel.vx = -Math.max(620, Math.abs(kugel.vy) * 0.55);
-        kugel.vy = -180;
-      }
-
       // Pins
       for (const p of pins) {
         const dx = Math.cos(p.a) * p.len / 2;
@@ -10519,16 +10509,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         kapsel(p.x - dx, p.y - dy, p.x + dx, p.y + dy, p.r, 0.88, p.wert);
       }
 
-      // Slingshots
-      kapsel(slingL.x1, slingL.y1, slingL.x2, slingL.y2, 5, 0.9, 15);
-      kapsel(slingR.x1, slingR.y1, slingR.x2, slingR.y2, 5, 0.9, 15);
+
+      // Aussenbahnen
+      for (const b of aussenbahnen) kapsel(b.x1, b.y1, b.x2, b.y2, 4, 0.15, 0);
 
       // Flipper
       const flipper = (px, py, len, radius, ruhe, aktiv, stellung) => {
         const winkel = ruhe + (aktiv - ruhe) * stellung;
         const x2 = px + Math.cos(winkel) * len;
         const y2 = py + Math.sin(winkel) * len;
-        const getroffen = kapsel(px, py, x2, y2, radius, 0.55, 0);
+        const getroffen = kapsel(px, py, x2, y2, radius, 0.25, 0);
         if (!getroffen) return;
 
         const nx = kugel.x - px;
@@ -10538,31 +10528,46 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         kugel.vx += (nx / ab) * schlag * 0.55 - Math.sin(winkel) * schlag * 0.5;
         kugel.vy += (ny / ab) * schlag * 0.55 + Math.cos(winkel) * schlag * 0.5 - 120;
       };
-      const len = Math.min(112, W * 0.17);
-      flipper(W * 0.335, H - 76, len, 9.5, 0.34, -0.46, flipperL);
-      flipper(W * 0.665, H - 76, len, 9.5, Math.PI - 0.34, Math.PI + 0.46, flipperR);
+      // Drehpunkt an der Seitenwand, Spitzen treffen sich in der Mitte -
+      // so bleibt neben dem Flipper kein Loch, durch das die Kugel faellt.
+      const len = Math.min(W * 0.17, 122);
+      flipper(W * 0.335, H - 78, len, 9.5, 0.34, -0.46, flipperL);
+      flipper(W * 0.665, H - 78, len, 9.5, Math.PI - 0.34, Math.PI + 0.46, flipperR);
+
+      // Haenger-Schutz: bleibt die Kugel zu lange liegen, bekommt sie einen
+      // leichten Anstoss, damit das Spiel nicht stillsteht.
+      const tempo = Math.sqrt(kugel.vx * kugel.vx + kugel.vy * kugel.vy);
+      if (tempo < 45) {
+        stillZeit += dt;
+        if (stillZeit > 1.6) {
+          kugel.vx += (zufall() - 0.5) * 320;
+          kugel.vy -= 260;
+          stillZeit = 0;
+        }
+      } else {
+        stillZeit = 0;
+      }
 
       // Aus
       if (kugel.y > H + 30) {
         kugel.imStart = true;
-        kugel.x = W - 36;
-        kugel.y = H - 52;
+        kugel.x = W * 0.6;
+        kugel.y = 44;
         kugel.vx = 0;
         kugel.vy = 0;
-        power = 0;
         punkte = Math.max(0, punkte - 20);
         levelPunkte = Math.max(0, levelPunkte - 20);
       }
     };
 
     const abschiessen = () => {
-      powerLaeuft = false;
       if (!kugel.imStart) return;
       kugel.imStart = false;
-      kugel.vx = -120;
-      kugel.vy = -(760 + power * 620);
-      power = 0;
-      schuetteln = 3;
+      kugel.x = W * 0.6;
+      kugel.y = 44;
+      kugel.vx = -170;
+      kugel.vy = 90;
+      schuetteln = 2;
     };
 
     // ---------------- Zeichnen ----------------
@@ -10660,31 +10665,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         ctx.stroke();
       }
 
-      // Slingshots
-      for (const s of [slingL, slingR]) {
-        ctx.beginPath();
-        ctx.moveTo(s.x1, s.y1);
-        ctx.lineTo(s.x2, s.y2);
-        ctx.lineTo(s.x1, s.y2);
-        ctx.closePath();
-        ctx.fillStyle = "rgba(224,73,47,.12)";
-        ctx.fill();
-        ctx.strokeStyle = "rgba(224,73,47,.7)";
-        ctx.lineWidth = 5;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(s.x1, s.y1);
-        ctx.lineTo(s.x2, s.y2);
-        ctx.stroke();
-      }
 
-      // Rampe + Power
-      ctx.strokeStyle = "rgba(211,168,98,.5)";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(bahnWand, bahnOben);
-      ctx.lineTo(bahnWand, H - 24);
-      ctx.stroke();
+      // Bahnkurve oben rechts (Optik)
       ctx.strokeStyle = "rgba(211,168,98,.45)";
       ctx.lineWidth = 5;
       ctx.lineCap = "round";
@@ -10692,10 +10674,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       ctx.moveTo(W - 24, 168);
       ctx.quadraticCurveTo(W - 34, 74, W * 0.64, 40);
       ctx.stroke();
-      if (kugel.imStart) {
-        const bh = (H - 120) * power;
-        ctx.fillStyle = "rgba(255,212,121,.85)";
-        ctx.fillRect(W - 34, H - 62 - bh, 8, bh);
+
+      // Aussenbahnen
+      for (const b of aussenbahnen) {
+        ctx.strokeStyle = "rgba(211,168,98,.6)";
+        ctx.lineWidth = 8;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(b.x1, b.y1);
+        ctx.lineTo(b.x2, b.y2);
+        ctx.stroke();
       }
 
       // Flipper
@@ -10721,9 +10709,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         ctx.fillStyle = GOLD;
         ctx.fill();
       };
-      const flen = Math.min(112, W * 0.17);
-      flipperZeichnen(W * 0.335, H - 76, flen, 9.5, 0.34, -0.46, flipperL);
-      flipperZeichnen(W * 0.665, H - 76, flen, 9.5, Math.PI - 0.34, Math.PI + 0.46, flipperR);
+      const flen = Math.min(W * 0.17, 122);
+      flipperZeichnen(W * 0.335, H - 78, flen, 9.5, 0.34, -0.46, flipperL);
+      flipperZeichnen(W * 0.665, H - 78, flen, 9.5, Math.PI - 0.34, Math.PI + 0.46, flipperR);
 
       // Spur
       for (const s of spur) {
@@ -10842,8 +10830,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       if (taste === "arrowright" || taste === "d") { rechtsGedrueckt = unten; event.preventDefault(); }
       if (event.code === "Space") {
         event.preventDefault();
-        if (unten && kugel.imStart) powerLaeuft = true;
-        if (!unten && powerLaeuft) abschiessen();
+        if (unten) abschiessen();
       }
     };
 
