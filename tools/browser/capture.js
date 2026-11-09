@@ -180,9 +180,20 @@ async function aufnehmen(optionen) {
   }
 
   if (optionen.uebernehmen) {
+    // Nur die Felder schreiben, die in die Datei gehoeren: ladeIndex() haengt
+    // absolute Pfade (pfad) an und baut aus folgeseiten eine Map - beides
+    // wuerde sonst maschinenabhaengig bzw. leer in fixtures.json landen.
+    const sauber = {
+      hinweis: index.hinweis,
+      seiten: index.seiten.map((eintrag) => {
+        const kopie = { ...eintrag };
+        delete kopie.pfad;
+        return kopie;
+      }),
+    };
     fs.writeFileSync(
       path.join(FIXTURE_DIR, "fixtures.json"),
-      `${JSON.stringify(index, null, 2)}\n`,
+      `${JSON.stringify(sauber, null, 2)}\n`,
       "utf8"
     );
   }
