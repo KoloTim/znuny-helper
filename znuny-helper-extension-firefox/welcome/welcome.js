@@ -9,6 +9,19 @@
 
   const releases = [
     {
+      version: "1.6.31",
+      items: [
+        "Behoben: Die Erweiterung startete auf manchen Seiten nicht mehr (fehlende Funktion nach dem Umbau).",
+        "Priorität setzen trägt bei leerem Service automatisch „Person“ ein und nennt in der Fehlermeldung das Feld, das Znuny ablehnt (Queue, Service, Besitzer, Typ)."
+      ]
+    },
+    {
+      version: "1.6.30",
+      items: [
+        "Priorität-Dialog bietet „Setzen“ nur noch an, wenn es auch klappt: Fehlt ein Pflichtfeld (z. B. Service), erscheint stattdessen nur „Formular öffnen“ mit bereits gewählter Priorität."
+      ]
+    },
+    {
       version: "1.6.29",
       items: [
         "Deko liegt hinter Znunys Fenstern: Baum, Girlande und Zweig überdecken keine Dialoge mehr; Schnee und Schlitten bleiben obenauf.",

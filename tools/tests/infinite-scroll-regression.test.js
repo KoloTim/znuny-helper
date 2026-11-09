@@ -1610,6 +1610,17 @@ check("Weihnachtsmann seltener (3 min / 30 min)",
   source.includes("3 * 60 * 1000") && source.includes("30 * 60 * 1000"),
   true);
 
+console.log("\n31) Prioritaet: Vorab-Pruefung der Pflichtfelder");
+check("Pflichtfelder werden vor dem Dialog geprueft",
+  source.includes("easmFehlendePflichtfelder") && source.includes("ladeEasmPrioritaetsFormular"),
+  true);
+check("ohne Service kein Setzen-Knopf",
+  /if \(fehlend\.length\) \{/.test(source) && source.includes("Formular oeffnen"),
+  true);
+check("Formular oeffnet mit Vorauswahl",
+  source.includes("oeffneEasmPrioritaetsFormular") && source.includes("zh-prio="),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

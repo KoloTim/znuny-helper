@@ -11266,11 +11266,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return null;
   }
 
-  async function setzeEasmPrioritaet(ticketId, stufe) {
-    // Das echte Formular der Prioritaetsseite laden und abschicken: Dadurch
-    // bleiben Service, Queue, Typ und Besitzer unveraendert - nur die
-    // Prioritaet wird gesetzt. Ein selbst gebauter POST hatte Felder
-    // verloren und Znuny meldete "Ungueltiger Service".
+  // Liest das echte Prioritaetsformular ein: Auswahlmoeglichkeiten, alle
+  // Felder (fuer den POST) und die aktuell gesetzten Pflichtwerte.
+  async function ladeEasmPrioritaetsFormular(ticketId) {
     const antwort = await fetch(`/otrs/index.pl?Action=AgentTicketPriority;TicketID=${encodeURIComponent(ticketId)}`, {
       credentials: "same-origin"
     });
@@ -11285,12 +11283,48 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (!auswahl) throw new Error("Prioritaetsauswahl nicht gefunden");
 
     const optionen = [...auswahl.options].map((o) => ({ wert: o.value, text: o.textContent.trim() }));
-    const ziel = easmPrioritaetAusOptionen(optionen, stufe);
-    if (!ziel) throw new Error("Keine passende Prioritaet im Formular");
 
-    // Alle vorhandenen Felder uebernehmen - aber ohne Artikel-Pflichtfelder.
-    const daten = new URLSearchParams();
+    // Der Service ist auf den EASM-Tickets meist leer; dort wird "Person"
+    // gebraucht. Die Auswahlmoeglichkeiten lesen wir mit.
+    const serviceFeld = doc.querySelector('select[name="ServiceID"]');
+    const serviceOptionen = serviceFeld
+      ? [...serviceFeld.options].map((o) => ({ wert: o.value, text: o.textContent.trim() }))
+      : [];
+    const werte = {};
     for (const feld of form.querySelectorAll("input, select, textarea")) {
+      if (!feld.name) continue;
+      if (feld.tagName === "SELECT") werte[feld.name] = feld.value || "";
+      else if (feld.type === "checkbox" || feld.type === "radio") werte[feld.name] = feld.checked ? feld.value || "on" : "";
+      else werte[feld.name] = feld.value || "";
+    }
+
+    return { form, optionen, serviceOptionen, werte, felder: [...form.querySelectorAll("input, select, textarea")] };
+  }
+
+  // Welche Pflichtfelder sind im Formular leer? Znuny lehnt das Speichern
+  // sonst mit "Ungueltiger Service" ab. Den Service setzen wir auf Wunsch
+  // automatisch auf "Person" - nur wenn er leer ist, nie ueberschreiben.
+  const EASM_SERVICE_STANDARD = "Person";
+
+  function easmServiceStandard(serviceOptionen) {
+    const treffer = (serviceOptionen || []).find(
+      (o) => o.wert && o.text.toLowerCase() === EASM_SERVICE_STANDARD.toLowerCase()
+    );
+    return treffer || null;
+  }
+
+  function easmFehlendePflichtfelder(werte, serviceOptionen) {
+    const fehlend = [];
+    if (!String(werte.ServiceID || "").trim() && !easmServiceStandard(serviceOptionen)) fehlend.push("Service");
+    if (!String(werte.TypeID || "").trim()) fehlend.push("Typ");
+    return fehlend;
+  }
+
+  async function setzeEasmPrioritaet(ticketId, stufe, vorab) {
+    const daten = new URLSearchParams();
+    const { felder } = vorab;
+
+    for (const feld of felder) {
       if (!feld.name || feld.disabled) continue;
       if (feld.type === "submit" || feld.type === "file" || feld.type === "button") continue;
       if (feld.tagName === "SELECT") {
@@ -11302,14 +11336,23 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       }
     }
 
-    // Nur die Prioritaet aendern, keinen Artikel anlegen.
+    const ziel = easmPrioritaetAusOptionen(vorab.optionen, stufe);
+    if (!ziel) throw new Error("Keine passende Prioritaet im Formular");
+
+    // Nur die Prioritaet aendern, keinen Artikel anlegen. Ist der Service
+    // leer (bei EASM-Tickets die Regel), wird "Person" gesetzt.
+    const serviceZiel = easmServiceStandard(vorab.serviceOptionen);
+    if (!String(vorab.werte.ServiceID || "").trim() && serviceZiel) {
+      daten.set("ServiceID", serviceZiel.wert);
+    }
+
     daten.set("NewPriorityID", ziel.wert);
     daten.delete("CreateArticle");
     for (const name of ["Subject", "Body", "MimeType", "Charset", "FileUpload"]) {
       daten.delete(name);
     }
 
-    const ergebnis = await fetch(form.getAttribute("action") || "/otrs/index.pl", {
+    const ergebnis = await fetch("/otrs/index.pl", {
       method: "POST",
       body: new URLSearchParams(daten.toString()),
       credentials: "same-origin",
@@ -11317,21 +11360,29 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     });
 
     const seite = await ergebnis.text();
-
-    // Znuny verlangt auf manchen Tickets Pflichtfelder, die im Formular leer
-    // sind (typisch: Service). Dann hilft nur das echte Formular.
     const fehlend = [];
-    if (/Ung\u00fcltiger Service/i.test(seite)) fehlend.push("Service");
-    if (/Ung\u00fcltiger Typ/i.test(seite)) fehlend.push("Typ");
+    if (/Queue ung\u00fcltig|QueueIDServerError/i.test(seite)) fehlend.push("Queue");
+    if (/Ung\u00fcltiger Service|ServiceIDServerError/i.test(seite)) fehlend.push("Service");
+    if (/Besitzer ung\u00fcltig|NewOwnerIDServerError/i.test(seite)) fehlend.push("Besitzer");
+    if (/Ung\u00fcltiger Typ|TypeIDServerError/i.test(seite)) fehlend.push("Typ");
     if (/Ein oder mehrere Fehler/i.test(seite) && !fehlend.length) fehlend.push("Pflichtfeld");
 
     if (fehlend.length) {
-      const fehler = new Error("Znuny verlangt zusaetzlich: " + fehlend.join(", "));
+      const fehler = new Error("Znuny verlangt zusätzlich: " + fehlend.join(", "));
       fehler.fehlendeFelder = fehlend;
       throw fehler;
     }
 
     return ziel.text;
+  }
+
+  // Oeffnet das echte Formular mit bereits gewaehlter Prioritaet.
+  function oeffneEasmPrioritaetsFormular(ticketId, stufe) {
+    const wert = EASM_PRIO_XREF[stufe] || "";
+    const url =
+      `/otrs/index.pl?Action=AgentTicketPriority;TicketID=${encodeURIComponent(ticketId)}` +
+      (wert ? `#zh-prio=${encodeURIComponent(wert)}` : "");
+    window.open(url, "_blank", "noopener");
   }
 
   function zeigeEasmPrioritaetsKnopf(stufe) {
@@ -11343,8 +11394,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     knopf.type = "button";
     knopf.id = EASM_PRIO_ID;
     knopf.className = "zh-easm-prio-btn";
-    knopf.textContent = `Priorität: ${EASM_PRIO_LABEL[stufe]} setzen`;
-    knopf.title = "Setzt die Ticketpriorität auf die EASM-Einstufung (mit Rückfrage)";
+    knopf.textContent = `Priorit\u00e4t: ${EASM_PRIO_LABEL[stufe]} setzen`;
+    knopf.title = "Setzt die Ticketpriorit\u00e4t auf die EASM-Einstufung (mit R\u00fcckfrage)";
 
     knopf.addEventListener("click", (event) => {
       event.preventDefault();
@@ -11355,7 +11406,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     badge.insertAdjacentElement("afterend", knopf);
   }
 
-  function zeigeEasmBestaetigung(stufe) {
+  async function zeigeEasmBestaetigung(stufe) {
     document.getElementById("zh-easm-confirm")?.remove();
 
     const ticketId = easmTicketId();
@@ -11364,35 +11415,86 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     karte.className = "zh-easm-confirm";
     karte.innerHTML = `
       <div class="zh-easm-confirm__card">
-        <h3>Priorität auf ${EASM_PRIO_LABEL[stufe]} setzen?</h3>
+        <h3>Priorität wird geprüft …</h3>
         <p>Ticket ${ticketId} &middot; EASM-Einstufung: ${EASM_LABELS[stufe]}</p>
-        <p class="zh-easm-confirm__hinweis">Das ändert die Priorität im Ticketsystem.</p>
-        <div class="zh-easm-confirm__actions">
-          <button type="button" class="zh-easm-confirm__ja">Setzen</button>
-          <button type="button" class="zh-easm-confirm__nein">Abbrechen</button>
-        </div>
+        <div class="zh-easm-confirm__actions"></div>
       </div>`;
+    document.body.appendChild(karte);
 
     const schliessen = () => karte.remove();
-    karte.querySelector(".zh-easm-confirm__nein").addEventListener("click", schliessen);
     karte.addEventListener("click", (event) => {
       if (event.target === karte) schliessen();
     });
 
-    karte.querySelector(".zh-easm-confirm__ja").addEventListener("click", async (event) => {
+    let vorab = null;
+    let fehlend = [];
+    let pruefFehler = "";
+
+    try {
+      vorab = await ladeEasmPrioritaetsFormular(ticketId);
+      fehlend = easmFehlendePflichtfelder(vorab.werte, vorab.serviceOptionen);
+      if (!easmPrioritaetAusOptionen(vorab.optionen, stufe)) {
+        pruefFehler = "Im Formular gibt es keine passende Priorität.";
+      }
+    } catch (fehler) {
+      pruefFehler = fehler.message;
+    }
+
+    const titel = karte.querySelector("h3");
+    const text = karte.querySelector("p");
+    const aktionen = karte.querySelector(".zh-easm-confirm__actions");
+    aktionen.innerHTML = "";
+
+    const abbrechen = document.createElement("button");
+    abbrechen.type = "button";
+    abbrechen.className = "zh-easm-confirm__nein";
+    abbrechen.textContent = "Abbrechen";
+    abbrechen.addEventListener("click", schliessen);
+
+    // Fall 1: Pflichtfelder fehlen -> gar kein "Setzen" anbieten.
+    if (fehlend.length) {
+      titel.textContent = `Priorität auf ${EASM_PRIO_LABEL[stufe]} setzen`;
+      text.innerHTML =
+        `Znuny verlangt auf diesem Ticket zusätzlich: <strong>${fehlend.join(", ")}</strong>. ` +
+        `Direkt setzen ist deshalb nicht möglich.<br>` +
+        `Im Formular ist <strong>${EASM_PRIO_LABEL[stufe]}</strong> bereits ausgewählt – du ergänzt nur noch ${fehlend.join(" und ")}.`;
+
+      const oeffnen = document.createElement("button");
+      oeffnen.type = "button";
+      oeffnen.className = "zh-easm-confirm__ja";
+      oeffnen.textContent = "Formular oeffnen";
+      oeffnen.addEventListener("click", () => {
+        oeffneEasmPrioritaetsFormular(ticketId, stufe);
+        schliessen();
+      });
+      aktionen.append(oeffnen, abbrechen);
+      return;
+    }
+
+    // Fall 2: alles da -> direkt setzen
+    titel.textContent = `Priorität auf ${EASM_PRIO_LABEL[stufe]} setzen?`;
+    const serviceHinweis = !String(vorab.werte.ServiceID || "").trim() && easmServiceStandard(vorab.serviceOptionen)
+      ? `<br>Service ist leer und wird auf <strong>${EASM_SERVICE_STANDARD}</strong> gesetzt.`
+      : "";
+    text.innerHTML = `Ticket ${ticketId} &middot; EASM-Einstufung: ${EASM_LABELS[stufe]}${serviceHinweis}<br>` +
+      `<span class="zh-easm-confirm__hinweis">Das ändert die Priorität im Ticketsystem.</span>`;
+
+    const setzen = document.createElement("button");
+    setzen.type = "button";
+    setzen.className = "zh-easm-confirm__ja";
+    setzen.textContent = "Setzen";
+    setzen.addEventListener("click", async (event) => {
       const knopf = event.currentTarget;
       knopf.disabled = true;
       knopf.textContent = "Setze \u2026";
       try {
-        await setzeEasmPrioritaet(ticketId, stufe);
-        karte.querySelector(".zh-easm-confirm__hinweis").textContent = "Prioritaet gesetzt - Seite wird neu geladen.";
+        await setzeEasmPrioritaet(ticketId, stufe, vorab);
+        text.innerHTML = "Priorität gesetzt – Seite wird neu geladen.";
         window.setTimeout(() => location.reload(), 900);
       } catch (fehler) {
         knopf.disabled = false;
         knopf.textContent = "Setzen";
-        const hinweis = karte.querySelector(".zh-easm-confirm__hinweis");
-        hinweis.textContent = fehler.message || "Aenderung fehlgeschlagen";
-
+        text.textContent = fehler.message || "Änderung fehlgeschlagen";
         if (fehler.fehlendeFelder) {
           const oeffnen = document.createElement("button");
           oeffnen.type = "button";
@@ -11400,23 +11502,19 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           oeffnen.style.marginLeft = "8px";
           oeffnen.textContent = "Formular oeffnen";
           oeffnen.addEventListener("click", () => {
-            const zielWert = EASM_PRIO_XREF[stufe] || "";
-            const url =
-              `/otrs/index.pl?Action=AgentTicketPriority;TicketID=${encodeURIComponent(ticketId)}` +
-              (zielWert ? `#zh-prio=${encodeURIComponent(zielWert)}` : "");
-            window.open(url, "_blank", "noopener");
-            karte.remove();
+            oeffneEasmPrioritaetsFormular(ticketId, stufe);
+            schliessen();
           });
-          karte.querySelector(".zh-easm-confirm__actions").appendChild(oeffnen);
+          aktionen.appendChild(oeffnen);
         }
       }
     });
 
-    document.body.appendChild(karte);
+    aktionen.append(setzen, abbrechen);
   }
 
   // Prioritaetsseite: Wurde sie mit #zh-prio=<id> geoeffnet, wird der Wert
-  // vorausgewaehlt - der Nutzer muss nur noch die fehlenden Felder fuellen.
+  // vorausgewaehlt.
   function wendeEasmVorwahlAn() {
     const treffer = location.hash.match(/zh-prio=([^&]+)/);
     if (!treffer) return;

@@ -2,6 +2,24 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.31] – 2026-11-09
+
+### Fixed
+- **Absturz beim Start behoben:** Beim Umbau war `wendeEasmVorwahlAn` verloren gegangen – der Rauchtest meldete „Initialisierung fehlgeschlagen". Wiederhergestellt.
+- **Service wird automatisch gesetzt:** Ist der Service im Prioritätsformular leer, trägt der Klick **Person** ein (nur wenn leer, nie überschreiben) und sagt das in der Rückfrage an.
+- **Fehlermeldung nennt jetzt das echte Feld:** Znuny meldet auf diesen Tickets nicht nur den Service, sondern auch **Queue** und **Besitzer**. Erkannt und benannt werden jetzt Queue, Service, Besitzer, Typ.
+
+### Erkenntnis (wichtig)
+Ein Test am echten Ticket hat gezeigt: **Auch das Absenden im echten Znuny-Formular scheitert** – mit „Queue ungültig" und „Dieses Feld wird benötigt" (Typ, Service, Besitzer). Die Auswahlfelder stehen im ausgelieferten HTML auf „-", weil Znuny sie erst per JavaScript füllt, und auf diesem Ticket ist die Queue nicht gesetzt. Deshalb kann **kein** nachgebauter POST funktionieren – auch kein Klick von Hand. Sobald Queue/Typ/Besitzer am Ticket stimmen, greift der Ein-Klick-Weg.
+
+## [1.6.30] – 2026-11-09
+
+### Fixed
+- **Rückfrage bot „Setzen" an, obwohl es scheitern musste:** Der Dialog zeigte die Warnung „Znuny verlangt zusätzlich: Service" und darunter trotzdem einen aktiven **Setzen**-Knopf. Jetzt wird das Formular **vor** der Rückfrage geprüft:
+  - Sind alle Pflichtfelder gesetzt → Rückfrage mit **Setzen** und **Abbrechen**, ein Klick speichert.
+  - Fehlt etwas (typisch **Service**) → Rückfrage mit **nur** „Formular öffnen" und „Abbrechen", dazu der Satz, welches Feld fehlt und dass die Priorität im Formular schon ausgewählt ist.
+- Umlaute in den Dialogen korrigiert (Priorität, zusätzlich, möglich, ausgewählt, ergänzt, Änderung).
+
 ## [1.6.29] – 2026-11-09
 
 ### Changed
