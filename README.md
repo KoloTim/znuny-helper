@@ -434,10 +434,14 @@ tools/                           Hilfsskripte für Abgleich, Test und Release
     cdp.js                       DevTools-Protokoll ohne Zusatzpakete
     launch.js                    Chrome starten, Erweiterung laden
     fixtures.js                  Znuny-Adressen aus tools/fixtures/ bedienen
+    guard.js                     Waechter: nur Lesen, Formulare und Tabs sperren
     smoke.js                     Rauchtest je Seite samt Screenshot
+    clicks.js                    Klick-Tests (Maus, Tastatur, Auswahlfelder)
+    screencast.js                Aufzeichnung als Bilderfolge + Abspielseite
     capture.js                   echte Seiten aufnehmen (--login, --uebernehmen)
     testserver.js                lokaler Server fuer den Aufnahme-Weg
-  fixtures/                      Testseiten (synthetisch bzw. echte Aufnahmen)
+    browser.ps1                  Aufrufer, der Node selbst findet
+  fixtures/                      Testseiten und Klick-Szenarien
   tests/                         Regressionstests (Node, ohne Zusatzpakete)
 package.json                     npm-Scripts (test, build, verify, sync-firefox)
 .github/workflows/ci.yml         Automatische Prüfung bei push und pull_request
@@ -489,6 +493,7 @@ Vier Betriebsarten:
 
 ```bash
 node tools/browser/smoke.js                 # Fixtures: Erweiterung laden, Seiten prüfen, Screenshots
+node tools/browser/clicks.js                # Klick-Tests: echte Bedienung, nur lesend
 node tools/browser/smoke.js --sichtbar      # dasselbe im Fenster, langsam, mit Erzählung im Terminal
 node tools/browser/capture.js --login       # einmalig: im Profil anmelden (Sitzung bleibt gespeichert)
 node tools/browser/capture.js               # echte Seiten aufnehmen (ohne Erweiterung)
@@ -499,6 +504,7 @@ node tools/browser/testserver.js 8099       # lokaler Server, um den Aufnahme-We
 
 ```powershell
 .\browser.cmd smoke      # Rauchtest gegen Fixtures, ohne Fenster
+.\browser.cmd clicks     # Klick-Tests, nur lesend
 .\browser.cmd show       # dasselbe im Fenster, langsam, mit Erzählung im Terminal
 .\browser.cmd record     # sichtbarer Lauf mit Aufzeichnung
 .\browser.cmd login      # einmalig im Znuny anmelden
@@ -513,7 +519,9 @@ Mit Node im PATH gehen dieselben Aufrufe direkt (`node tools/browser/smoke.js --
 
 **Aufnahme echter Seiten (`capture.js`).** Fehlt eine Seite als Fixture, wird sie aus dem echten System aufgenommen. Voraussetzung ist ein angemeldetes Profil in `.browser-profile/`; die Anmeldung erfolgt einmalig von Hand über `--login`, die Cookies bleiben im Profil. Passwörter stehen nirgends im Skript, und die Erweiterung sieht während der Aufnahme keine Zugangsdaten. Aufgenommen wird **ohne** Erweiterung, damit das Fixture reines Znuny-Markup enthält und der Rauchtest sich nicht selbst mitbringt. Ergebnis: `tools/fixtures/aufnahme/<name>.html` samt Konsolenprotokoll und Screenshot (per `.gitignore` ausgeschlossen, weil darin Ticketdaten stehen). Mit `--uebernehmen` ersetzt eine Aufnahme den synthetischen Platzhalter.
 
-**Sicherheit.** Das Harness arbeitet ausschließlich lesend: Es navigiert, liest das DOM, macht Screenshots. Es gibt bewusst **keine** Funktion zum Absenden, Schließen oder Ändern von Tickets. `.browser-profile/` enthält die Sitzung und ist von der Versionierung ausgenommen.
+**Klick-Tests (`clicks.js`).** Der Rauchtest prüft nur, dass etwas da ist – hier wird wirklich bedient: Mausklick an der Elementposition, Tippen, Tasten samt Modifikatoren, Auswahlfelder. Die Szenarien stehen in `tools/fixtures/clicks.js`. Ein **Wächter** (`guard.js`) macht die Zusage „nur lesend" technisch wahr: schreibende Anfragen (`POST`/`PUT`/`PATCH`/`DELETE`) werden mit `Aborted` abgewiesen, jede Formularübermittlung wird abgefangen und mitgezählt, `window.open` zählt nur mit und neue Tabs werden geschlossen. Deshalb dürfen Szenarien gefahrlos bis zum Absenden gehen: Ein Test klickt wirklich auf „Suche starten" und drückt wirklich Strg+Enter – und prüft dann, dass die Seite nicht verlassen wurde. Der Bericht nennt je Szenario, wie viele Formulare und Anfragen abgefangen wurden.
+
+**Sicherheit.** Das Harness arbeitet ausschließlich lesend: navigieren, klicken, tippen, DOM lesen, Screenshots. Schreibende Anfragen sind technisch gesperrt, nicht bloß unerwünscht – es gibt auch keinen Schalter, der das aufhebt. `.browser-profile/` enthält die Sitzung und ist von der Versionierung ausgenommen.
 
 ### Version aktualisieren
 

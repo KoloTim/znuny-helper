@@ -11,6 +11,8 @@
     "sync-firefox": "node tools/run-python.js tools/sync-firefox.py",
     "sync-firefox:check": "node tools/run-python.js tools/sync-firefox.py --check",
     "browser:smoke": "node tools/browser/smoke.js",
+    "browser:clicks": "node tools/browser/clicks.js",
+    "browser:clicks:show": "node tools/browser/clicks.js --sichtbar",
     "browser:show": "node tools/browser/smoke.js --sichtbar",
     "browser:record": "node tools/browser/smoke.js --sichtbar --aufzeichnen=tools/browser/output/lauf",
     "browser:login": "node tools/browser/capture.js --login",

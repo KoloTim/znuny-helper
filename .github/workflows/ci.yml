@@ -37,6 +37,14 @@ jobs:
             echo "Kein Chrome/Chromium vorhanden - Rauchtest uebersprungen."
           fi
 
+      - name: Klick-Tests im Browser (nur lesend)
+        run: |
+          if command -v google-chrome >/dev/null 2>&1 || command -v chromium >/dev/null 2>&1; then
+            npm run browser:clicks
+          else
+            echo "Kein Chrome/Chromium vorhanden - Klick-Tests uebersprungen."
+          fi
+
       - name: Rauchtest-Screenshots hochladen
         if: always()
         uses: actions/upload-artifact@v4

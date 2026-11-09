@@ -16,6 +16,7 @@ Wenn Node im PATH liegt:
 
 ```bash
 node tools/browser/smoke.js              # Fixtures prüfen (braucht kein Znuny)
+node tools/browser/clicks.js             # Klick-Tests, nur lesend
 node tools/browser/smoke.js --sichtbar   # dasselbe im Fenster, langsam, zum Zusehen
 node tools/browser/capture.js --login    # einmalig im Profil anmelden
 node tools/browser/capture.js            # echte Seiten aufnehmen
@@ -32,6 +33,7 @@ die Harness-Laufzeit) und die Skripte damit startet:
 ```powershell
 .\browser.cmd              Überblick
 .\browser.cmd smoke        Rauchtest ohne Fenster
+.\browser.cmd clicks       Klick-Tests, nur lesend
 .\browser.cmd show         Rauchtest im Fenster, mit Pausen
 .\browser.cmd record       sichtbarer Lauf mit Aufzeichnung
 .\browser.cmd login        einmalig im Znuny anmelden
@@ -106,6 +108,63 @@ Screenshot je Seite nach `tools/browser/output/`. Rückgabewert 1, sobald eine f
 Erwartung verletzt ist – damit taugt es als Prüfschritt. Alle Schalter stehen in
 der Tabelle oben.
 
+### clicks.js – Klick-Tests ohne Schreibzugriff
+
+Der Rauchtest prüft nur, dass etwas da ist. Klick-Tests bedienen die Erweiterung
+wirklich: Mausklick an der Elementposition (`Input.dispatchMouseEvent`), Tippen
+(`Input.insertText`), Tasten samt Modifikatoren, Auswahlfelder. Die Szenarien
+stehen in `tools/fixtures/clicks.js` und lesen sich wie ein Bedienprotokoll:
+
+```js
+{
+  name: "kategorie-setzen",
+  seite: "agent-uebersicht",
+  schritte: async (w) => {
+    await w.waehle(".zh-category-select", "hardware");
+    await w.pruefe("Badge zeigt die Kategorie", await w.warteAuf(
+      `(document.querySelector('.zh-badge') || {}).textContent.includes('Hardware')`
+    ));
+  }
+}
+```
+
+**Der Wächter (`guard.js`) macht die Zusage technisch wahr**, statt sie nur zu
+versprechen – drei Sperren, alle im Bericht sichtbar:
+
+1. **Schreibende Anfragen.** Jede Anfrage an das Znuny wird abgefangen. `GET`/`HEAD`
+   werden aus den Fixtures beantwortet, alles andere (`POST`, `PUT`, `PATCH`,
+   `DELETE`) wird mit `Aborted` abgewiesen und protokolliert.
+2. **Formulare.** Ein Skript läuft vor jedem Seitenaufbau und fängt das
+   `submit`-Ereignis ab (`preventDefault`), ebenso `HTMLFormElement.submit` und
+   `requestSubmit`. Es zählt mit – ein Test kann also prüfen, dass das Addon
+   senden *wollte*, ohne dass etwas hinausgeht.
+3. **Neue Tabs.** `window.open` wird ersetzt und zählt nur mit. Entsteht trotzdem
+   ein Tab, wird er nach dem Szenario geschlossen und im Bericht mit Adresse
+   genannt. So existiert keine Seite, die vom Wächter nichts weiß.
+
+   Warum das nicht wasserdicht ist: Das Erweiterungs-Skript läuft in derselben Welt
+   wie der Wächter, und die Reihenfolge beim Seitenaufbau lässt sich nicht
+   erzwingen. Greift das Addon eine Referenz auf das ursprüngliche `window.open`
+   ab, bevor der Wächter ersetzt hat, kann doch ein Tab entstehen. Er wird sofort
+   geschlossen und gemeldet; ein Schreibzugriff ist trotzdem ausgeschlossen, weil
+   dieser Tab nie bedient wird – er öffnet eine Seite (GET) und wird vor jeder
+   Eingabe wieder geschlossen. Auf der geprüften Seite selbst blockiert der
+   Wächter alle schreibenden Anfragen.
+
+Deshalb dürfen Szenarien gefahrlos bis zum Absenden gehen: `senden-wird-abgefangen`
+klickt wirklich auf „Suche starten", `strg-enter-abgefangen` drückt wirklich
+Strg+Enter – und beide prüfen anschließend, dass die Seite nicht verlassen wurde.
+
+```bash
+node tools/browser/clicks.js                     # alle Szenarien
+node tools/browser/clicks.js --sichtbar          # zusehen
+node tools/browser/clicks.js --nur=kategorie-setzen
+node tools/browser/clicks.js --aufzeichnen=<dir> # Bilderfolge + Abspielseite
+node tools/browser/clicks.js --max=120000        # Notbremse (Standard 180 s)
+```
+
+Screenshot je Szenario nach `tools/browser/output/klick-<name>.png`.
+
 ### fixtures.json
 
 ```json
@@ -157,5 +216,11 @@ Liefert die Fixtures über HTTP aus. Nur dafür da, `capture.js --basis=...` zu 
   echten System.
 - Aufgenommene Seiten enthalten Sitzungskennungen und Ticketdaten. Sie gehören
   nicht ins Repository – deshalb `tools/fixtures/aufnahme/` in `.gitignore`.
-- Das Harness arbeitet **nur lesend**: navigieren, DOM lesen, Screenshot. Es gibt
-  absichtlich keine Funktion, die ein Ticket absendet oder verändert.
+- Das Harness arbeitet **nur lesend**: navigieren, klicken, tippen, DOM lesen,
+  Screenshot. Schreibende Anfragen sind technisch abgewiesen (siehe Wächter),
+  nicht nur unerwünscht. Es gibt absichtlich keine Funktion, die ein Ticket
+  absendet oder verändert – auch keinen Schalter dafür.
+- Die Fixtures sind Platzhalter, solange keine echte Aufnahme vorliegt. Weicht
+  eine Erwartung ab, ist deshalb **zuerst zu prüfen, ob das Fixture das echte
+  Znuny abbildet** (Beispiel: die Artikeltabelle braucht die echten Spalten
+  `Nr. / Sender / Betreff / Erstellt`, sonst findet die Artikelsuche nichts).

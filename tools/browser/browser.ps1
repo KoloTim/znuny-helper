@@ -52,7 +52,8 @@ function Zeige-Hilfe {
     Write-Host '  --------------------------------'
     Write-Host ''
     Write-Host '  .\browser.cmd smoke      Rauchtest gegen Fixtures, ohne Fenster'
-    Write-Host '  .\browser.cmd show       dasselbe im Fenster, langsam, mit Erzaehlung'
+    Write-Host '  .\browser.cmd clicks     Klick-Tests: echte Bedienung, nur lesend'
+    Write-Host '  .\browser.cmd show       Rauchtest im Fenster, langsam, mit Erzaehlung'
     Write-Host '  .\browser.cmd record     sichtbarer Lauf mit Aufzeichnung'
     Write-Host '  .\browser.cmd login      einmalig im Znuny anmelden (Sitzung bleibt gespeichert)'
     Write-Host '  .\browser.cmd capture    echte Seiten aufnehmen'
@@ -82,6 +83,7 @@ $werkzeuge = $PSScriptRoot
 
 $befehl = switch ($aktion) {
     'smoke' { @((Join-Path $werkzeuge 'smoke.js')) }
+    'clicks' { @((Join-Path $werkzeuge 'clicks.js')) }
     'show' { @((Join-Path $werkzeuge 'smoke.js'), '--sichtbar') }
     'record' {
         @(

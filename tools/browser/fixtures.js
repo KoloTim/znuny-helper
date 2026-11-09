@@ -63,22 +63,44 @@ function kopfzeilen(contentType) {
 }
 
 /**
- * Handler fuer "Fetch.requestPaused": beantwortet Znuny-Anfragen aus den
- * Fixtures, alles andere mit 404. Gibt eine Statistik zurueck.
+ * Eine einzelne angehaltene Anfrage aus den Fixtures beantworten.
+ *
+ * Getrennt vom Ereignis-Handler, weil der Waechter (guard.js) die Anfragen
+ * selbst abfaengt: Er muss Nicht-Lese-Anfragen sperren und nur GET an diese
+ * Funktion weiterreichen.
  */
-function bedieneAusFixtures(connection, sessionId, index, options = {}) {
-  const statistik = { dokumente: 0, assets: 0, unbekannt: [] };
-  const stumm = options.stumm === true;
+async function bedieneAnfrage(connection, sessionId, index, params, statistik, stumm) {
+  const url = params.request.url;
+  const ohneFragment = url.split("#")[0];
+  const seite = findeSeite(index, url);
+  const folgeseite = index.folgeseiten && index.folgeseiten.get(ohneFragment);
+  try {
+    if (folgeseite) {
+      statistik.dokumente += 1;
+      const html = fs.readFileSync(folgeseite, "utf8");
+      await connection.send(
+        "Fetch.fulfillRequest",
+        {
+          requestId: params.requestId,
+          responseCode: 200,
+          responseHeaders: kopfzeilen("text/html; charset=utf-8"),
+          body: Buffer.from(html, "utf8").toString("base64"),
+        },
+        sessionId
+      );
+      return;
+    }
 
-  const handler = async (params) => {
-    const url = params.request.url;
-    const ohneFragment = url.split("#")[0];
-    const seite = findeSeite(index, url);
-    const folgeseite = index.folgeseiten && index.folgeseiten.get(ohneFragment);
-    try {
-      if (folgeseite) {
+    if (seite) {
+      // Nur das Dokument selbst; Unterressourcen der Fixture (optional).
+      const istDokument =
+        params.resourceType === "Document" ||
+        url === String(seite.url).split("#")[0] ||
+        (seite.match && params.resourceType === "Document");
+
+      if (istDokument) {
         statistik.dokumente += 1;
-        const html = fs.readFileSync(folgeseite, "utf8");
+        const html = fs.readFileSync(seite.pfad, "utf8");
         await connection.send(
           "Fetch.fulfillRequest",
           {
@@ -92,66 +114,55 @@ function bedieneAusFixtures(connection, sessionId, index, options = {}) {
         return;
       }
 
-      if (seite) {
-        // Nur das Dokument selbst; Unterressourcen der Fixture (optional).
-        const istDokument =
-          params.resourceType === "Document" ||
-          url === String(seite.url).split("#")[0] ||
-          (seite.match && params.resourceType === "Document");
-
-        if (istDokument) {
-          statistik.dokumente += 1;
-          const html = fs.readFileSync(seite.pfad, "utf8");
-          await connection.send(
-            "Fetch.fulfillRequest",
-            {
-              requestId: params.requestId,
-              responseCode: 200,
-              responseHeaders: kopfzeilen("text/html; charset=utf-8"),
-              body: Buffer.from(html, "utf8").toString("base64"),
-            },
-            sessionId
-          );
-          return;
-        }
-
-        const asset = (seite.assets || {})[new URL(url).pathname];
-        if (asset) {
-          statistik.assets += 1;
-          const datei = path.join(FIXTURE_DIR, asset.datei);
-          await connection.send(
-            "Fetch.fulfillRequest",
-            {
-              requestId: params.requestId,
-              responseCode: 200,
-              responseHeaders: kopfzeilen(asset.typ || "application/octet-stream"),
-              body: fs.readFileSync(datei).toString("base64"),
-            },
-            sessionId
-          );
-          return;
-        }
+      const asset = (seite.assets || {})[new URL(url).pathname];
+      if (asset) {
+        statistik.assets += 1;
+        const datei = path.join(FIXTURE_DIR, asset.datei);
+        await connection.send(
+          "Fetch.fulfillRequest",
+          {
+            requestId: params.requestId,
+            responseCode: 200,
+            responseHeaders: kopfzeilen(asset.typ || "application/octet-stream"),
+            body: fs.readFileSync(datei).toString("base64"),
+          },
+          sessionId
+        );
+        return;
       }
-
-      if (!stumm) statistik.unbekannt.push(url);
-      await connection.send(
-        "Fetch.fulfillRequest",
-        {
-          requestId: params.requestId,
-          responseCode: 404,
-          responseHeaders: kopfzeilen("text/plain; charset=utf-8"),
-          body: "",
-        },
-        sessionId
-      );
-    } catch (error) {
-      // Der Tab wurde womoeglich schon geschlossen - dann ist nichts zu tun.
-      if (!/Invalid InterceptionId|No session/i.test(error.message)) throw error;
     }
-  };
 
-  connection.on("Fetch.requestPaused", handler, sessionId);
+    if (!stumm) statistik.unbekannt.push(url);
+    await connection.send(
+      "Fetch.fulfillRequest",
+      {
+        requestId: params.requestId,
+        responseCode: 404,
+        responseHeaders: kopfzeilen("text/plain; charset=utf-8"),
+        body: "",
+      },
+      sessionId
+    );
+  } catch (error) {
+    // Der Tab wurde womoeglich schon geschlossen - dann ist nichts zu tun.
+    if (!/Invalid InterceptionId|No session/i.test(error.message)) throw error;
+  }
+}
+
+/**
+ * Ereignis-Handler, der alle angehaltenen Anfragen aus den Fixtures bedient.
+ * Gibt eine Statistik zurueck (wird beim Bedienen gefuellt).
+ */
+function bedieneAusFixtures(connection, sessionId, index, options = {}) {
+  const statistik = { dokumente: 0, assets: 0, unbekannt: [] };
+  const stumm = options.stumm === true;
+
+  connection.on(
+    "Fetch.requestPaused",
+    (params) => bedieneAnfrage(connection, sessionId, index, params, statistik, stumm),
+    sessionId
+  );
   return statistik;
 }
 
-module.exports = { FIXTURE_DIR, ladeIndex, findeSeite, bedieneAusFixtures };
+module.exports = { FIXTURE_DIR, ladeIndex, findeSeite, bedieneAnfrage, bedieneAusFixtures };
