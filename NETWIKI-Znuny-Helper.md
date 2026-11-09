@@ -358,6 +358,8 @@ EASM-Tickets der DATAGROUP enthalten je Schwachstelle einen Block „Criticality
 
 Daneben steht **Priorität: … setzen**. Der Knopf übernimmt die Einstufung in die Ticketpriorität (Critical → Critical, High → High, Medium → Normal, Low → Low). Nach einem Klick erscheint eine Rückfrage; **erst mit „Setzen“ wird geschrieben** – ohne Bestätigung passiert nichts.
 
+Verlangt Znuny dabei Pflichtfelder, die im Ticket leer sind (typisch: **Service**), wird nichts geschrieben: Stattdessen erscheint der Hinweis, welche Felder fehlen, und ein Knopf **Formular öffnen** – die Prioritätsseite öffnet sich dann mit bereits **vorausgewählter Priorität**, du ergänzt nur noch das fehlende Feld.
+
 - Kritisch = rot, Hoch = orange, Mittel = gelb, Niedrig = grün.
 - Maßgeblich ist die schwerste gefundene Stufe; die Marke nennt zusätzlich, wie viele Funde je Stufe im Artikel stehen.
 - Es wird nichts in Znuny geschrieben und nichts dauerhaft gespeichert – die Bewertung entsteht bei jedem Klick neu.

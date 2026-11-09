@@ -11235,6 +11235,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     low: ["low", "niedrig"]
   };
   const EASM_PRIO_LABEL = { critical: "Critical", high: "High", medium: "Normal", low: "Low" };
+  const EASM_PRIO_XREF = { critical: "1", high: "2", medium: "3", low: "4" };
 
   function easmPrioritaetAusOptionen(optionen, stufe) {
     const namen = EASM_PRIO_MAP[stufe] || [];
@@ -11249,48 +11250,71 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return null;
   }
 
-  async function ladeEasmPrioritaetsFormular(ticketId) {
+  async function setzeEasmPrioritaet(ticketId, stufe) {
+    // Das echte Formular der Prioritaetsseite laden und abschicken: Dadurch
+    // bleiben Service, Queue, Typ und Besitzer unveraendert - nur die
+    // Prioritaet wird gesetzt. Ein selbst gebauter POST hatte Felder
+    // verloren und Znuny meldete "Ungueltiger Service".
     const antwort = await fetch(`/otrs/index.pl?Action=AgentTicketPriority;TicketID=${encodeURIComponent(ticketId)}`, {
       credentials: "same-origin"
     });
     if (!antwort.ok) throw new Error(`Prioritaetsseite ${antwort.status}`);
+
     const html = await antwort.text();
     const doc = new DOMParser().parseFromString(html, "text/html");
     const form = doc.querySelector("form");
     if (!form) throw new Error("Prioritaetsformular nicht gefunden");
 
-    const felder = [...form.querySelectorAll("input, select, textarea")]
-      .filter((el) => el.name && el.type !== "submit" && el.type !== "file" && el.type !== "button")
-      .map((el) => ({ name: el.name, value: el.value || "" }));
-
     const auswahl = doc.querySelector('select[name="NewPriorityID"]');
-    const optionen = auswahl
-      ? [...auswahl.options].map((o) => ({ wert: o.value, text: o.textContent.trim() }))
-      : [];
+    if (!auswahl) throw new Error("Prioritaetsauswahl nicht gefunden");
 
-    return { felder, optionen };
-  }
-
-  async function setzeEasmPrioritaet(ticketId, stufe) {
-    const { felder, optionen } = await ladeEasmPrioritaetsFormular(ticketId);
+    const optionen = [...auswahl.options].map((o) => ({ wert: o.value, text: o.textContent.trim() }));
     const ziel = easmPrioritaetAusOptionen(optionen, stufe);
     if (!ziel) throw new Error("Keine passende Prioritaet im Formular");
 
-    const form = document.createElement("form");
-    form.method = "post";
-    form.action = "/otrs/index.pl";
-    form.style.display = "none";
-
-    for (const feld of felder) {
-      const eingabe = document.createElement("input");
-      eingabe.type = "hidden";
-      eingabe.name = feld.name;
-      eingabe.value = feld.name === "NewPriorityID" ? ziel.wert : feld.value;
-      form.appendChild(eingabe);
+    // Alle vorhandenen Felder uebernehmen - aber ohne Artikel-Pflichtfelder.
+    const daten = new URLSearchParams();
+    for (const feld of form.querySelectorAll("input, select, textarea")) {
+      if (!feld.name || feld.disabled) continue;
+      if (feld.type === "submit" || feld.type === "file" || feld.type === "button") continue;
+      if (feld.tagName === "SELECT") {
+        daten.set(feld.name, feld.value || "");
+      } else if (feld.type === "checkbox" || feld.type === "radio") {
+        if (feld.checked) daten.append(feld.name, feld.value || "on");
+      } else {
+        daten.append(feld.name, feld.value || "");
+      }
     }
 
-    document.body.appendChild(form);
-    form.submit();
+    // Nur die Prioritaet aendern, keinen Artikel anlegen.
+    daten.set("NewPriorityID", ziel.wert);
+    daten.delete("CreateArticle");
+    for (const name of ["Subject", "Body", "MimeType", "Charset", "FileUpload"]) {
+      daten.delete(name);
+    }
+
+    const ergebnis = await fetch(form.getAttribute("action") || "/otrs/index.pl", {
+      method: "POST",
+      body: new URLSearchParams(daten.toString()),
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" }
+    });
+
+    const seite = await ergebnis.text();
+
+    // Znuny verlangt auf manchen Tickets Pflichtfelder, die im Formular leer
+    // sind (typisch: Service). Dann hilft nur das echte Formular.
+    const fehlend = [];
+    if (/Ung\u00fcltiger Service/i.test(seite)) fehlend.push("Service");
+    if (/Ung\u00fcltiger Typ/i.test(seite)) fehlend.push("Typ");
+    if (/Ein oder mehrere Fehler/i.test(seite) && !fehlend.length) fehlend.push("Pflichtfeld");
+
+    if (fehlend.length) {
+      const fehler = new Error("Znuny verlangt zusaetzlich: " + fehlend.join(", "));
+      fehler.fehlendeFelder = fehlend;
+      throw fehler;
+    }
+
     return ziel.text;
   }
 
@@ -11345,14 +11369,48 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       knopf.textContent = "Setze \u2026";
       try {
         await setzeEasmPrioritaet(ticketId, stufe);
+        karte.querySelector(".zh-easm-confirm__hinweis").textContent = "Prioritaet gesetzt - Seite wird neu geladen.";
+        window.setTimeout(() => location.reload(), 900);
       } catch (fehler) {
         knopf.disabled = false;
         knopf.textContent = "Setzen";
-        karte.querySelector(".zh-easm-confirm__hinweis").textContent = `Fehler: ${fehler.message}`;
+        const hinweis = karte.querySelector(".zh-easm-confirm__hinweis");
+        hinweis.textContent = fehler.message || "Aenderung fehlgeschlagen";
+
+        if (fehler.fehlendeFelder) {
+          const oeffnen = document.createElement("button");
+          oeffnen.type = "button";
+          oeffnen.className = "zh-easm-confirm__ja";
+          oeffnen.style.marginLeft = "8px";
+          oeffnen.textContent = "Formular oeffnen";
+          oeffnen.addEventListener("click", () => {
+            const zielWert = EASM_PRIO_XREF[stufe] || "";
+            const url =
+              `/otrs/index.pl?Action=AgentTicketPriority;TicketID=${encodeURIComponent(ticketId)}` +
+              (zielWert ? `#zh-prio=${encodeURIComponent(zielWert)}` : "");
+            window.open(url, "_blank", "noopener");
+            karte.remove();
+          });
+          karte.querySelector(".zh-easm-confirm__actions").appendChild(oeffnen);
+        }
       }
     });
 
     document.body.appendChild(karte);
+  }
+
+  // Prioritaetsseite: Wurde sie mit #zh-prio=<id> geoeffnet, wird der Wert
+  // vorausgewaehlt - der Nutzer muss nur noch die fehlenden Felder fuellen.
+  function wendeEasmVorwahlAn() {
+    const treffer = location.hash.match(/zh-prio=([^&]+)/);
+    if (!treffer) return;
+    const auswahl = document.querySelector('select[name="NewPriorityID"]');
+    if (!auswahl) return;
+    const wert = decodeURIComponent(treffer[1]);
+    if ([...auswahl.options].some((o) => o.value === wert)) {
+      auswahl.value = wert;
+      auswahl.dispatchEvent(new Event("change", { bubbles: true }));
+    }
   }
 
   function enableEasmRating() {
@@ -11438,6 +11496,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     if (settings.easmRating) enableEasmRating();
     else disableEasmRating();
+    wendeEasmVorwahlAn();
 
     if (settings.ticketListInfiniteScroll) enableTicketListInfiniteScroll();
     else disableTicketListInfiniteScroll();

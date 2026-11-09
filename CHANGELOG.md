@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.28] – 2026-11-09
+
+### Fixed
+- **„Priorität setzen" hat das Ticket zerschossen:** Der Knopf baute den POST selbst zusammen – dabei gingen Felder verloren und der Service stand auf „-", Znuny antwortete mit „Ungültiger Service" und zeigte ein Fehlerformular. Jetzt wird das **echte Formular der Prioritätsseite** verwendet: alle Felder werden übernommen, nur `NewPriorityID` geändert und die Artikel-Pflichtfelder entfernt. Service, Queue, Typ und Besitzer bleiben damit unangetastet.
+- **Fehlende Pflichtfelder werden erklärt statt verschluckt:** Verlangt Znuny zusätzlich ein Feld, das im Ticket leer ist (bei den EASM-Tickets fast immer **Service**), wird nichts geschrieben. Stattdessen steht in der Rückfrage, welches Feld fehlt, plus ein Knopf **Formular öffnen** – die Prioritätsseite öffnet sich mit **vorausgewählter Priorität** (z. B. „High"), du ergänzt nur noch den Service.
+
 ## [1.6.27] – 2026-11-09
 
 ### Fixed

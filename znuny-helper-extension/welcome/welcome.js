@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.28",
+      items: [
+        "„Priorität setzen“ nutzt jetzt das echte Znuny-Formular statt eines selbst gebauten POST – kein „Ungültiger Service“ mehr.",
+        "Fehlt ein Pflichtfeld (bei EASM-Tickets oft der Service), wird nichts geschrieben: Die Prioritätsseite öffnet sich mit vorausgewählter Priorität, du ergänzt nur das fehlende Feld."
+      ]
+    },
+    {
       version: "1.6.27",
       items: [
         "Pinball: Die Seitenlöcher sind zu (Außenbahn-Rampen), kein Hängenbleiben mehr und die Kugel startet oben im Feld statt in der Rampe.",

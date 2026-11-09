@@ -1582,6 +1582,20 @@ check("Prioritaet erst nach Bestaetigung",
   source.includes("zh-easm-confirm") && source.includes("setzeEasmPrioritaet"),
   true);
 
+console.log("\n29) EASM-Prioritaet: echtes Formular und Rueckfall");
+check("Prioritaet per echtem Formular (Felder werden uebernommen)",
+  source.includes("form.querySelectorAll(\"input, select, textarea\")") && source.includes("NewPriorityID"),
+  true);
+check("Artikel-Pflichtfelder werden entfernt",
+  source.includes('daten.delete("CreateArticle")') && source.includes('"Subject", "Body"'),
+  true);
+check("fehlende Pflichtfelder werden erkannt",
+  source.includes("fehlendeFelder") && source.includes("Ung"),
+  true);
+check("Rueckfall oeffnet das Formular mit Vorauswahl",
+  source.includes("zh-prio=") && source.includes("wendeEasmVorwahlAn"),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );
