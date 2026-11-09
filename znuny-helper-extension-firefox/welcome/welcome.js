@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.6.32",
+      items: [
+        "Priorität-Dialog prüft jetzt auch Queue und Besitzer: Fehlen sie im Formular, erklärt er das (liegt am Ticket) und bietet kein „Setzen“ an, das ohnehin scheitern würde."
+      ]
+    },
+    {
       version: "1.6.31",
       items: [
         "Behoben: Die Erweiterung startete auf manchen Seiten nicht mehr (fehlende Funktion nach dem Umbau).",

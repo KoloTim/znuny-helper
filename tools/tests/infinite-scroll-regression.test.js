@@ -1615,10 +1615,21 @@ check("Pflichtfelder werden vor dem Dialog geprueft",
   source.includes("easmFehlendePflichtfelder") && source.includes("ladeEasmPrioritaetsFormular"),
   true);
 check("ohne Service kein Setzen-Knopf",
-  /if \(fehlend\.length\) \{/.test(source) && source.includes("Formular oeffnen"),
+  /if \(fehlend\.length\) \{/.test(source) && source.includes("Formular \u00f6ffnen"),
   true);
 check("Formular oeffnet mit Vorauswahl",
   source.includes("oeffneEasmPrioritaetsFormular") && source.includes("zh-prio="),
+  true);
+
+console.log("\n32) Prioritaet: Queue und Besitzer werden vorab geprueft");
+check("Queue wird als Pflichtfeld erkannt",
+  source.includes('werte.NewQueueID') && source.includes('fehlend.push("Queue")'),
+  true);
+check("Besitzer wird als Pflichtfeld erkannt",
+  source.includes('werte.NewOwnerID') && source.includes('fehlend.push("Besitzer")'),
+  true);
+check("ohne Queue/Besitzer kein Setzen-Knopf",
+  source.includes("Formular \u00f6ffnen") || source.includes("Formular öffnen"),
   true);
 
 const chromeManifest = JSON.parse(

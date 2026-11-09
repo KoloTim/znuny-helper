@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.32] – 2026-11-09
+
+### Fixed
+- **Rückfrage bietet kein „Setzen" mehr an, wenn es nicht klappen kann.** Die Vorab-Prüfung erkennt jetzt auch **Queue** und **Besitzer**: Stehen sie im Prioritätsformular auf „-", könnte auch ein Mensch nicht speichern (Znuny meldet „Queue ungültig", „Besitzer ungültig"). Der Dialog sagt das im Klartext – dass es am Ticket liegt und nicht an der Erweiterung – und bietet nur **Formular öffnen** an.
+- Text korrigiert: „stehen im Formular auf ‚-'" bzw. „steht", je nach Anzahl der Felder.
+
+### Warum die Felder nicht „gleich bleiben" können
+Die Erweiterung schickt genau das, was im Formular steht – und dort steht bei Queue und Besitzer „-". Ein Test mit dem **echten** Znuny-Formular (im iframe, mit JavaScript) hat dasselbe Ergebnis geliefert: Der Submit scheitert mit „Queue ungültig", „Besitzer ungültig". Es gibt in den Ticket-Ansichten auch keine Queue-ID, die man übernehmen könnte (nur `ServiceID=1`, `QueueID=` bleibt leer). Sobald Queue und Besitzer am Ticket gesetzt sind, funktioniert der Ein-Klick-Weg.
+
 ## [1.6.31] – 2026-11-09
 
 ### Fixed

@@ -11315,7 +11315,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
   function easmFehlendePflichtfelder(werte, serviceOptionen) {
     const fehlend = [];
+    if (!String(werte.NewQueueID || "").trim()) fehlend.push("Queue");
     if (!String(werte.ServiceID || "").trim() && !easmServiceStandard(serviceOptionen)) fehlend.push("Service");
+    if (!String(werte.NewOwnerID || "").trim()) fehlend.push("Besitzer");
     if (!String(werte.TypeID || "").trim()) fehlend.push("Typ");
     return fehlend;
   }
@@ -11455,14 +11457,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (fehlend.length) {
       titel.textContent = `Priorität auf ${EASM_PRIO_LABEL[stufe]} setzen`;
       text.innerHTML =
-        `Znuny verlangt auf diesem Ticket zusätzlich: <strong>${fehlend.join(", ")}</strong>. ` +
-        `Direkt setzen ist deshalb nicht möglich.<br>` +
-        `Im Formular ist <strong>${EASM_PRIO_LABEL[stufe]}</strong> bereits ausgewählt – du ergänzt nur noch ${fehlend.join(" und ")}.`;
+        `Znuny nimmt die Änderung auf diesem Ticket nicht an: <strong>${fehlend.join(", ")}</strong> ` +
+        `${fehlend.length === 1 ? "steht" : "stehen"} im Formular auf „-“. Das liegt am Ticket, nicht an der Erweiterung – ` +
+        `auch von Hand lässt sich so nicht speichern.<br>` +
+        `Sobald ${fehlend.join(" und ")} am Ticket gesetzt ${fehlend.length === 1 ? "ist" : "sind"}, ` +
+        `setzt ein Klick die Priorität auf <strong>${EASM_PRIO_LABEL[stufe]}</strong>.`;
 
       const oeffnen = document.createElement("button");
       oeffnen.type = "button";
       oeffnen.className = "zh-easm-confirm__ja";
-      oeffnen.textContent = "Formular oeffnen";
+      oeffnen.textContent = "Formular öffnen";
       oeffnen.addEventListener("click", () => {
         oeffneEasmPrioritaetsFormular(ticketId, stufe);
         schliessen();
@@ -11500,7 +11504,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           oeffnen.type = "button";
           oeffnen.className = "zh-easm-confirm__ja";
           oeffnen.style.marginLeft = "8px";
-          oeffnen.textContent = "Formular oeffnen";
+          oeffnen.textContent = "Formular öffnen";
           oeffnen.addEventListener("click", () => {
             oeffneEasmPrioritaetsFormular(ticketId, stufe);
             schliessen();
