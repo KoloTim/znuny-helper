@@ -14,6 +14,7 @@
  *   node tools/browser/clicks.js --sichtbar
  *   node tools/browser/clicks.js --nur=kategorie-setzen
  *   node tools/browser/clicks.js --aufzeichnen=tools/browser/output/klicks
+ *   node tools/browser/clicks.js --live      (echte Seiten, Waechter bleibt aktiv)
  */
 
 const fs = require("node:fs");
@@ -29,9 +30,10 @@ const { starteAufzeichnung, schreibePlayer } = require("./screencast.js");
 const AUSGABE = path.join(__dirname, "output");
 
 function argumente() {
-  const optionen = { headful: false, sichtbar: false, nur: null, langsam: 0, aufzeichnen: null, max: 180000 };
+  const optionen = { headful: false, sichtbar: false, nur: null, langsam: 0, aufzeichnen: null, max: 180000, live: false };
   for (const arg of process.argv.slice(2)) {
     if (arg === "--headful") optionen.headful = true;
+    else if (arg === "--live") optionen.live = true;
     else if (arg === "--sichtbar") {
       optionen.sichtbar = true;
       optionen.headful = true;
@@ -219,7 +221,7 @@ async function fahreSzenario(connection, index, szenario, optionen) {
   if (!seite) throw new Error(`Unbekannte Fixture-Seite: ${szenario.seite}`);
 
   const page = await CdpPage.create(connection, "about:blank");
-  const waechter = await bewache(connection, page.sessionId, index);
+  const waechter = await bewache(connection, page.sessionId, index, { live: optionen.live === true });
   const { werkzeuge, pruefungen, protokoll } = macheWerkzeuge(connection, page, optionen);
 
   const ergebnis = { szenario, pruefungen, protokoll, fehler: [], aufnahme: null };
@@ -319,14 +321,22 @@ async function main() {
   const index = ladeIndex();
   const szenarienModul = require(path.join(REPO_ROOT, "tools", "fixtures", "clicks.js"));
   const alle = szenarienModul.szenarien || [];
-  const szenarien = alle.filter((eintrag) => !optionen.nur || eintrag.name === optionen.nur);
+  // Live nur Szenarien, deren Seite ohne POST auskommt. Znuny laedt Widgets und
+  // den "gesehen"-Marker per POST; der Waechter blockt das (richtig), dann
+  // fehlen auf Ticket-/Suchseiten Inhalte und die Pruefung waere wertlos.
+  const szenarien = alle.filter((eintrag) => {
+    if (optionen.nur && eintrag.name !== optionen.nur) return false;
+    return !optionen.live || eintrag.live === true;
+  });
 
   if (!szenarien.length) {
     console.error(`Kein Szenario passt zu --nur=${optionen.nur}`);
     process.exit(2);
   }
 
-  const profil = fs.mkdtempSync(path.join(os.tmpdir(), "zh-klick-"));
+  const profil = optionen.live
+    ? path.join(REPO_ROOT, ".browser-profile")
+    : fs.mkdtempSync(path.join(os.tmpdir(), "zh-klick-"));
   // Notbremse: ein haengender Lauf darf nicht ewig laufen.
   const notbremse = setTimeout(() => {
     console.error(`Zeitlimit erreicht (${optionen.max} ms) - Abbruch.`);
@@ -348,6 +358,7 @@ async function main() {
     const id = await loadExtension(connection, path.join(REPO_ROOT, "znuny-helper-extension"));
     console.log(`Chrome ${chrome.version["Browser"]} - Erweiterung ${id}`);
     console.log("Waechter aktiv: schreibende Anfragen gesperrt, Formulare abgefangen, neue Tabs geschlossen.");
+    if (optionen.live) console.log("LIVE: echte Znuny-Seiten (SSO) - nur lesend, Waechter unveraendert aktiv.");
     await schlafe(600);
 
     // Willkommensseite schliessen; neue Tabs werden vom Waechter-Skript
@@ -359,6 +370,27 @@ async function main() {
         await connection.send("Target.closeTarget", { targetId: target.targetId }).catch(() => {});
       } else if (target.type === "page") {
         eigene.push(target.targetId);
+      }
+    }
+
+    // Live-Betrieb: Znuny meldet sich ueber eine PreLogin-Seite an, die ein
+    // POST-Formular abschickt (SSO-Aushandlung). Dieser eine Anmelde-POST
+    // passiert VOR dem Waechter - genau wie beim manuellen `login`. Alle
+    // danach folgenden Testschritte laufen unter dem Waechter; ein abgelaufene
+    // Sitzung faellt sofort auf, weil die Seite dann auf PreLogin stehen bleibt.
+    if (optionen.live) {
+      const anmeldung = await CdpPage.create(connection, "about:blank");
+      await anmeldung
+        .goto("https://otrs.staff.hsrw/otrs/index.pl", { settleMs: 3500, timeoutMs: 30000 })
+        .catch(() => {});
+      const titel = await anmeldung.evaluate("document.title").catch(() => "");
+      const adresse = await anmeldung.evaluate("location.href").catch(() => "");
+      await anmeldung.dispose();
+      const angemeldet = !/Anmeldung|Login|PreLogin/i.test(titel) && !/PreLogin/i.test(adresse);
+      console.log(`Anmeldung: ${angemeldet ? "ok" : "FEHLGESCHLAGEN"} - "${titel}"`);
+      if (!angemeldet) {
+        console.error("Ohne Sitzung laufen die Klick-Tests nicht. Bitte .\\browser.cmd login ausfuehren.");
+        process.exit(2);
       }
     }
 
@@ -385,7 +417,7 @@ async function main() {
     connection.close();
     await chrome.stop();
     await schlafe(400);
-    fs.rmSync(profil, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
+    if (!optionen.live) fs.rmSync(profil, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
   }
 
   console.log("");

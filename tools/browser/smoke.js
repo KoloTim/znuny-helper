@@ -19,6 +19,7 @@
  *   node tools/browser/smoke.js --aufzeichnen=<dir>  (Bilderfolge + Abspielseite)
  *   node tools/browser/smoke.js --nur=agent-ticket-zoom
  *   node tools/browser/smoke.js --settle=2500        (laenger warten)
+ *   node tools/browser/smoke.js --live               (echte Seiten statt Fixtures)
  *
  * Rueckgabewert 1, sobald eine feste Erwartung verletzt ist.
  */
@@ -46,9 +47,11 @@ function argumente() {
     langsam: 0,
     chrome: null,
     aufzeichnen: null,
+    live: false,
   };
   for (const arg of process.argv.slice(2)) {
     if (arg === "--headful") optionen.headful = true;
+    else if (arg === "--live") optionen.live = true;
     else if (arg === "--sichtbar") {
       optionen.sichtbar = true;
       optionen.headful = true;
@@ -115,12 +118,16 @@ async function schliesseFremdeTabs(connection) {
 
 async function pruefeSeite(connection, seite, optionen, nummer, gesamt) {
   const page = await CdpPage.create(connection, "about:blank");
-  await connection.send(
-    "Fetch.enable",
-    { patterns: [{ urlPattern: "*otrs.staff.hsrw*", requestStage: "Request" }] },
-    page.sessionId
-  );
-  const statistik = bedieneAusFixtures(connection, page.sessionId, optionen.index);
+  if (!optionen.live) {
+    await connection.send(
+      "Fetch.enable",
+      { patterns: [{ urlPattern: "*otrs.staff.hsrw*", requestStage: "Request" }] },
+      page.sessionId
+    );
+  }
+  const statistik = optionen.live
+    ? { dokumente: 0, assets: 0, unbekannt: [] }
+    : bedieneAusFixtures(connection, page.sessionId, optionen.index);
 
   const ergebnis = {
     seite,
@@ -246,7 +253,9 @@ async function main() {
     process.exit(2);
   }
 
-  const profil = fs.mkdtempSync(path.join(os.tmpdir(), "zh-smoke-"));
+  const profil = optionen.live
+    ? path.join(REPO_ROOT, ".browser-profile")
+    : fs.mkdtempSync(path.join(os.tmpdir(), "zh-smoke-"));
   const chrome = await startChrome({
     headless: !optionen.headful,
     extension: false,
@@ -267,6 +276,9 @@ async function main() {
         ? "Fenster ist offen - die Seiten werden nacheinander geoeffnet."
         : "Ohne Fenster (headless). Fuer einen sichtbaren Lauf: --sichtbar"
     );
+    if (optionen.live) {
+      console.log("LIVE: echte Znuny-Seiten (SSO ueber Windows-Ticket) - nur lesend.");
+    }
     await schlafe(500);
     await schliesseFremdeTabs(connection);
 
@@ -294,7 +306,7 @@ async function main() {
     connection.close();
     await chrome.stop();
     await schlafe(500);
-    if (!(await entferneProfil(profil))) {
+    if (!optionen.live && !(await entferneProfil(profil))) {
       console.log(`(Hinweis: Temp-Profil konnte noch nicht geloescht werden: ${profil})`);
     }
   }

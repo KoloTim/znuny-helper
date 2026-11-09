@@ -111,6 +111,11 @@ async function startChrome(options = {}) {
     "--disable-component-update",
     "--disable-sync",
     `--window-size=${options.windowSize || "1440,1000"}`,
+    // Das Znuny antwortet ohne Sitzung mit "401 Negotiate". Mit dieser
+    // Allowlist nimmt Chrome das vorhandene Windows-Kerberos-Ticket
+    // (SSO) - es wird kein Passwort gespeichert und nichts eingegeben.
+    // Ohne den Schalter bliebe nur der Anmeldedialog.
+    "--auth-server-allowlist=otrs.staff.hsrw",
   ];
 
   if (extension && !fs.existsSync(path.join(extension, "manifest.json"))) {

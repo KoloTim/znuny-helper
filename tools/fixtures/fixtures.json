@@ -18,7 +18,7 @@
     {
       "name": "agent-ticket-zoom",
       "beschreibung": "Geoeffnetes Ticket (Artikelansicht)",
-      "url": "https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketZoom;TicketID=105218",
+      "url": "https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketZoom;TicketID=135610",
       "datei": "agent-ticket-zoom.html",
       "fest": ["#zh-ticket-article-search", ".zh-ticket-number-copy"],
       "beobachtet": [".zh-cat-ui", ".zh-attachment-btn"]
@@ -26,7 +26,7 @@
     {
       "name": "customer-meine-tickets",
       "beschreibung": "Kundenportal: Meine Tickets",
-      "url": "https://otrs.staff.hsrw/otrs/customer.pl?Action=CustomerTicketOverview;Subaction=MyTickets",
+      "url": "https://otrs.staff.hsrw/otrs/customer.pl?Action=CustomerTicketOverview;Subaction=MyTickets;Filter=All",
       "datei": "customer-meine-tickets.html",
       "fest": [".zh-cat-ui", ".zh-category-select"],
       "beobachtet": [".zh-badge", ".zh-category-manage-btn"]

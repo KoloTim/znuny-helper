@@ -27,6 +27,8 @@ const szenarien = [
   {
     name: "kategorie-setzen",
     seite: "agent-uebersicht",
+    // Live lauffaehig: die Ticketliste rendert vollstaendig per GET.
+    live: true,
     beschreibung: "Kategorie in der Ticketliste manuell setzen",
     schritte: async (w) => {
       await w.erwarte(".zh-category-select", "Kategorie-Auswahl vorhanden");
@@ -67,6 +69,7 @@ const szenarien = [
   {
     name: "kategorien-verwalten",
     seite: "agent-uebersicht",
+    live: true,
     beschreibung: "Kategorien-Verwaltung oeffnen und wieder schliessen",
     schritte: async (w) => {
       await w.klickText(".zh-category-tools button, .zh-category-manage-btn", "Kategorien bearbeiten");

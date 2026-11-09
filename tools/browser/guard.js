@@ -95,10 +95,27 @@ async function bewache(connection, sessionId, index, optionen = {}) {
 
       if (methode === "GET" || methode === "HEAD") {
         bericht.erlaubteGet += 1;
+        // Live-Betrieb: echte Seiten laden (SSO), aber weiterhin jede
+        // schreibende Anfrage abweisen. Ohne diese Ausnahme wuerde der
+        // Waechter die echte Seite aus den Fixtures beantworten.
+        if (optionen.live === true) {
+          try {
+            await connection.send("Fetch.continueRequest", { requestId: params.requestId }, sessionId);
+          } catch {
+            /* Tab schon zu */
+          }
+          return;
+        }
         return bedieneAnfrage(connection, sessionId, index, params, statistik, optionen.stumm === true);
       }
 
-      bericht.anfragen.push({ methode, url });
+      bericht.anfragen.push({
+        methode,
+        url,
+        // Kurzer Auszug des Rumpfes: So ist im Bericht erkennbar, WAS da
+        // gesendet werden sollte (z. B. Action=Login oder eine Ticketaktion).
+        daten: String(params.request.postData || "").slice(0, 160),
+      });
       try {
         await connection.send(
           "Fetch.failRequest",
