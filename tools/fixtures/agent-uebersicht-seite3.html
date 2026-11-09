@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!--
+  FIXTURE (synthetisch) - Folgeseite 3 ohne neue Tickets. Damit endet das
+  Nachladen regulaer ("alle Tickets geladen") statt in eine Wiederholung zu
+  laufen - der Test prueft also auch, dass die Schleife anhaelt.
+-->
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Gesperrte Tickets - Seite 3</title>
+</head>
+<body>
+<div id="MainBox" class="MainBox">
+  <div class="Content">
+    <table class="Overview">
+      <thead>
+        <tr>
+          <th>Ticket</th>
+          <th>Alter</th>
+          <th>Betreff</th>
+          <th>Von</th>
+          <th>Status</th>
+          <th>Queue</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="Pagination">
+      <a href="index.pl?Action=AgentTicketLockedView;Page=1">1</a>
+      <a href="index.pl?Action=AgentTicketLockedView;Page=2">2</a>
+      <a href="index.pl?Action=AgentTicketLockedView;Page=3">3</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

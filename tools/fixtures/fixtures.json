@@ -1,0 +1,43 @@
+{
+  "hinweis": "Seiten, die tools/browser/smoke.js ohne echtes Znuny laedt. 'fest' = muss zutreffen (sonst Fehler), 'beobachtet' = wird nur berichtet. 'folgeseiten' werden beim Nachladen (Infinite Scroll) bedient. Echte Aufnahmen aus tools/browser/capture.js ersetzen die synthetischen Platzhalter 1:1.",
+  "seiten": [
+    {
+      "name": "agent-uebersicht",
+      "beschreibung": "Gesperrte Tickets (Ticketliste) inkl. Nachladen",
+      "url": "https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketLockedView",
+      "datei": "agent-uebersicht.html",
+      "fest": [".zh-cat-ui", ".zh-category-select"],
+      "beobachtet": [".zh-infinite-scroll-status", ".zh-category-manage-btn"],
+      "folgeseiten": {
+        "https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketLockedView;Page=2": "agent-uebersicht-seite2.html",
+        "https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketLockedView;Page=3": "agent-uebersicht-seite3.html",
+        "https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketLockedView&Page=2": "agent-uebersicht-seite2.html",
+        "https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketLockedView&Page=3": "agent-uebersicht-seite3.html"
+      }
+    },
+    {
+      "name": "agent-ticket-zoom",
+      "beschreibung": "Geoeffnetes Ticket (Artikelansicht)",
+      "url": "https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketZoom;TicketID=105218",
+      "datei": "agent-ticket-zoom.html",
+      "fest": ["#zh-ticket-article-search", ".zh-ticket-number-copy"],
+      "beobachtet": [".zh-cat-ui", ".zh-attachment-btn"]
+    },
+    {
+      "name": "customer-meine-tickets",
+      "beschreibung": "Kundenportal: Meine Tickets",
+      "url": "https://otrs.staff.hsrw/otrs/customer.pl?Action=CustomerTicketOverview;Subaction=MyTickets",
+      "datei": "customer-meine-tickets.html",
+      "fest": [".zh-cat-ui", ".zh-category-select"],
+      "beobachtet": [".zh-badge", ".zh-category-manage-btn"]
+    },
+    {
+      "name": "agent-suche",
+      "beschreibung": "Suchdialog (Ticketnummer-Suche)",
+      "url": "https://otrs.staff.hsrw/otrs/index.pl?Action=AgentTicketSearch",
+      "datei": "agent-suche.html",
+      "fest": ["#zh-search-primary-fields", ".zh-search-history-block"],
+      "beobachtet": [".zh-search-primary-input", ".zh-search-daterange-buttons"]
+    }
+  ]
+}

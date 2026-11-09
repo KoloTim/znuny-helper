@@ -9,6 +9,10 @@
     "build": "node tools/run-python.js tools/build-release-zips.py",
     "verify": "node tools/run-python.js tools/verify-release-zips.py",
     "sync-firefox": "node tools/run-python.js tools/sync-firefox.py",
-    "sync-firefox:check": "node tools/run-python.js tools/sync-firefox.py --check"
+    "sync-firefox:check": "node tools/run-python.js tools/sync-firefox.py --check",
+    "browser:smoke": "node tools/browser/smoke.js",
+    "browser:login": "node tools/browser/capture.js --login",
+    "browser:capture": "node tools/browser/capture.js",
+    "browser:testserver": "node tools/browser/testserver.js 8099"
   }
 }

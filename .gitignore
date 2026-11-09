@@ -1,0 +1,8 @@
+# Chrome-Profil fuer echte Znuny-Aufnahmen (enthaelt die Sitzung - nicht einchecken)
+.browser-profile/
+
+# Screenshots und Zwischenstaende der Browser-Werkzeuge
+tools/browser/output/
+
+# Aufnahmen echter Seiten (enthalten Ticketdaten - nur lokal)
+tools/fixtures/aufnahme/

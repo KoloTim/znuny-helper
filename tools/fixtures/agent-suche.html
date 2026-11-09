@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<!--
+  FIXTURE (synthetisch) - Suchdialog (AgentTicketSearch).
+
+  Nachgebaut ist nur das Geruest, an dem sich die Ticketnummer-Suche festhaelt:
+  ein Suchformular mit Volltextfeld und Attribut-Auswahl. Geprueft wird der
+  Start ohne Exception; welche Felder tatsaechlich umgebaut werden, wird im
+  Bericht als "beobachtet" ausgegeben (die echte Znuny-Vorlage weicht hier
+  erfahrungsgemaess am staerksten ab).
+-->
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Suche - OTRS</title>
+  <style>
+    body { font: 13px/1.45 -apple-system, "Segoe UI", Arial, sans-serif; margin: 0; background: #f4f5f7; color: #1c1b29; }
+    #MainBox { max-width: 900px; margin: 24px auto; background: #fff; border: 1px solid #d6d6d6; border-radius: 6px; }
+    .Header { padding: 12px 18px; border-bottom: 1px solid #e3e3e3; }
+    .Header h1 { margin: 0; font-size: 16px; }
+    .Content { padding: 16px 18px 22px; }
+    fieldset { border: 1px solid #e0e0e0; border-radius: 5px; margin: 0 0 14px; padding: 12px 14px; }
+    legend { font-weight: 700; padding: 0 6px; }
+    label { display: inline-block; min-width: 190px; text-align: right; margin-right: 10px; color: #555; }
+    input[type="text"], select { padding: 3px 6px; border: 1px solid #bbb; border-radius: 3px; font: inherit; }
+    .Row { margin: 7px 0; }
+    button { padding: 5px 12px; font: inherit; }
+  </style>
+</head>
+<body>
+<div id="MainBox" class="MainBox">
+  <div class="Header"><h1>Suche</h1></div>
+  <div class="Content">
+    <form id="SearchForm" name="SearchForm" action="index.pl" method="post">
+      <fieldset>
+        <legend>Suche</legend>
+        <div class="Row">
+          <label for="Attribute">Attribut</label>
+          <select id="Attribute" name="Attribute">
+            <option value="Fulltext">Volltext</option>
+            <option value="TicketNumber">Ticketnummer</option>
+          </select>
+        </div>
+        <div class="Row">
+          <label for="Fulltext">Volltext</label>
+          <input type="text" id="Fulltext" name="Fulltext" value="">
+        </div>
+        <div class="Row">
+          <label for="TicketNumber">Ticketnummer</label>
+          <input type="text" id="TicketNumber" name="TicketNumber" value="">
+        </div>
+      </fieldset>
+      <button type="submit" name="Search" value="1">Suche starten</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

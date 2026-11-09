@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!--
+  FIXTURE (synthetisch) - Folgeseite 2 der Uebersicht, damit Infinite Scroll
+  den echten Weg geht: Seite anfordern, Zeilen anhaengen, weiterzaehlen.
+-->
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Gesperrte Tickets - Seite 2</title>
+</head>
+<body>
+<div id="MainBox" class="MainBox">
+  <div class="Content">
+    <table class="Overview">
+      <thead>
+        <tr>
+          <th>Ticket</th>
+          <th>Alter</th>
+          <th>Betreff</th>
+          <th>Von</th>
+          <th>Status</th>
+          <th>Queue</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><a href="index.pl?Action=AgentTicketZoom;TicketID=105221">2026100812345681</a></td>
+          <td>6 d</td>
+          <td>Beamer im Seminarraum flackert</td>
+          <td>Prof. Dr. Beispiel</td>
+          <td>offen</td>
+          <td>2nd Level</td>
+        </tr>
+        <tr>
+          <td><a href="index.pl?Action=AgentTicketZoom;TicketID=105222">2026100812345682</a></td>
+          <td>8 d</td>
+          <td>Neuer Mitarbeiter: Zugang und Telefon</td>
+          <td>Personalabteilung</td>
+          <td>neu</td>
+          <td>ServiceDesk</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="Pagination">
+      <a href="index.pl?Action=AgentTicketLockedView;Page=1">1</a>
+      <a href="index.pl?Action=AgentTicketLockedView;Page=2">2</a>
+      <a href="index.pl?Action=AgentTicketLockedView;Page=3">3</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

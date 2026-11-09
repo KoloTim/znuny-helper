@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<!--
+  FIXTURE (synthetisch) - Kundenportal "Meine Tickets".
+
+  Weniger Spalten als die Agenten-Liste, kein Spaltenkopf "Case", sondern
+  "Ticket#" - genau der Fall, der frueher die Kategorie-Spalte verschluckt hat.
+  Geprueft wird, dass die Erweiterung die Tabelle erkennt (relaxed) und die
+  Kategorie-Auswahl einhaengt.
+-->
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Meine Tickets - Kundenportal</title>
+  <style>
+    body { font: 13px/1.45 -apple-system, "Segoe UI", Arial, sans-serif; margin: 0; background: #f4f5f7; color: #1c1b29; }
+    #MainBox { max-width: 1020px; margin: 24px auto; background: #fff; border: 1px solid #d6d6d6; border-radius: 6px; }
+    .Header { padding: 12px 18px; border-bottom: 1px solid #e3e3e3; }
+    .Header h1 { margin: 0; font-size: 16px; }
+    .Content { padding: 16px 18px 22px; }
+    table.Overview { width: 100%; border-collapse: collapse; }
+    table.Overview th { text-align: left; font-size: 11px; text-transform: uppercase; color: #5d5d6b; border-bottom: 2px solid #d6d6d6; padding: 6px 8px; }
+    table.Overview td { padding: 7px 8px; border-bottom: 1px solid #ececec; }
+    a { color: #1f5f9f; }
+  </style>
+</head>
+<body>
+<div id="MainBox">
+  <div class="Header"><h1>Meine Tickets</h1></div>
+  <div class="Content">
+    <table class="Overview">
+      <thead>
+        <tr><th>Ticket#</th><th>Titel</th><th>Alter</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><a href="customer.pl?Action=CustomerTicketZoom;TicketID=2026100812345678">2026100812345678</a></td>
+          <td>Drucker defekt</td>
+          <td>3 h</td>
+          <td>offen</td>
+        </tr>
+        <tr>
+          <td><a href="customer.pl?Action=CustomerTicketZoom;TicketID=2026100812345679">2026100812345679</a></td>
+          <td>Zugang WLan</td>
+          <td>1 d</td>
+          <td>neu</td>
+        </tr>
+        <tr>
+          <td><a href="customer.pl?Action=CustomerTicketZoom;TicketID=2026100812345680">2026100812345680</a></td>
+          <td>Software bestellen</td>
+          <td>5 d</td>
+          <td>warten</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>

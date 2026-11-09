@@ -430,6 +430,14 @@ tools/                           Hilfsskripte für Abgleich, Test und Release
   build-release-zips.py          Store-Archive bauen
   verify-release-zips.py         Archive gegen die Quelldateien prüfen
   make-netwiki-absatzform.py     Absatzfassung der NetWiki-Doku erzeugen
+  browser/                       Browser-Harness (Chrome/Edge ueber CDP)
+    cdp.js                       DevTools-Protokoll ohne Zusatzpakete
+    launch.js                    Chrome starten, Erweiterung laden
+    fixtures.js                  Znuny-Adressen aus tools/fixtures/ bedienen
+    smoke.js                     Rauchtest je Seite samt Screenshot
+    capture.js                   echte Seiten aufnehmen (--login, --uebernehmen)
+    testserver.js                lokaler Server fuer den Aufnahme-Weg
+  fixtures/                      Testseiten (synthetisch bzw. echte Aufnahmen)
   tests/                         Regressionstests (Node, ohne Zusatzpakete)
 package.json                     npm-Scripts (test, build, verify, sync-firefox)
 .github/workflows/ci.yml         Automatische Prüfung bei push und pull_request
@@ -472,6 +480,31 @@ npm test
 ```
 
 Die npm-Scripts `build`, `verify` und `sync-firefox` rufen die Python-Skripte auf und funktionieren unter Windows (`python`/`py`) wie unter Linux (`python3`); es werden keine zusätzlichen Pakete benötigt.
+
+### Browser-Werkzeuge (echtes Znuny und Fixtures)
+
+Für alles, was sich am DOM entscheidet (Tabellenerkennung, Widgets, Artikel-Aktionen, Popups), reicht ein Mock nicht aus. Unter `tools/browser/` liegt deshalb ein kleines Harness, das **ohne Zusatzpakete** auskommt: Es spricht Chromes DevTools-Protokoll direkt über den in Node enthaltenen WebSocket-Client. Chrome/Edge wird also nur als Programm vorausgesetzt, nichts wird nachinstalliert.
+
+Vier Betriebsarten:
+
+```bash
+node tools/browser/smoke.js                 # Fixtures: Erweiterung laden, Seiten prüfen, Screenshots
+node tools/browser/capture.js --login       # einmalig: im Profil anmelden (Sitzung bleibt gespeichert)
+node tools/browser/capture.js               # echte Seiten aufnehmen (ohne Erweiterung)
+node tools/browser/testserver.js 8099       # lokaler Server, um den Aufnahme-Weg zu prüfen
+```
+
+**Rauchtest (`smoke.js`).** Lädt die Erweiterung in Chrome, beantwortet alle Anfragen an `https://otrs.staff.hsrw/...` aus `tools/fixtures/` und prüft je Seite: meldet sich der Content-Script („Znuny Helper *Version* aktiv"), wurde eine Exception geworfen, und sind die erwarteten Elemente vorhanden (z. B. Kategorie-Spalte in der Ticketliste, Artikelsuche im Ticket). Dazu entsteht je Seite ein Screenshot unter `tools/browser/output/`. Erwartungen stehen in `tools/fixtures/fixtures.json`: `fest` muss zutreffen, `beobachtet` wird nur berichtet. `folgeseiten` werden beim Nachladen bedient, sodass Infinite Scroll samt Endebedingung mitgetestet wird.
+
+```bash
+node tools/browser/smoke.js --headful              # Fenster zeigen
+node tools/browser/smoke.js --nur=agent-ticket-zoom
+node tools/browser/smoke.js --settle=3000           # länger warten (langsame Rechner)
+```
+
+**Aufnahme echter Seiten (`capture.js`).** Fehlt eine Seite als Fixture, wird sie aus dem echten System aufgenommen. Voraussetzung ist ein angemeldetes Profil in `.browser-profile/`; die Anmeldung erfolgt einmalig von Hand über `--login`, die Cookies bleiben im Profil. Passwörter stehen nirgends im Skript, und die Erweiterung sieht während der Aufnahme keine Zugangsdaten. Aufgenommen wird **ohne** Erweiterung, damit das Fixture reines Znuny-Markup enthält und der Rauchtest sich nicht selbst mitbringt. Ergebnis: `tools/fixtures/aufnahme/<name>.html` samt Konsolenprotokoll und Screenshot (per `.gitignore` ausgeschlossen, weil darin Ticketdaten stehen). Mit `--uebernehmen` ersetzt eine Aufnahme den synthetischen Platzhalter.
+
+**Sicherheit.** Das Harness arbeitet ausschließlich lesend: Es navigiert, liest das DOM, macht Screenshots. Es gibt bewusst **keine** Funktion zum Absenden, Schließen oder Ändern von Tickets. `.browser-profile/` enthält die Sitzung und ist von der Versionierung ausgenommen.
 
 ### Version aktualisieren
 
