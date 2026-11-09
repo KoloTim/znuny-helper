@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.9] – 2026-11-09
+
+### Changed
+- **Weihnachtsmodus überarbeitet:** Die Deko sitzt nicht mehr in den oberen Ecken – dort liegen Avatar und Benutzermenü, die Girlande hätte die Navigation verdeckt. Stattdessen hängt jetzt eine **Girlande mit Kugeln an der oberen Kante**, oberhalb der Znuny-Navigation.
+- **Der Weihnachtsmann fliegt:** Der Schlitten mit zwei Rentieren steht nicht mehr still in der Ecke, sondern zieht **alle 15 Minuten** einmal quer über den Bildschirm – mit Weihnachtsmann im Schlitten, Geschenksack und goldenem Geschirr. Während des Flugs verliert er fünf Geschenke, die herabfallen und verblassen. Der erste Flug kommt nach etwa 90 Sekunden.
+- Die Szene ist neu gezeichnet (größer, klarere Silhouetten, Weihnachtsmann im Schlitten statt davor).
+
 ## [1.6.8] – 2026-11-09
 
 ### Added

@@ -130,7 +130,7 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Ton bei neuem Ticket**
 
 **Ton bei neuem Ticket** (Benachrichtigung): Sound abspielen, sobald ein neues Ticket bei einem selbst gesperrt wird
 
-**Weihnachtsmodus** (Saison): Schnee, Lichterkette, Tannenzweige mit Kugeln, Glitzer und ein Schlitten mit Rentieren – abschaltbar
+**Weihnachtsmodus** (Saison): Schnee, Lichterkette mit Kugeln, Glitzer – und alle 15 Minuten fliegt der Weihnachtsmann mit Schlitten und Rentieren durchs Bild
 
 **Diagnose** (Hilfe): Version, erkannte Seite, Einstellungen und letzte Meldungen für eine Fehlermeldung sammeln und kopieren
 
@@ -428,11 +428,11 @@ Unter **Saison** im Popup lässt sich der Weihnachtsmodus ein- und ausschalten. 
 
 * **Lichterkette:** eine Kette mit farbigen Lämpchen hängt am oberen Rand.
 
-* **Tannenzweige mit Kugeln:** links und rechts oben, leicht über den Seitenrand hängend.
+* **Girlande mit Kugeln:** an der oberen Kante, oberhalb der Navigation – die Ecken bleiben frei, dort sitzen Avatar und Menü.
 
 * **Glitzer:** kleine Sterne funkeln an mehreren Stellen.
 
-* **Schlitten mit zwei Rentieren:** als Vektorgrafik unten rechts, mit goldenem Geschirr und Kufen.
+* **Schlitten mit zwei Rentieren:** als Vektorgrafik am unteren Rand – und alle 15 Minuten fliegt der Weihnachtsmann einmal quer über den Bildschirm und verliert dabei ein paar Geschenke. Der erste Flug kommt nach etwa 90 Sekunden, damit man ihn nicht verpasst.
 
 Die Deko ist reine Anzeige: Sie liegt in einer Ebene, die **keine Klicks annimmt** – Bedienung und Lesbarkeit bleiben unverändert. Ist im System „Bewegung reduzieren" eingestellt, steht der Schnee still und die Animationen entfallen. Alles entsteht lokal im Browser; es werden keine Daten gesendet und keine zusätzlichen Berechtigungen benötigt.
 

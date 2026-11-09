@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.9",
+      items: [
+        "Weihnachtsmodus überarbeitet: Girlande mit Kugeln an der oberen Kante statt Deko in den Ecken (dort sitzen Avatar und Menü).",
+        "Der Weihnachtsmann fliegt jetzt alle 15 Minuten mit Schlitten und zwei Rentieren durchs Bild und verliert dabei Geschenke."
+      ]
+    },
+    {
       version: "1.6.8",
       items: [
         "Neu: Weihnachtsmodus (Popup → Saison) – Schnee, Lichterkette, Tannenzweige mit Kugeln, Glitzer und ein Schlitten mit zwei Rentieren. Reine Deko, fängt keine Klicks ab und ist jederzeit abschaltbar."

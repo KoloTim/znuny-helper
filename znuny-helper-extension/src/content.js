@@ -9330,87 +9330,100 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   // bedient werden, Klicks gehen immer an Znuny. Bei "prefers-reduced-motion"
   // liegt der Schnee still und die Animationen entfallen.
   const CHRISTMAS_OVERLAY_ID = "zh-christmas";
-  let christmasSnowCleanup = null;
+  let christmasCleanupFns = [];
 
+  // Girlande an der oberen Kante: durchhaengende Schnur, Laempchen und ein
+  // paar Kugeln. Bewusst nur die obersten ~80 px - darunter beginnt die
+  // Znuny-Navigation, die frei bleiben muss.
   const CHRISTMAS_LIGHTS = `
-    <svg class="zh-xmas-lights" viewBox="0 0 1440 34" preserveAspectRatio="none" aria-hidden="true">
-      <path class="zh-xmas-wire" d="M0,6 C240,30 480,30 720,14 C960,30 1200,30 1440,6" fill="none"/>
+    <svg class="zh-xmas-lights" viewBox="0 0 1440 80" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+      <path class="zh-xmas-wire" d="M0,8 C240,46 480,46 720,18 C960,46 1200,46 1440,8" fill="none"/>
       <g class="zh-xmas-bulbs">
-        <circle cx="120" cy="21" r="3.4" class="zh-xmas-bulb zh-xmas-bulb--a"/>
-        <circle cx="240" cy="26" r="3.4" class="zh-xmas-bulb zh-xmas-bulb--b"/>
-        <circle cx="360" cy="28" r="3.4" class="zh-xmas-bulb zh-xmas-bulb--c"/>
-        <circle cx="480" cy="27" r="3.4" class="zh-xmas-bulb zh-xmas-bulb--a"/>
-        <circle cx="600" cy="23" r="3.4" class="zh-xmas-bulb zh-xmas-bulb--b"/>
-        <circle cx="720" cy="14" r="3.4" class="zh-xmas-bulb zh-xmas-bulb--c"/>
-        <circle cx="840" cy="23" r="3.4" class="zh-xmas-bulb zh-xmas-bulb--a"/>
-        <circle cx="960" cy="27" r="3.4" class="zh-xmas-bulb zh-xmas-bulb--b"/>
-        <circle cx="1080" cy="28" r="3.4" class="zh-xmas-bulb zh-xmas-bulb--c"/>
-        <circle cx="1200" cy="26" r="3.4" class="zh-xmas-bulb zh-xmas-bulb--a"/>
-        <circle cx="1320" cy="21" r="3.4" class="zh-xmas-bulb zh-xmas-bulb--b"/>
+        <circle cx="110" cy="26" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
+        <circle cx="215" cy="35" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--b"/>
+        <circle cx="320" cy="41" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--c"/>
+        <circle cx="425" cy="43" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
+        <circle cx="530" cy="41" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--b"/>
+        <circle cx="635" cy="33" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--c"/>
+        <circle cx="720" cy="18" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
+        <circle cx="805" cy="33" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--b"/>
+        <circle cx="910" cy="41" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--c"/>
+        <circle cx="1015" cy="43" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
+        <circle cx="1120" cy="41" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--b"/>
+        <circle cx="1225" cy="35" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--c"/>
+        <circle cx="1330" cy="26" r="3.6" class="zh-xmas-bulb zh-xmas-bulb--a"/>
       </g>
-    </svg>`;
-
-  // Tannenzweig fuer die oberen Ecken: ein geschwungener Zweig mit Nadeln,
-  // daran drei Kugeln. Die Nadeln werden erzeugt, damit der Zweig organisch
-  // wirkt und nicht als gezeichnete Flaeche.
-  function christmasNeedles() {
-    const teile = [];
-    for (let index = 0; index < 18; index += 1) {
-      const t = index / 17;
-      const x = 12 + t * 74;
-      const y = 2 + t * 96;
-      const laenge = 30 - t * 14;
-      teile.push(`M${x.toFixed(1)},${y.toFixed(1)} l${(-laenge * 0.85).toFixed(1)},${(laenge * 0.35).toFixed(1)}`);
-      teile.push(`M${x.toFixed(1)},${y.toFixed(1)} l${(laenge * 0.8).toFixed(1)},${(laenge * 0.45).toFixed(1)}`);
-    }
-    return teile.join(" ");
-  }
-
-  const CHRISTMAS_CORNER = `
-    <svg class="zh-xmas-corner" viewBox="0 0 180 200" aria-hidden="true">
-      <path class="zh-xmas-branch" d="M10,0 C30,38 52,72 88,98"/>
-      <path class="zh-xmas-needles" d="${christmasNeedles()}"/>
       <g class="zh-xmas-baubles">
-        <line x1="42" y1="50" x2="42" y2="76" class="zh-xmas-thread"/>
-        <circle cx="42" cy="88" r="10" class="zh-xmas-bauble zh-xmas-bauble--red"/>
-        <line x1="72" y1="80" x2="72" y2="106" class="zh-xmas-thread"/>
-        <circle cx="72" cy="118" r="8" class="zh-xmas-bauble zh-xmas-bauble--gold"/>
-        <line x1="98" y1="96" x2="98" y2="120" class="zh-xmas-thread"/>
-        <circle cx="98" cy="130" r="6.5" class="zh-xmas-bauble zh-xmas-bauble--red"/>
+        <line x1="264" y1="39" x2="264" y2="56" class="zh-xmas-thread"/>
+        <circle cx="264" cy="66" r="9" class="zh-xmas-bauble zh-xmas-bauble--red"/>
+        <line x1="586" y1="39" x2="586" y2="58" class="zh-xmas-thread"/>
+        <circle cx="586" cy="68" r="8" class="zh-xmas-bauble zh-xmas-bauble--gold"/>
+        <line x1="854" y1="41" x2="854" y2="58" class="zh-xmas-thread"/>
+        <circle cx="854" cy="68" r="8.5" class="zh-xmas-bauble zh-xmas-bauble--red"/>
+        <line x1="1176" y1="39" x2="1176" y2="56" class="zh-xmas-thread"/>
+        <circle cx="1176" cy="66" r="9" class="zh-xmas-bauble zh-xmas-bauble--gold"/>
       </g>
     </svg>`;
 
-  // Schlitten mit zwei Rentieren. Silhouette in Tannengruen, Geschirr, Kufen
-  // und Geweihe in Gold - so bleibt die Szene auch klein lesbar.
+  // Rentiere, Schlitten und Weihnachtsmann als Vektorgrafik. Alles in lokalen
+  // Koordinaten, damit dieselbe Szene als Standbild und im Vorbeiflug passt.
   function christmasReindeer() {
     return `
       <g class="zh-xmas-deer">
-        <path class="zh-xmas-deer-body" d="M6,30 C6,18 16,10 32,10 C46,10 56,16 60,26 L63,36 C63,44 57,50 49,50 L14,50 C8,50 6,45 6,39 Z"/>
-        <path class="zh-xmas-deer-neck" d="M57,26 C66,18 72,10 76,2"/>
-        <ellipse class="zh-xmas-deer-body" cx="81" cy="0" rx="12" ry="7.5" transform="rotate(-12 81 0)"/>
-        <circle class="zh-xmas-deer-eye" cx="86" cy="-2" r="1.7"/>
-        <path class="zh-xmas-deer-antler" d="M73,-6 C70,-16 66,-22 60,-26 M73,-6 C77,-16 79,-24 77,-32 M89,-6 C91,-16 95,-22 101,-26 M89,-6 C85,-16 83,-24 85,-32"/>
-        <path class="zh-xmas-deer-line" d="M14,50 L14,78 M26,50 L26,78 M44,50 L44,78 M56,50 L56,78"/>
-        <path class="zh-xmas-deer-line" d="M6,32 C-4,34 -10,40 -12,46"/>
+        <path class="zh-xmas-deer-body" d="M2,62 C2,44 15,35 34,35 C52,35 63,44 67,57 L69,68 C69,76 63,80 54,80 L10,80 C4,80 2,74 2,68 Z"/>
+        <path class="zh-xmas-deer-body" d="M58,48 C64,33 73,21 84,14 L94,21 C87,31 79,45 73,60 Z"/>
+        <path class="zh-xmas-deer-body" d="M80,10 C89,3 101,5 107,13 C110,19 106,26 98,27 L82,22 C78,19 77,13 80,10 Z"/>
+        <path class="zh-xmas-deer-muzzle" d="M98,14 C104,15 107,19 107,23"/>
+        <circle class="zh-xmas-deer-eye" cx="96" cy="12" r="2"/>
+        <path class="zh-xmas-deer-antler" d="M86,6 C81,-4 74,-10 65,-13 M86,6 C91,-4 93,-13 91,-21 M86,6 C77,-1 70,-2 63,-3 M93,4 C95,-4 100,-10 107,-13"/>
+        <path class="zh-xmas-deer-line" d="M11,78 L11,122 M24,78 L24,122 M52,78 L52,122 M65,78 L65,122"/>
+        <path class="zh-xmas-deer-line" d="M2,54 C-7,57 -13,64 -15,71"/>
+        <path class="zh-xmas-harness-line" d="M64,54 C59,61 52,65 45,67"/>
       </g>`;
   }
 
-  const CHRISTMAS_SLEIGH = `
-    <svg class="zh-xmas-sleigh" viewBox="0 0 500 200" aria-hidden="true">
-      <g class="zh-xmas-harness">
-        <path d="M176,104 C196,96 212,92 232,94"/>
-        <path d="M176,126 C200,134 218,134 238,128"/>
-      </g>
-      <g transform="translate(232,44) scale(1.05)">${christmasReindeer()}</g>
-      <g transform="translate(346,34) scale(0.98)">${christmasReindeer()}</g>
-      <g class="zh-xmas-sleigh-box">
-        <path class="zh-xmas-sleigh-body" d="M28,120 L104,120 C126,120 138,108 144,92 L180,92 C184,110 180,128 166,140 C152,152 132,158 104,158 L34,158 C28,158 24,154 24,148 L24,126 C24,122 26,120 28,120 Z"/>
-        <path class="zh-xmas-sleigh-curve" d="M180,94 C190,96 196,104 196,112"/>
-        <path class="zh-xmas-sleigh-curve" d="M18,158 L156,158 C176,158 188,170 188,186"/>
-        <path class="zh-xmas-sleigh-curve" d="M8,190 L206,190"/>
-        <path class="zh-xmas-sleigh-curve" d="M104,120 L104,100 L130,100"/>
-      </g>
-    </svg>`;
+  // Die ganze Szene: Schlitten, Weihnachtsmann, Geschenksack, zwei Rentiere.
+  // Zeichenreihenfolge: Geschirr, Rentiere, Sack, Weihnachtsmann, Schlitten -
+  // so verschwindet der Unterkoerper hinter der Seitenwand und er sitzt IM
+  // Schlitten statt davor.
+  function christmasSleighScene() {
+    return `
+      <svg class="zh-xmas-scene" viewBox="0 0 760 300" aria-hidden="true">
+        <g class="zh-xmas-harness">
+          <path d="M250,190 C302,180 366,176 442,182"/>
+          <path d="M250,212 C306,220 372,220 442,212"/>
+        </g>
+        <g transform="translate(430,128) scale(1.05)">${christmasReindeer()}</g>
+        <g transform="translate(590,120) scale(1.05)">${christmasReindeer()}</g>
+
+        <g class="zh-xmas-sack">
+          <path d="M74,176 C66,158 72,140 88,133 C104,126 120,134 124,150 C128,166 120,180 108,188 L82,188 Z"/>
+          <path class="zh-xmas-sack-tie" d="M84,136 C90,130 99,128 107,132"/>
+        </g>
+
+        <g class="zh-xmas-santa">
+          <path class="zh-xmas-santa-arm" d="M176,150 C198,153 216,158 232,164"/>
+          <path class="zh-xmas-santa-coat" d="M112,176 L186,176 L186,132 C186,122 172,116 149,116 C126,116 112,122 112,132 Z"/>
+          <path class="zh-xmas-santa-belt" d="M112,158 L186,158 L186,169 L112,169 Z"/>
+          <rect class="zh-xmas-santa-buckle" x="143" y="157" width="12" height="12" rx="2"/>
+          <path class="zh-xmas-santa-trim" d="M112,170 L186,170 L186,177 L112,177 Z"/>
+          <circle class="zh-xmas-santa-face" cx="149" cy="104" r="16"/>
+          <path class="zh-xmas-santa-beard" d="M133,104 C133,128 140,140 149,140 C158,140 165,128 165,104 C159,112 139,112 133,104 Z"/>
+          <path class="zh-xmas-santa-hat" d="M129,94 C132,72 141,60 152,56 C163,60 169,76 169,94 Z"/>
+          <path class="zh-xmas-santa-trim" d="M126,91 L172,91 L172,101 L126,101 Z"/>
+          <circle class="zh-xmas-santa-trim" cx="159" cy="54" r="7"/>
+          <circle class="zh-xmas-santa-glove" cx="236" cy="165" r="6.5"/>
+        </g>
+
+        <g class="zh-xmas-sleigh-box">
+          <path class="zh-xmas-sleigh-back" d="M60,196 C42,172 46,146 62,136 C74,128 86,136 86,149 C86,164 74,178 64,186"/>
+          <path class="zh-xmas-sleigh-body" d="M58,192 C58,182 66,176 78,176 L216,176 C232,176 244,184 250,198 L250,216 C250,226 242,232 232,232 L76,232 C66,232 58,226 58,216 Z"/>
+          <path class="zh-xmas-sleigh-trim" d="M58,186 L250,186"/>
+          <path class="zh-xmas-sleigh-runner" d="M54,248 L206,248 C238,248 254,232 254,210 C254,200 250,192 244,186"/>
+          <path class="zh-xmas-sleigh-ground" d="M42,278 L268,278"/>
+        </g>
+      </svg>`;
+  }
 
   const CHRISTMAS_SPARKS = [
     [6, 18, 0], [14, 62, 1.4], [31, 8, 0.6], [47, 26, 2.1], [63, 6, 1.1],
@@ -9437,7 +9450,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       }
       #zh-christmas svg { display: block; }
       #zh-christmas .zh-xmas-lights {
-        position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 34px;
+        position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 80px;
         filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
       }
       #zh-christmas .zh-xmas-wire { stroke: rgba(24, 62, 44, .55); stroke-width: 1.4; }
@@ -9445,32 +9458,54 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-christmas .zh-xmas-bulb--a { fill: #ffd479; animation: zh-xmas-twinkle 3.6s ease-in-out infinite; }
       #zh-christmas .zh-xmas-bulb--b { fill: #ff8a7a; animation: zh-xmas-twinkle 4.4s ease-in-out infinite .6s; }
       #zh-christmas .zh-xmas-bulb--c { fill: #9ee6c4; animation: zh-xmas-twinkle 3.1s ease-in-out infinite 1.2s; }
-      #zh-christmas .zh-xmas-corner {
-        position: absolute; top: -34px; width: 190px; height: 210px;
-        filter: drop-shadow(0 6px 10px rgba(0,0,0,.22));
-      }
-      #zh-christmas .zh-xmas-corner { left: -18px; }
-      #zh-christmas .zh-xmas-corner--right { right: -18px; left: auto; transform: scaleX(-1); }
-      #zh-christmas .zh-xmas-branch { fill: none; stroke: #1c5c3a; stroke-width: 3.2; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-needles { fill: none; stroke: #14532d; stroke-width: 2.1; stroke-linecap: round; opacity: .95; }
       #zh-christmas .zh-xmas-thread { stroke: #d9c48a; stroke-width: 1.2; }
       #zh-christmas .zh-xmas-bauble--red { fill: #c0392b; stroke: #7f1d1d; stroke-width: 1; }
       #zh-christmas .zh-xmas-bauble--gold { fill: #e8b34b; stroke: #a97a1f; stroke-width: 1; }
       #zh-christmas .zh-xmas-bauble { animation: zh-xmas-sway 5.2s ease-in-out infinite; transform-origin: 50% 0; }
-      #zh-christmas .zh-xmas-sleigh {
-        position: absolute; right: 16px; bottom: 18px; width: 330px; height: 132px;
-        animation: zh-xmas-bob 6.5s ease-in-out infinite;
-        filter: drop-shadow(0 8px 14px rgba(0,0,0,.22));
+      #zh-christmas .zh-xmas-fly {
+        position: absolute; top: 7%; left: 0; width: 700px; height: 276px;
+        will-change: transform;
+        filter: drop-shadow(0 12px 18px rgba(0,0,0,.16));
       }
-      #zh-christmas .zh-xmas-deer-body { fill: #14532d; }
-      #zh-christmas .zh-xmas-deer-neck { fill: none; stroke: #14532d; stroke-width: 10; stroke-linecap: round; }
+      #zh-christmas .zh-xmas-fly--go { animation: zh-xmas-fly-across 20s linear forwards; }
+      @keyframes zh-xmas-fly-across {
+        0%   { transform: translate(-660px, 0) rotate(-2deg); }
+        20%  { transform: translate(12vw, -28px) rotate(1deg); }
+        45%  { transform: translate(42vw, 16px) rotate(-1deg); }
+        70%  { transform: translate(70vw, -18px) rotate(1.5deg); }
+        100% { transform: translate(116vw, 4px) rotate(-1deg); }
+      }
+      #zh-christmas .zh-xmas-deer-body { fill: #7a4a2b; }
+      #zh-christmas .zh-xmas-deer-muzzle { fill: none; stroke: #5b3620; stroke-width: 2; stroke-linecap: round; }
       #zh-christmas .zh-xmas-deer-eye { fill: #f6e3b4; }
-      #zh-christmas .zh-xmas-deer-line { fill: none; stroke: #14532d; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
-      #zh-christmas .zh-xmas-deer-antler { fill: none; stroke: #e8b34b; stroke-width: 2.4; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-harness path { stroke: #e8b34b; stroke-width: 1.6; fill: none; opacity: .85; }
-      #zh-christmas .zh-xmas-sleigh-body { fill: #14532d; stroke: #e8b34b; stroke-width: 2.5; stroke-linejoin: round; }
-      #zh-christmas .zh-xmas-sleigh-curve { fill: none; stroke: #e8b34b; stroke-width: 3; stroke-linecap: round; }
-      #zh-christmas .zh-xmas-harness path { stroke: #e8b34b; stroke-width: 1.6; fill: none; opacity: .8; }
+      #zh-christmas .zh-xmas-deer-line { fill: none; stroke: #7a4a2b; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+      #zh-christmas .zh-xmas-deer-antler { fill: none; stroke: #e8b34b; stroke-width: 2.6; stroke-linecap: round; }
+      #zh-christmas .zh-xmas-harness-line { fill: none; stroke: #e8b34b; stroke-width: 2; opacity: .9; }
+      #zh-christmas .zh-xmas-harness path { stroke: #e8b34b; stroke-width: 1.8; fill: none; opacity: .9; }
+      #zh-christmas .zh-xmas-sleigh-body { fill: #b3261e; stroke: #7f1d1d; stroke-width: 2; }
+      #zh-christmas .zh-xmas-sleigh-back { fill: #b3261e; stroke: #7f1d1d; stroke-width: 2; }
+      #zh-christmas .zh-xmas-sleigh-trim { fill: none; stroke: #e8b34b; stroke-width: 3; }
+      #zh-christmas .zh-xmas-sleigh-runner { fill: none; stroke: #e8b34b; stroke-width: 3.5; stroke-linecap: round; }
+      #zh-christmas .zh-xmas-sleigh-ground { fill: none; stroke: #e8b34b; stroke-width: 2; opacity: .6; }
+      #zh-christmas .zh-xmas-sack > path:first-child { fill: #8a5a2b; stroke: #5b3620; stroke-width: 2; }
+      #zh-christmas .zh-xmas-sack-tie { fill: none; stroke: #e8b34b; stroke-width: 2; }
+      #zh-christmas .zh-xmas-santa-coat,
+      #zh-christmas .zh-xmas-santa-hat { fill: #b3261e; stroke: #7f1d1d; stroke-width: 1.6; }
+      #zh-christmas .zh-xmas-santa-arm { fill: none; stroke: #b3261e; stroke-width: 9; stroke-linecap: round; }
+      #zh-christmas .zh-xmas-santa-belt { fill: #2b2b2b; }
+      #zh-christmas .zh-xmas-santa-buckle { fill: #e8b34b; }
+      #zh-christmas .zh-xmas-santa-trim { fill: #f7f4ee; }
+      #zh-christmas .zh-xmas-santa-face { fill: #f2c9a0; }
+      #zh-christmas .zh-xmas-santa-beard { fill: #f7f4ee; }
+      #zh-christmas .zh-xmas-santa-glove { fill: #2b2b2b; }
+      #zh-christmas .zh-xmas-gift {
+        position: absolute; width: 20px; height: 20px;
+        animation: zh-xmas-gift-fall 3.6s cubic-bezier(.35,.05,.75,.6) forwards;
+      }
+      @keyframes zh-xmas-gift-fall {
+        0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+        100% { transform: translate(var(--zh-gift-dx, 30px), 62vh) rotate(var(--zh-gift-rot, 220deg)); opacity: 0; }
+      }
       #zh-christmas .zh-xmas-spark {
         position: absolute; width: 16px; height: 16px; fill: #fff6d8;
         opacity: 0; animation: zh-xmas-spark 4.8s ease-in-out infinite;
@@ -9492,7 +9527,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         #zh-christmas .zh-xmas-spark { opacity: .65; }
       }
       @media (max-width: 700px) {
-        #zh-christmas .zh-xmas-corner { width: 140px; height: 155px; top: -28px; }
         #zh-christmas .zh-xmas-sleigh { width: 230px; height: 92px; bottom: 10px; }
       }
     `);
@@ -9612,6 +9646,101 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     };
   }
 
+  // Der Weihnachtsmann fliegt regelmaessig durchs Bild und verliert dabei ein
+  // paar Geschenke. 15 Minuten Abstand, der erste Flug nach 90 s - sonst sieht
+  // die Deko am Anfang niemand. Ausloesbar ueber das Event
+  // "znuny-helper-christmas-fly" (Tests, Vorfuehrung).
+  const CHRISTMAS_FLY_FIRST_MS = 90 * 1000;
+  const CHRISTMAS_FLY_EVERY_MS = 15 * 60 * 1000;
+  const CHRISTMAS_FLY_DURATION_MS = 20000;
+  const CHRISTMAS_GIFT_COLORS = ["#b3261e", "#1f6b4a", "#e8b34b", "#3976bb"];
+  let christmasGiftCounter = 0;
+
+  function christmasGiftSvg() {
+    const farbe = CHRISTMAS_GIFT_COLORS[christmasGiftCounter % CHRISTMAS_GIFT_COLORS.length];
+    christmasGiftCounter += 1;
+    return `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="7" width="18" height="14" rx="2.4" fill="${farbe}"/>
+        <rect x="3" y="7" width="18" height="4.6" rx="2.2" fill="${farbe}" opacity=".85"/>
+        <rect x="10.4" y="7" width="3.2" height="14" fill="#f6e3b4"/>
+        <rect x="3" y="12.2" width="18" height="2.2" fill="#f6e3b4"/>
+        <path d="M12 7 C8.4 7 6.2 4.6 7.6 2.8 C9 1 11.4 3.2 12 7 C12.6 3.2 15 1 16.4 2.8 C17.8 4.6 15.6 7 12 7 Z" fill="#e8b34b"/>
+      </svg>`;
+  }
+
+  function dropChristmasGift(overlay, fly) {
+    const rect = fly.getBoundingClientRect();
+    if (!rect.width) return;
+
+    const gift = document.createElement("div");
+    gift.className = "zh-xmas-gift";
+    gift.setAttribute("aria-hidden", "true");
+    gift.style.left = `${Math.round(rect.left + rect.width * (0.18 + Math.random() * 0.14))}px`;
+    gift.style.top = `${Math.round(rect.top + rect.height * 0.64)}px`;
+    gift.style.setProperty("--zh-gift-dx", `${Math.round(Math.random() * 90 - 30)}px`);
+    gift.style.setProperty("--zh-gift-rot", `${Math.round(140 + Math.random() * 260)}deg`);
+    gift.innerHTML = christmasGiftSvg();
+
+    const entfernen = () => gift.remove();
+    gift.addEventListener("animationend", entfernen, { once: true });
+    window.setTimeout(entfernen, 6000);
+
+    overlay.appendChild(gift);
+  }
+
+  function startChristmasFlyover(overlay) {
+    const fly = overlay.querySelector(".zh-xmas-fly");
+    if (!fly) return () => {};
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
+      // Ohne Bewegung kein Vorbeiflug - die Deko bleibt ruhig.
+      return () => {};
+    }
+
+    const timers = new Set();
+    const merken = (id) => {
+      timers.add(id);
+      return id;
+    };
+
+    const fliegen = () => {
+      if (fly.dataset.flying === "1") return;
+      fly.dataset.flying = "1";
+      fly.hidden = false;
+      fly.classList.remove("zh-xmas-fly--go");
+      void fly.offsetWidth;
+      fly.classList.add("zh-xmas-fly--go");
+
+      // Fuenf Geschenke waehrend des Flugs, leicht versetzt.
+      [3200, 6200, 9000, 11800, 14600].forEach((zeit) => {
+        merken(window.setTimeout(() => dropChristmasGift(overlay, fly), zeit));
+      });
+
+      merken(window.setTimeout(() => {
+        fly.classList.remove("zh-xmas-fly--go");
+        fly.hidden = true;
+        delete fly.dataset.flying;
+      }, CHRISTMAS_FLY_DURATION_MS + 800));
+    };
+
+    // Manuell ausloesbar: window.__zhChristmasFly() oder das Event.
+    window.__zhChristmasFly = fliegen;
+    window.addEventListener("znuny-helper-christmas-fly", fliegen);
+
+    merken(window.setTimeout(fliegen, CHRISTMAS_FLY_FIRST_MS));
+    merken(window.setInterval(fliegen, CHRISTMAS_FLY_EVERY_MS));
+
+    return () => {
+      timers.forEach((id) => {
+        window.clearTimeout(id);
+        window.clearInterval(id);
+      });
+      timers.clear();
+      window.removeEventListener("znuny-helper-christmas-fly", fliegen);
+      if (window.__zhChristmasFly === fliegen) delete window.__zhChristmasFly;
+    };
+  }
+
   function enableChristmasMode() {
     if (window.top !== window.self) return;
     if (document.getElementById(CHRISTMAS_OVERLAY_ID)) return;
@@ -9630,21 +9759,28 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       <canvas class="zh-xmas-snow"></canvas>
       <div class="zh-xmas-glow"></div>
       ${CHRISTMAS_LIGHTS}
-      ${CHRISTMAS_CORNER}
-      ${CHRISTMAS_CORNER.replace('class="zh-xmas-corner"', 'class="zh-xmas-corner zh-xmas-corner--right"')}
-      ${CHRISTMAS_SLEIGH}
+      <div class="zh-xmas-fly" hidden>${christmasSleighScene()}</div>
       ${CHRISTMAS_SPARKS}
     `;
 
     document.body.appendChild(overlay);
-    christmasSnowCleanup = startChristmasSnow(overlay.querySelector("canvas.zh-xmas-snow"));
+
+    christmasCleanupFns = [
+      startChristmasSnow(overlay.querySelector("canvas.zh-xmas-snow")),
+      startChristmasFlyover(overlay)
+    ];
   }
 
   function disableChristmasMode() {
-    if (christmasSnowCleanup) {
-      christmasSnowCleanup();
-      christmasSnowCleanup = null;
-    }
+    christmasCleanupFns.forEach((aufraeumen) => {
+      try {
+        aufraeumen();
+      } catch {
+        /* Aufraeumen darf nie den Betrieb stoeren */
+      }
+    });
+    christmasCleanupFns = [];
+
     document.getElementById(CHRISTMAS_OVERLAY_ID)?.remove();
     removeStyle("zh-christmas-style");
   }
