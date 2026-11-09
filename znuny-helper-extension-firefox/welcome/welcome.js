@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.14",
+      items: [
+        "Girlande nicht mehr verzerrt: Sie wird passend zur Fensterbreite gezeichnet – Kugeln bleiben rund, Abstände gleich. Bei Fensteränderung wird sie neu aufgebaut.",
+        "Baumspitze nicht mehr doppelt, Mistelzweig oben rechts neu gezeichnet (runde Blätter, Beeren)."
+      ]
+    },
+    {
       version: "1.6.13",
       items: [
         "Echter Schnee: sechszackige Schneeflocken in drei Tiefenstaffelungen mit Windböen – fern klein und blass, nah groß und drehend.",

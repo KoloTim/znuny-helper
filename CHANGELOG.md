@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.14] – 2026-11-09
+
+### Fixed
+- **Girlande war verzerrt:** Sie wurde per `preserveAspectRatio="none"` auf die Fensterbreite gestreckt – dadurch wurden Kugeln zu Ellipsen und die Abstände zogen sich auseinander, je breiter das Fenster war. Jetzt wird die Girlande **für die aktuelle Breite in Pixeln** gebaut (wiederkehrende Bögen à 340 px; Lämpchen, Kugeln und Nadelbüschel folgen dem Bogen) und bei einer Fensteränderung neu gezeichnet. Kugeln bleiben rund, die Abstände gleich.
+- **Doppelte Baumspitze:** Zwei helle Schneehauben lagen als Dreiecke über der oberen Etage und wirkten wie eine zweite Tannenspitze. Entfernt.
+- **Mistelzweig war keiner:** Neu gezeichnet – gebogener Stiel, paarweise sitzende runde Blätter und eine Beerentraube. Die Glanzpunkte auf den Beeren waren schwarz, weil die Stilregel noch auf die alte Klassenbezeichnung zeigte.
+
 ## [1.6.13] – 2026-11-09
 
 ### Changed

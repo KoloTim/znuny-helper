@@ -9375,90 +9375,114 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       </defs>
     </svg>`;
 
-  // Girlande: geflochtene Schnur mit Nadelbuescheln, glaenzenden Laempchen und
-  // Kugeln mit Deckel und Spiegelpunkt.
-  function christmasSprigs() {
-    const teile = [];
-    for (let index = 0; index < 12; index += 1) {
-      const x = 70 + index * 118;
-      const y = 26 + Math.round(Math.sin(index * 1.2) * 5);
-      const drehung = index % 2 === 0 ? -7 : 8;
-      teile.push(
-        `<g class="zh-xmas-sprig" transform="translate(${x},${y}) rotate(${drehung})">` +
-          `<path d="M0,0 C-3,10 -8,19 -15,27 M0,0 C1,12 1,23 -1,33 M0,0 C7,9 14,15 22,19 M0,0 C-9,6 -16,12 -23,15"/>` +
-        `</g>`
-      );
+  // Girlande: wird fuer die AKTUELLE Fensterbreite in Pixeln gebaut (viewBox
+  // = Breite), damit nichts gestreckt wird - Kugeln bleiben rund, die
+  // Abstaende gleich. Bei Breitenaenderung wird sie neu gezeichnet.
+  function christmasGarlandSvg(breite) {
+    const spanne = 340;
+    const hoehe = 120;
+    const wire = [];
+    const bulben = [];
+    const kugeln = [];
+    const zweige = [];
+
+    const aufBogen = (x0, t) => {
+      const u = 1 - t;
+      return {
+        x: u * u * x0 + 2 * u * t * (x0 + spanne / 2) + t * t * (x0 + spanne),
+        y: u * u * 10 + 2 * u * t * 62 + t * t * 10
+      };
+    };
+
+    for (let x0 = -spanne; x0 < breite + spanne; x0 += spanne) {
+      const spanIndex = Math.round(x0 / spanne);
+      wire.push(`<path class="zh-xmas-wire" d="M${x0},10 Q${x0 + spanne / 2},62 ${x0 + spanne},10" fill="none"/>`);
+
+      [0.18, 0.5, 0.82].forEach((t2, i) => {
+        const p = aufBogen(x0, t2);
+        const farbe = ["Warm", "Red", "Green"][Math.abs(spanIndex * 3 + i) % 3];
+        bulben.push(
+          `<circle class="zh-xmas-bulb-glow" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="9"/>` +
+            `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="url(#zhXmasBulb${farbe})"/>`
+        );
+      });
+
+      [0.34, 0.66].forEach((t2, i) => {
+        if (Math.abs(spanIndex * 2 + i) % 3 !== 0) return;
+        const p = aufBogen(x0, t2);
+        const gold = Math.abs(spanIndex + i) % 2 === 0;
+        const name = gold ? "Gold" : "Red";
+        const radius = gold ? 10 : 10.5;
+        kugeln.push(
+          `<line x1="${p.x.toFixed(1)}" y1="${p.y.toFixed(1)}" x2="${p.x.toFixed(1)}" y2="${(p.y + 22).toFixed(1)}" class="zh-xmas-thread"/>` +
+            `<rect x="${(p.x - 4).toFixed(1)}" y="${(p.y + 20).toFixed(1)}" width="8" height="5" rx="1.5" class="zh-xmas-cap"/>` +
+            `<circle cx="${p.x.toFixed(1)}" cy="${(p.y + 36).toFixed(1)}" r="${radius}" fill="url(#zhXmasBauble${name})"/>` +
+            `<ellipse cx="${(p.x - 3.5).toFixed(1)}" cy="${(p.y + 32).toFixed(1)}" rx="3.2" ry="2.3" class="zh-xmas-shine"/>`
+        );
+      });
+
+      [0.1, 0.44, 0.78].forEach((t2, i) => {
+        const p = aufBogen(x0, t2);
+        const drehung = ((spanIndex + i) % 2 === 0 ? -7 : 8) + p.y * 0.05;
+        zweige.push(
+          `<g class="zh-xmas-sprig" transform="translate(${p.x.toFixed(1)},${(p.y + 3).toFixed(1)}) rotate(${drehung.toFixed(1)})">` +
+            `<path d="M0,0 C-3,10 -8,19 -15,27 M0,0 C1,12 1,23 -1,33 M0,0 C7,9 14,15 22,19 M0,0 C-9,6 -16,12 -23,15"/>` +
+          `</g>`
+        );
+      });
     }
-    return teile.join("");
+
+    return `
+      <svg class="zh-xmas-lights" viewBox="0 0 ${Math.round(breite)} ${hoehe}" width="100%" height="${hoehe}" preserveAspectRatio="xMinYMin meet" aria-hidden="true">
+        ${wire.join("")}
+        ${zweige.join("")}
+        <g class="zh-xmas-bulbs">${bulben.join("")}</g>
+        <g class="zh-xmas-baubles">${kugeln.join("")}</g>
+      </svg>`;
   }
 
-  const CHRISTMAS_LIGHTS = `
-    <svg class="zh-xmas-lights" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true">
-      <path class="zh-xmas-wire" d="M0,10 C240,58 480,58 720,24 C960,58 1200,58 1440,10" fill="none"/>
-      ${christmasSprigs()}
-      <g class="zh-xmas-bulbs">
-        <circle class="zh-xmas-bulb-glow" cx="110" cy="30" r="9"/>
-        <circle cx="110" cy="30" r="4" fill="url(#zhXmasBulbWarm)"/>
-        <circle class="zh-xmas-bulb-glow" cx="238" cy="42" r="9"/>
-        <circle cx="238" cy="42" r="4" fill="url(#zhXmasBulbRed)"/>
-        <circle class="zh-xmas-bulb-glow" cx="366" cy="48" r="9"/>
-        <circle cx="366" cy="48" r="4" fill="url(#zhXmasBulbGreen)"/>
-        <circle class="zh-xmas-bulb-glow" cx="494" cy="50" r="9"/>
-        <circle cx="494" cy="50" r="4" fill="url(#zhXmasBulbWarm)"/>
-        <circle class="zh-xmas-bulb-glow" cx="622" cy="46" r="9"/>
-        <circle cx="622" cy="46" r="4" fill="url(#zhXmasBulbRed)"/>
-        <circle class="zh-xmas-bulb-glow" cx="720" cy="24" r="9"/>
-        <circle cx="720" cy="24" r="4" fill="url(#zhXmasBulbGreen)"/>
-        <circle class="zh-xmas-bulb-glow" cx="818" cy="46" r="9"/>
-        <circle cx="818" cy="46" r="4" fill="url(#zhXmasBulbWarm)"/>
-        <circle class="zh-xmas-bulb-glow" cx="946" cy="50" r="9"/>
-        <circle cx="946" cy="50" r="4" fill="url(#zhXmasBulbRed)"/>
-        <circle class="zh-xmas-bulb-glow" cx="1074" cy="48" r="9"/>
-        <circle cx="1074" cy="48" r="4" fill="url(#zhXmasBulbGreen)"/>
-        <circle class="zh-xmas-bulb-glow" cx="1202" cy="42" r="9"/>
-        <circle cx="1202" cy="42" r="4" fill="url(#zhXmasBulbWarm)"/>
-        <circle class="zh-xmas-bulb-glow" cx="1330" cy="30" r="9"/>
-        <circle cx="1330" cy="30" r="4" fill="url(#zhXmasBulbRed)"/>
-      </g>
-      <g class="zh-xmas-baubles">
-        <line x1="300" y1="52" x2="300" y2="74" class="zh-xmas-thread"/>
-        <rect x="296" y="72" width="8" height="5" rx="1.5" class="zh-xmas-cap"/>
-        <circle cx="300" cy="88" r="11" fill="url(#zhXmasBaubleRed)"/>
-        <ellipse cx="296" cy="84" rx="3.4" ry="2.4" class="zh-xmas-shine"/>
-        <line x1="620" y1="48" x2="620" y2="72" class="zh-xmas-thread"/>
-        <rect x="616" y="70" width="8" height="5" rx="1.5" class="zh-xmas-cap"/>
-        <circle cx="620" cy="86" r="10" fill="url(#zhXmasBaubleGold)"/>
-        <ellipse cx="616.5" cy="82" rx="3" ry="2.2" class="zh-xmas-shine"/>
-        <line x1="900" y1="52" x2="900" y2="74" class="zh-xmas-thread"/>
-        <rect x="896" y="72" width="8" height="5" rx="1.5" class="zh-xmas-cap"/>
-        <circle cx="900" cy="89" r="10.5" fill="url(#zhXmasBaubleRed)"/>
-        <ellipse cx="896.5" cy="85" rx="3.2" ry="2.3" class="zh-xmas-shine"/>
-        <line x1="1200" y1="48" x2="1200" y2="72" class="zh-xmas-thread"/>
-        <rect x="1196" y="70" width="8" height="5" rx="1.5" class="zh-xmas-cap"/>
-        <circle cx="1200" cy="86" r="10" fill="url(#zhXmasBaubleGold)"/>
-        <ellipse cx="1196.5" cy="82" rx="3" ry="2.2" class="zh-xmas-shine"/>
-      </g>
-    </svg>`;
+  function renderChristmasGarland(overlay) {
+    if (!overlay) return;
+    const breite = Math.max(320, window.innerWidth);
+    const halter = document.createElement("div");
+    halter.innerHTML = christmasGarlandSvg(breite);
+    const neu = halter.firstElementChild;
+    if (!neu) return;
 
-  // Mistelzweig: Blaetter mit Mittelrippe, Beeren mit Glanzpunkt.
+    const alt = overlay.querySelector(".zh-xmas-lights");
+    if (alt) alt.replaceWith(neu);
+    else overlay.insertBefore(neu, overlay.firstChild);
+  }
+
+  // Mistelzweig: gebogener Stiel mit paarweise sitzenden, runden Blaettern
+  // und einer Beerentraube am Ende - so ist er als Mistel erkennbar.
   const CHRISTMAS_MISTLETOE = `
-    <svg class="zh-xmas-mistletoe" viewBox="0 0 200 170" aria-hidden="true">
-      <path class="zh-xmas-mistlestem" d="M4,4 C32,30 62,50 94,60"/>
+    <svg class="zh-xmas-mistletoe" viewBox="0 0 240 200" aria-hidden="true">
+      <path class="zh-xmas-mistlestem" d="M6,8 C40,42 84,70 128,92 C150,103 168,112 186,124"/>
       <g class="zh-xmas-mistleaves">
-        <path class="zh-xmas-mistleaf" d="M30,18 C48,20 66,34 72,52 C54,52 36,40 30,18 Z"/>
-        <path class="zh-xmas-mistleaf" d="M70,40 C90,40 108,52 116,70 C96,72 78,60 70,40 Z"/>
-        <path class="zh-xmas-mistleaf" d="M96,64 C112,74 120,94 118,112 C102,104 92,86 96,64 Z"/>
-        <path class="zh-xmas-mistleaf" d="M44,50 C46,70 36,90 20,100 C14,82 22,62 44,50 Z"/>
-        <path class="zh-xmas-mistlevein" d="M34,22 C46,32 58,42 68,50"/>
-        <path class="zh-xmas-mistlevein" d="M74,44 C88,52 100,62 112,68"/>
-        <path class="zh-xmas-mistlevein" d="M98,68 C106,82 112,96 115,108"/>
+        <ellipse cx="40" cy="30" rx="27" ry="12.5" transform="rotate(48 40 30)"/>
+        <ellipse cx="34" cy="58" rx="25" ry="12" transform="rotate(-4 34 58)"/>
+        <ellipse cx="82" cy="52" rx="27" ry="12.5" transform="rotate(62 82 52)"/>
+        <ellipse cx="74" cy="82" rx="24" ry="11.5" transform="rotate(2 74 82)"/>
+        <ellipse cx="120" cy="80" rx="25" ry="12" transform="rotate(66 120 80)"/>
+        <ellipse cx="110" cy="110" rx="23" ry="11" transform="rotate(6 110 110)"/>
       </g>
-      <circle class="zh-xmas-mistleberry" cx="62" cy="74" r="5"/>
-      <circle class="zh-xmas-mistleberry" cx="84" cy="90" r="4.6"/>
-      <circle class="zh-xmas-mistleberry" cx="100" cy="66" r="4.2"/>
-      <circle class="zh-xmas-mistleberry" cx="52" cy="46" r="3.8"/>
-      <circle class="zh-xmas-mistleberry-shine" cx="60.5" cy="72" r="1.3"/>
-      <circle class="zh-xmas-mistleberry-shine" cx="82.5" cy="88" r="1.2"/>
+      <g class="zh-xmas-mistleveins">
+        <path d="M16,14 C40,34 62,50 88,62"/>
+        <path d="M70,44 C86,52 100,60 114,68"/>
+      </g>
+      <g class="zh-xmas-mistleberries">
+        <circle cx="150" cy="96" r="7"/>
+        <circle cx="166" cy="106" r="6.4"/>
+        <circle cx="154" cy="114" r="6"/>
+        <circle cx="172" cy="122" r="5.6"/>
+        <circle cx="140" cy="118" r="5.2"/>
+      </g>
+      <g class="zh-xmas-mistleberry-shines">
+        <circle cx="147.5" cy="93.5" r="2"/>
+        <circle cx="163.8" cy="103.6" r="1.8"/>
+        <circle cx="151.8" cy="111.6" r="1.6"/>
+      </g>
     </svg>`;
 
   // Tannenbaum: vier Etagen mit Wellenrand, Schnee auf den Spitzen, Lichter
@@ -9470,8 +9494,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       <path class="zh-xmas-tree-green" d="M85,44 L120,104 C110,96 99,108 85,98 C71,108 60,96 50,104 Z"/>
       <path class="zh-xmas-tree-green" d="M85,82 L130,150 C118,140 105,154 85,142 C65,154 52,140 40,150 Z"/>
       <path class="zh-xmas-tree-green" d="M85,122 L140,190 C126,178 110,194 85,180 C60,194 44,178 30,190 Z"/>
-      <path class="zh-xmas-treesnow" d="M85,10 L97,33 C91,29 88,34 85,31 C82,34 79,29 73,33 Z"/>
-      <path class="zh-xmas-treesnow" d="M85,44 L100,72 C93,67 89,73 85,69 C81,73 77,67 70,72 Z"/>
       <circle class="zh-xmas-tree-star" cx="85" cy="8" r="7"/>
       <circle class="zh-xmas-tree-light" cx="66" cy="56" r="2.6"/>
       <circle class="zh-xmas-tree-light" cx="104" cy="66" r="2.6"/>
@@ -9602,8 +9624,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-christmas .zh-xmas-treesnow { fill: #f4f8fb; opacity: .92; }
       #zh-christmas .zh-xmas-tree-light { fill: #ffe9a8; filter: url(#zhXmasGlow); }
       #zh-christmas .zh-xmas-tree-star { fill: #ffe9a8; filter: url(#zhXmasGlow); }
-      #zh-christmas .zh-xmas-mistlevein { fill: none; stroke: #1c4a2f; stroke-width: 1.2; opacity: .7; }
-      #zh-christmas .zh-xmas-mistleberry-shine { fill: rgba(255,255,255,.8); }
+      #zh-christmas .zh-xmas-mistleaves ellipse { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1.1; }\n      #zh-christmas .zh-xmas-mistleveins path { fill: none; stroke: #1c4a2f; stroke-width: 1.2; opacity: .65; }
+      #zh-christmas .zh-xmas-mistleberries circle { fill: #f7f4ee; stroke: #cfc6b4; stroke-width: .8; }
+      #zh-christmas .zh-xmas-mistleberry-shine,\n      #zh-christmas .zh-xmas-mistleberry-shines circle { fill: rgba(255,255,255,.85); }
       #zh-christmas .zh-xmas-thread { stroke: #d9c48a; stroke-width: 1.2; }
       #zh-christmas .zh-xmas-fly {
         position: absolute; top: 7%; left: 0; width: 700px; height: 276px;
@@ -9625,7 +9648,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       }
       #zh-christmas .zh-xmas-mistlestem { fill: none; stroke: #2f6b46; stroke-width: 3; stroke-linecap: round; }
       #zh-christmas .zh-xmas-mistleaf { fill: #2f6b46; stroke: #1c4a2f; stroke-width: 1.1; }
-      #zh-christmas .zh-xmas-mistleberry { fill: #f7f4ee; stroke: #cfc6b4; stroke-width: .8; }
       #zh-christmas .zh-xmas-tree {
         position: absolute; left: -18px; bottom: 2px; width: 150px; height: 200px;
         filter: drop-shadow(0 6px 10px rgba(0,0,0,.2));
@@ -10012,7 +10034,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       <canvas class="zh-xmas-snow"></canvas>
       <div class="zh-xmas-glow"></div>
       ${CHRISTMAS_DEFS}
-      ${CHRISTMAS_LIGHTS}
       ${CHRISTMAS_MISTLETOE}
       ${CHRISTMAS_TREE}
       <div class="zh-xmas-fly" hidden>${christmasSleighScene()}</div>
@@ -10020,10 +10041,23 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     `;
 
     document.body.appendChild(overlay);
+    renderChristmasGarland(overlay);
+
+    // Die Girlande haengt an der Fensterbreite: bei Aenderung neu zeichnen.
+    let garlandTimer = 0;
+    const onGarlandResize = () => {
+      window.clearTimeout(garlandTimer);
+      garlandTimer = window.setTimeout(() => renderChristmasGarland(overlay), 200);
+    };
+    window.addEventListener("resize", onGarlandResize);
 
     christmasCleanupFns = [
       startChristmasSnow(overlay.querySelector("canvas.zh-xmas-snow")),
-      startChristmasFlyover(overlay)
+      startChristmasFlyover(overlay),
+      () => {
+        window.clearTimeout(garlandTimer);
+        window.removeEventListener("resize", onGarlandResize);
+      }
     ];
   }
 
