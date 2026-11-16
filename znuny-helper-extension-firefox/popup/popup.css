@@ -379,3 +379,34 @@ footer {
     transition: none;
   }
 }
+
+.master {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid #d8e0ea;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f7fafc, #eef3f8);
+}
+
+.master__text strong { display: block; font-size: 13px; color: #1b2436; }
+.master__text small { display: block; margin-top: 2px; font-size: 11px; color: #5b6672; }
+
+.master__btn {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  border: 1px solid #b3261e;
+  border-radius: 999px;
+  background: #fff;
+  color: #8c1c14;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.master__btn:hover { background: #fdeceb; }
+.master__btn[data-zustand="aus"] { border-color: #2e7d32; color: #1d5220; }
+.master__btn[data-zustand="aus"]:hover { background: #eaf5ec; }

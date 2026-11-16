@@ -15,6 +15,14 @@
         <span class="version-pill" id="versionPill">v1.6.5</span>
       </header>
 
+      <div class="master">
+        <div class="master__text">
+          <strong>Alle Funktionen</strong>
+          <small>Zum Testen: schaltet jede Funktion auf einmal ein oder aus.</small>
+        </div>
+        <button type="button" id="masterToggle" class="master__btn">Alle aus</button>
+      </div>
+
       <form id="settingsForm" class="settings">
         <section class="bubble">
           <h2 class="bubble-title">Im geöffneten Ticket</h2>
@@ -43,13 +51,6 @@
             </span>
           </label>
 
-          <label class="toggle">
-            <input type="checkbox" name="easmRating">
-            <span>
-              <strong>EASM-Bewertung</strong>
-              <small>Nur bei EASM-Tickets (Betreff enthält „EASM“): Ein Knopf <em>EASM bewerten</em> liest die Einstufung (Low/Medium/High/Critical) aus dem neuesten Artikel und zeigt die schwerste Stufe als farbige Marke. Nur lesend, kein Schreibzugriff. Standard: aus.</small>
-            </span>
-          </label>
 
           <label class="toggle">
             <input type="checkbox" name="directArticleActions">

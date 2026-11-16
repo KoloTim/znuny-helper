@@ -91,7 +91,6 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Ton bei neuem Ticket**
 | Suchen | Case-Nummer kopieren | Die Case-/Ticketnummer oben links im geöffneten Ticket per Klick kopieren |
 | Ticketlisten | Ticket-Kategorien | Tickets lokal gruppieren, markieren und notieren – in den Agenten-Ansichten und im Kundenportal (customer.pl) |
 | Ticketlisten | Infinite Scroll | Weitere Ticketlistenseiten beim Scrollen automatisch laden (die Seitenzahlen bleiben als Fallback sichtbar) |
-| ServiceDesk | EASM-Bewertung | Einstufung (Low/Medium/High/Critical) aus EASM-Tickets auslesen und als farbige Marke anzeigen |
 | ServiceDesk | EB Helper | Empfangsbestätigungen aus Hardware-Tickets vorbereiten |
 | ServiceDesk | Prioritäts-Vorlagen | Prioritäts-, Besitzer- und Neues-Telefon-Ticket-Seiten mit anpassbaren Schnellbuttons vorbefüllen (inkl. Priorität und Auswirkung) |
 | Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status (Tage im Popup einstellbar) |
@@ -373,18 +372,14 @@ Der Weihnachtsmodus ist ein saisonales Schmankerl: Schnee (sechszackige Flocken 
 * Eine Elfe begrüßt dich vorher: „Oh, du hast eine kleine Auszeit verdient."
 
 Der Schalter **Weihnachtsmodus** im Popup schaltet alles an und aus.
-===== EASM-Bewertung =====
 
-EASM-Tickets der DATAGROUP enthalten je Schwachstelle einen Block „Criticality" mit **Low**, **Medium**, **High** oder **Critical**. Im geöffneten Ticket steht neben dem Titel der Knopf **EASM bewerten**. Ein Klick liest **alle Artikel von neu nach alt** (nur lesend) und nimmt den ersten mit einer Einstufung – der neueste Artikel ist oft nur eine Notiz. Angezeigt wird die schwerste Stufe als farbige Marke, zum Beispiel `CRIT · 1×CRIT 1×HIGH`.
 
 
 
 * Kritisch = rot, Hoch = orange, Mittel = gelb, Niedrig = grün.
 * Maßgeblich ist die schwerste gefundene Stufe; die Marke nennt zusätzlich, wie viele Funde je Stufe im Artikel stehen.
 * Es wird nichts in Znuny geschrieben und nichts dauerhaft gespeichert – die Bewertung entsteht bei jedem Klick neu.
-* Passt der Artikel nicht zum Muster, erscheint „EASM: keine Einstufung"; bei Netzwerkfehlern „EASM: Fehler".
 
-Der Schalter **EASM-Bewertung** im Popup ist **standardmäßig aus**. Ist er an, erscheint der Knopf **nur bei Tickets, deren Betreff „EASM“ enthält**.
 
 ===== EB Helper =====
 

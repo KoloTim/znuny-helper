@@ -2,215 +2,29 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
-## [1.6.34] – 2026-11-16
-
-### Fixed
-- **Girlande war doppelt:** Beim Verkleinern des Fensters zeichnete die Erweiterung sie neu – aber in die **vordere** Ebene, während die alte in der hinteren blieb. Dadurch lagen zwei Girlanden übereinander. Jetzt wird immer in die Hintergrund-Ebene gezeichnet; gemessen: nach einem Resize existiert genau **eine** Girlande.
-- **Girlande zu hoch:** Sie hing bis unter die Navigationszeile. Höhe von 92 auf **72 Pixel** reduziert, Aufhängung flacher (Tiefpunkt 30 statt 62).
-- **Rechts abgeschnitten:** Die Bögen liefen über den rechten Rand hinaus und wurden abgeschnitten. Jetzt enden Schnur, Kugeln und Zweige an der Kante; Elemente außerhalb werden ausgelassen.
-- **Kugeln und Zweige reagierten nicht auf die Maus:** Ihnen fehlten die Klassen, die der Magnet sucht – die Girlanden-Kugeln hatten gar keine, die Zweige waren nicht in der Auswahl. Beide sind jetzt dabei, und nach jedem Neuzeichnen wird die Trefferliste neu eingemessen (Ereignis `znuny-helper-garland`).
-
-## [1.6.33] – 2026-11-09
+## [1.6.35] – 2026-11-16
 
 ### Removed
-- **„Priorität setzen" ist wieder raus.** Der Versuch, die EASM-Einstufung direkt in die Ticketpriorität zu schreiben, hat keine Arbeit gespart: Znuny verlangt auf diesen Tickets Queue und Besitzer, die im Formular leer sind – dadurch scheitert jeder Submit, auch von Hand. Statt einer Funktion, die nur erklärt, warum sie nicht funktioniert, ist sie jetzt entfernt.
-  - Entfernt: Knopf, Rückfrage-Dialog, Formular-Logik, Vorauswahl (`#zh-prio`), zugehörige Stile und Tests.
-  - **Geblieben ist die Bewertung** (`EASM bewerten` → `MED · 3×MED` mit Quelle), die funktioniert und beim Triage hilft.
-
-## [1.6.32] – 2026-11-09
-
-### Fixed
-- **Rückfrage bietet kein „Setzen" mehr an, wenn es nicht klappen kann.** Die Vorab-Prüfung erkennt jetzt auch **Queue** und **Besitzer**: Stehen sie im Prioritätsformular auf „-", könnte auch ein Mensch nicht speichern (Znuny meldet „Queue ungültig", „Besitzer ungültig"). Der Dialog sagt das im Klartext – dass es am Ticket liegt und nicht an der Erweiterung – und bietet nur **Formular öffnen** an.
-- Text korrigiert: „stehen im Formular auf ‚-'" bzw. „steht", je nach Anzahl der Felder.
-
-### Warum die Felder nicht „gleich bleiben" können
-Die Erweiterung schickt genau das, was im Formular steht – und dort steht bei Queue und Besitzer „-". Ein Test mit dem **echten** Znuny-Formular (im iframe, mit JavaScript) hat dasselbe Ergebnis geliefert: Der Submit scheitert mit „Queue ungültig", „Besitzer ungültig". Es gibt in den Ticket-Ansichten auch keine Queue-ID, die man übernehmen könnte (nur `ServiceID=1`, `QueueID=` bleibt leer). Sobald Queue und Besitzer am Ticket gesetzt sind, funktioniert der Ein-Klick-Weg.
-
-## [1.6.31] – 2026-11-09
-
-### Fixed
-- **Absturz beim Start behoben:** Beim Umbau war `wendeEasmVorwahlAn` verloren gegangen – der Rauchtest meldete „Initialisierung fehlgeschlagen". Wiederhergestellt.
-- **Service wird automatisch gesetzt:** Ist der Service im Prioritätsformular leer, trägt der Klick **Person** ein (nur wenn leer, nie überschreiben) und sagt das in der Rückfrage an.
-- **Fehlermeldung nennt jetzt das echte Feld:** Znuny meldet auf diesen Tickets nicht nur den Service, sondern auch **Queue** und **Besitzer**. Erkannt und benannt werden jetzt Queue, Service, Besitzer, Typ.
-
-### Erkenntnis (wichtig)
-Ein Test am echten Ticket hat gezeigt: **Auch das Absenden im echten Znuny-Formular scheitert** – mit „Queue ungültig" und „Dieses Feld wird benötigt" (Typ, Service, Besitzer). Die Auswahlfelder stehen im ausgelieferten HTML auf „-", weil Znuny sie erst per JavaScript füllt, und auf diesem Ticket ist die Queue nicht gesetzt. Deshalb kann **kein** nachgebauter POST funktionieren – auch kein Klick von Hand. Sobald Queue/Typ/Besitzer am Ticket stimmen, greift der Ein-Klick-Weg.
-
-## [1.6.30] – 2026-11-09
-
-### Fixed
-- **Rückfrage bot „Setzen" an, obwohl es scheitern musste:** Der Dialog zeigte die Warnung „Znuny verlangt zusätzlich: Service" und darunter trotzdem einen aktiven **Setzen**-Knopf. Jetzt wird das Formular **vor** der Rückfrage geprüft:
-  - Sind alle Pflichtfelder gesetzt → Rückfrage mit **Setzen** und **Abbrechen**, ein Klick speichert.
-  - Fehlt etwas (typisch **Service**) → Rückfrage mit **nur** „Formular öffnen" und „Abbrechen", dazu der Satz, welches Feld fehlt und dass die Priorität im Formular schon ausgewählt ist.
-- Umlaute in den Dialogen korrigiert (Priorität, zusätzlich, möglich, ausgewählt, ergänzt, Änderung).
-
-## [1.6.29] – 2026-11-09
-
-### Changed
-- **Deko liegt jetzt hinter Znunys Fenstern:** Baum, Girlande und Mistelzweig sind in eine eigene Ebene mit `z-index: 500` gewandert – Dialoge (z. B. „Besitzer ändern", Schnellantwort) liegen mit `z-index: 1000` darüber und werden nicht mehr überdeckt. **Schnee und Schlitten** bleiben in der oberen Ebene (`z-index: 2147483000`), weil sie nur den Hintergrund betreffen.
-- **Weihnachtsmann seltener:** erster Flug nach **3 Minuten** statt 90 Sekunden, danach alle **30 Minuten** statt alle 15. Auf jeder Seite neu gezählt war er sonst zu präsent.
-
-## [1.6.28] – 2026-11-09
-
-### Fixed
-- **„Priorität setzen" hat das Ticket zerschossen:** Der Knopf baute den POST selbst zusammen – dabei gingen Felder verloren und der Service stand auf „-", Znuny antwortete mit „Ungültiger Service" und zeigte ein Fehlerformular. Jetzt wird das **echte Formular der Prioritätsseite** verwendet: alle Felder werden übernommen, nur `NewPriorityID` geändert und die Artikel-Pflichtfelder entfernt. Service, Queue, Typ und Besitzer bleiben damit unangetastet.
-- **Fehlende Pflichtfelder werden erklärt statt verschluckt:** Verlangt Znuny zusätzlich ein Feld, das im Ticket leer ist (bei den EASM-Tickets fast immer **Service**), wird nichts geschrieben. Stattdessen steht in der Rückfrage, welches Feld fehlt, plus ein Knopf **Formular öffnen** – die Prioritätsseite öffnet sich mit **vorausgewählter Priorität** (z. B. „High"), du ergänzt nur noch den Service.
-
-## [1.6.27] – 2026-11-09
-
-### Fixed
-- **Pinball: die Seiten waren offene Löcher.** Die Flipper drehten mitten im Feld, daneben blieb ein rund 220 Pixel breites Loch bis zur Wand – die Kugel fiel dort jedes Mal durch. Jetzt sitzen die Drehpunkte wieder bei 33 % und 66 %, und **Außenbahn-Rampen** führen vom Rand zum Flipper. Zwischen den Flipperspitzen bleibt nur der übliche schmale Durchlass.
-- **Abschussrampe entfernt.** Sie war die Ursache für drei Fehler hintereinander (Kugel kam nicht ins Feld, blieb in der Rampe, wurde von einer Schiene blockiert). Die Kugel startet jetzt oben im Feld und läuft durch die Pins.
-- **Kugel blieb liegen:** Ein Hänger-Schutz gibt ihr nach 1,6 Sekunden ohne Bewegung einen leichten Anstoß.
-- **Flipper dämpften die Kugel** fast vollständig (Energieverlust 155 %). Jetzt mit realistischem Abprallen.
-- **Level zu leicht:** Ziele auf 200 / 260 / 320 / 400 angehoben, mehr Pins je Karte, und keine Pins mehr im Flipperbereich.
-
-## [1.6.26] – 2026-11-09
-
-### Fixed
-- **EASM-Bewertung fand oft nichts:** Ausgewertet wurde nur der **neueste** Artikel – der ist bei EASM-Tickets häufig nur eine Notiz („Meldungen werden nicht bearbeitet"). Jetzt werden **alle Artikel von neu nach alt** gelesen und der erste mit einer Einstufung genommen; im Tooltip steht, aus welchem Artikel sie stammt. Geprüft an Ticket 86134602: `MED · 3×MED` aus Artikel 743402.
+- **EASM-Bewertung entfernt.** Der Knopf im Ticket, der die Criticality aus den EASM-Artikeln las, ist wieder raus – samt Schalter, Stilen, Tests und Doku. Er hat im Alltag keine Arbeit gespart, und der Versuch, daraus die Ticketpriorität zu setzen, scheiterte an fehlenden Pflichtfeldern (Queue, Besitzer), die Znuny selbst nicht liefert.
 
 ### Added
-- **Priorität setzen:** Neben der Marke steht **Priorität: … setzen** (Critical → Critical, High → High, Medium → Normal, Low → Low – die Zuordnung kommt aus dem Prioritätsformular). Nach dem Klick erscheint eine Rückfrage; **erst mit „Setzen" wird geschrieben**. Ohne Bestätigung passiert nichts.
-
-## [1.6.25] – 2026-11-09
+- **Schalter „Alle Funktionen"** oben im Popup: ein Klick schaltet jede Ein/Aus-Funktion auf einmal ein oder aus – zum Testen und für die Fehlersuche. Der Knopf zeigt an, was er bewirkt („Alle aus" wenn alles läuft, sonst „Alle ein") und nennt in der Kurzinfo, wie viele Funktionen gerade aktiv sind.
 
 ### Changed
-- **Pinball mit Leveln:** Vier Karten – **Y-Kreuz**, **Stern**, **Zickzack** und **Tannenbaum**. Jedes Level hat ein Punktziel; ist es erreicht, geht es eine Karte weiter, nach Level 4 gibt es 200 Bonus und es beginnt von vorn. Fortschritt und Levelname stehen in der Kopfzeile und auf dem Spielfeld (mit Balken).
-- **Weniger Hindernisse:** Drei bis sechs große Pins pro Karte statt eines vollen Felds; Slingshots bleiben.
-- **Jeder Durchlauf anders:** Positionen, Winkel und Lage der Pins werden beim Levelaufbau zufällig verschoben und gedreht.
-- **Ballphysik neu:** Die Kugel rechnet mit **fester Schrittweite (240 Hz)** statt pro Bild – dadurch ist die Bewegung unabhängig von der Bildrate, springt nicht durch Hindernisse und prallt sauberer ab. Gravitation, Dämpfung und Flipperkraft sind neu eingestellt; die Flipper stehen enger zusammen, damit die Kugel seltener durch die Mitte fällt.
+- **Changelog ab 1.6.8 gestrafft:** Die vielen kleinen Zwischenschritte sind zu vier Themenblöcken zusammengefasst.
 
-## [1.6.24] – 2026-11-09
+## [1.6.8 – 1.6.34] – 2026-11
 
-### Changed
-- **EASM-Bewertung nur noch bei EASM-Tickets:** Der Knopf erscheint nur, wenn im Betreff „EASM" steht (geprüft an Titel und Seitentitel). Der Schalter im Popup heißt jetzt eindeutig **EASM-Bewertung** und ist **standardmäßig aus**.
-- **Große Suchverlaufs-Anzeige entfernt:** Der Block unter dem Suchformular ist weg. Die kleinen Vorschläge direkt unter den Suchfeldern bleiben – ein Klick übernimmt den Begriff.
-- **HSRW-Logo korrekt:** Die Marke ist jetzt exakt nachgebaut – links ein runder Strich, der schräg nach unten läuft und senkrecht wird, rechts ein Balken mit schräg abgeschnittener Oberkante und rundem Fuß. In der Kopfzeile steht die Marke getrennt von der Wortmarke „HSRW", damit nichts mehr abgeschnitten wird.
-- **Deko reagiert auf die Maus:** Kugeln und Lämpchen der Girlande weichen dem Zeiger aus und schwingen zurück, sobald er weiterzieht.
+### Weihnachtsmodus
+- **Schnee** als echte sechszackige Flocken in drei Tiefen (fern klein und blass bis nah groß und drehend), mit Windböen und einem Wirbel, wenn der Schlitten vorbeifliegt. Flocken weichen dem Mauszeiger aus; im Hintergrund-Tab wird die Leinwand freigegeben, damit viele Tabs keinen Speicher kosten.
+- **Girlande** mit Lichtern, Kugeln und Nadelzweigen: passend zur Fensterbreite gezeichnet (nichts verzerrt), flach bis zur Navigationszeile, endet sauber an der Kante. Kugeln und Zweige reagieren ebenfalls auf den Zeiger.
+- **Tannenbaum** unten rechts: gezahnte Nadel-Silhouette statt Dreiecken, Schneehauben, Lichter, Kugeln und Geschenke. Er bleibt im Bild und schrumpft bei wenig Platz nur leicht.
+- **Mistelzweig** oben rechts als klassisches Motiv: gelappte Stechblätter mit Adern und rote Beeren.
+- **Ebenen getrennt:** Baum, Girlande und Zweig liegen unter Znunys Dialogen, Schnee und Schlitten darüber. Der Weihnachtsmann fliegt alle 30 Minuten.
+- **Pinball:** Dreimal auf den Baum klicken startet ein Minigame mit vier Levelkarten (Y-Kreuz, Stern, Zickzack, Tannenbaum), zufällig gemischt, mit Punktziel und Fortschrittsbalken. Die Pins sind Kapseln im Stil der HSRW-Y-Striche, die Kugel rechnet mit fester Schrittweite, Außenbahnen schließen die Ecken. Eine Elfe begrüßt vor dem Start.
 
-## [1.6.23] – 2026-11-09
-
-### Changed
-- **Pinball spielt sich jetzt richtig:** Das Feld wurde neu gebaut.
-  - **Pins sind Kapseln im Stil der HSRW-Y-Striche** (Violett-Navy `#2a2250`, Blau `#3c7fd1`) – gezeichnet *und* abgefragt mit derselben Form, also sitzen Treffer genau auf dem Strich. Zwei große Striche in der Mitte bilden das Logo-Motiv.
-  - **Echte Abschussrampe:** Leertaste halten lädt die Power-Leiste, loslassen schießt die Kugel über die Kurve ins Feld. Vorher fiel sie einfach wieder in die Rampe zurück.
-  - **Flipper als Kapseln** mit Stoßimpuls aus der Drehgeschwindigkeit, Slingshots über den Flippern, Kugel-Spur, Punkte-Popups und Trefferringe.
-  - „Frohe Weihnachten" ist raus; die Kugel startet unten rechts in der Rampe.
-
-## [1.6.22] – 2026-11-09
-
-### Changed
-- **Tannenbaum neu gezeichnet:** Statt gestapelter Dreiecke jetzt eine **gezahnte Nadel-Silhouette** (sechs Aststufen mit Kerben, gewellte Unterkante), berechnet statt handgezeichnet – gleichmäßige Zacken, Schneehauben auf den Astspitzen, Stern, Lichter, Kugeln und Geschenke. **Der Fokusrahmen (Kasten) ist weg** – der Baum war fokussierbar und bekam dadurch beim Klick einen Rahmen.
-- **Mistelzweig überarbeitet:** fünf Stechpalmenblätter mit Mittelrippe und Blattadern in Blattrichtung, vier rote Beeren mit Glanzpunkt.
-- **Pinball mit HSRW-Marke:** Das echte Logo (Y-Marke in Violett-Navy `#2a2250` und Blau `#3c7fd1`, Wortmarke) steht in der Kopfzeile und als großes Wasserzeichen im Spielfeld; „Hochschule Rhein-Waal" darunter. Dazu Zuckerstangen an den Seiten, Weihnachtsband „Frohe Weihnachten", Baumkulisse, fünf Bumperreihen in Markenfarben und ein größeres Spielfeld.
-- **Elfe als Begrüßung:** Vor dem Spiel erscheint eine Elfe mit dem Text „Oh, du hast eine kleine Auszeit verdient. Weihnachten ist eine schöne, aber oft stressige Zeit. Wie wäre es mit ein paar Minuten Pinball? Geschenke sind hier gratis." – Start erst auf „Bisschen Pinball".
-
-## [1.6.21] – 2026-11-09
-
-### Added
-- **HSRW-Pinball-Minigame:** Dreimal auf den Tannenbaum klicken öffnet ein Pinball-Spiel im HSRW-Look (blaue Säule mit HSRW-Schriftzug, goldene Bumper, rote Flipper, Punktzahl oben). Steuern mit Pfeiltasten oder A/D, Kugel halten mit Leertaste, beenden mit Esc oder dem × oben rechts. Rein lokal, ohne Zugriff auf Znuny-Daten.
-  - Bumper geben je Reihe 30/20/10/10 Punkte; geht die Kugel unten durch, gibt es 20 Punkte Abzug.
-
-### Fixed
-- **Tannenbaum verrutschte und verließ den Bildschirm:** Bei scrollenden Seiten schob ihn die „wenig Platz"-Regel um 46 % nach rechts aus dem Fenster. Jetzt schrumpft er nur zart (um 10 %) mit dem unteren Rand als Anker und bleibt vollständig sichtbar. Der Baum ist jetzt außerdem klickbar (`pointer-events: auto`), damit das Pinball-Minigame funktioniert.
-
-## [1.6.20] – 2026-11-09
-
-### Changed
-- **Girlanden-Seil sichtbar:** Die Schnur war dunkelbraun und verschwand auf der grauen Kopfleiste. Sie wird jetzt zweifarbig gezeichnet – dunkle Kante plus helle, warme Schnur (`#d3a862`) – und hebt sich damit sowohl von der dunklen Leiste als auch vom hellen Inhalt ab.
-
-## [1.6.19] – 2026-11-09
-
-### Added
-- **Schnee reagiert auf die Maus:** Die Flocken wirken antimagnetisch – im Umkreis von 150 Pixeln werden sie vom Zeiger weggestoßen, mit einem leichten Drall zur Seite. Sie kehren danach in ihren normalen Fall zurück. Der Effekt endet 1,4 Sekunden nach der letzten Bewegung, damit nichts dauerhaft „klebt"; beim Verlassen des Fensters ist er sofort aus.
-  - Gemessen im Testfenster: Im Feld um den Zeiger fielen die Schnee-Pixel von 158 auf 29 (−82 %), solange die Maus dort stand.
-  - Kostet nur Rechenzeit im sichtbaren Tab und nur, solange die Maus bewegt wird.
-
-## [1.6.18] – 2026-11-09
-
-### Added
-- **EASM-Bewertung:** Im geöffneten EASM-Ticket steht neben dem Titel der Knopf **EASM bewerten**. Er liest den neuesten Artikel (nur lesend), sucht alle Blöcke `Criticality` mit Low/Medium/High/Critical und zeigt die **schwerste** Stufe als farbige Marke, z. B. `CRIT · 1×CRIT 1×HIGH`. Rot = kritisch, orange = hoch, gelb = mittel, grün = niedrig; der Tooltip nennt die Verteilung. Neuer Schalter im Popup.
-  - Die Artikeltexte liegen nicht im Seiten-HTML; Znuny liefert sie über `Action=AgentTicketArticleContent;Subaction=HTMLView` als eigenes Dokument. Der Abruf ist ein **GET**, also ohne Schreibzugriff und ohne „gesehen"-Marker.
-  - Geprüft am echten Ticket 86134609: `Critical + High` → `CRIT · 1×CRIT 1×HIGH`.
-
-### Fixed
-- **Deko wieder sichtbar:** Baum und Mistelzweig wurden zuletzt bei scrollenden Seiten komplett ausgeblendet. Jetzt rutschen sie stattdessen etwas aus dem Bild (sichtbar, aber über den Zeilen), und nur bei schmalen Fenstern (< 1100 px) verschwinden sie ganz.
-
-## [1.6.17] – 2026-11-09
-
-### Fixed
-- **Deko lag über den Ticketzeilen:** Baum und Mistelzweig sind fest am Fensterrand – in einem schmalen oder kurzen Fenster lagen sie über den Ticketdaten. Sie erscheinen jetzt nur, wenn Platz ist: Die Seite meldet, ob sie scrollt (dann verschwinden beide), zusätzlich werden sie unter etwa 1100 Pixel Fensterbreite ausgeblendet. Die Prüfung läuft nach dem Aufbau erneut, weil Znuny Inhalte nachlädt.
-- Baum und Zweig sind etwas kleiner (132 px statt 148/150 px), damit sie auch auf mittleren Fenstern in die Ecke passen.
-
-## [1.6.16] – 2026-11-09
-
-### Changed
-- **Mistelzweig im klassischen Motiv:** gelappte Stechpalmenblätter mit Mittelrippen und rote Beeren mit Glanzpunkt – vorher waren es schlichte Blattellipsen mit weißen Beeren. Das Motiv sitzt kompakter in der oberen rechten Ecke und verdeckt den Benutzernamen nicht mehr.
-- **Tannenbaum unten rechts** statt unten links, eine Etage weniger (drei statt vier) und mehr Glitzer: achtzehn funkelnde Sterne statt zehn, etwas größer.
-
-## [1.6.15] – 2026-11-09
-
-### Changed
-- **Schnee ruhiger:** deutlich weniger Flocken (maximal 58 statt 88), alle drei Ebenen langsamer (Geschwindigkeit etwa halbiert) und durchweg transparenter – die Ferne liegt bei 26 %, die Nähe bei 68 % Deckkraft, mit stärkerer Streuung. Wirkt wie Schneefall statt Schneesturm.
-- **Der Weihnachtsmann wirbelt den Schnee auf:** Während des Vorbeiflugs verfolgt die Animation die Position des Schlittens und drückt die Flocken in seiner Umgebung nach außen und mit – eine Schleppe aus aufgewirbeltem Schnee, die mit dem Flug wieder verschwindet. Kostet nur während der sieben Sekunden etwas Rechenzeit (Positionsabfrage 16-mal pro Sekunde), sonst nichts.
-
-## [1.6.14] – 2026-11-09
-
-### Fixed
-- **Girlande war verzerrt:** Sie wurde per `preserveAspectRatio="none"` auf die Fensterbreite gestreckt – dadurch wurden Kugeln zu Ellipsen und die Abstände zogen sich auseinander, je breiter das Fenster war. Jetzt wird die Girlande **für die aktuelle Breite in Pixeln** gebaut (wiederkehrende Bögen à 340 px; Lämpchen, Kugeln und Nadelbüschel folgen dem Bogen) und bei einer Fensteränderung neu gezeichnet. Kugeln bleiben rund, die Abstände gleich.
-- **Doppelte Baumspitze:** Zwei helle Schneehauben lagen als Dreiecke über der oberen Etage und wirkten wie eine zweite Tannenspitze. Entfernt.
-- **Mistelzweig war keiner:** Neu gezeichnet – gebogener Stiel, paarweise sitzende runde Blätter und eine Beerentraube. Die Glanzpunkte auf den Beeren waren schwarz, weil die Stilregel noch auf die alte Klassenbezeichnung zeigte.
-
-## [1.6.13] – 2026-11-09
-
-### Changed
-- **Echter Schnee:** Statt heller Punkte fallen jetzt **sechszackige Schneeflocken** in drei Tiefenstaffelungen – klein und blass in der Ferne, mittig mit Ästchen, nah groß und sich langsam drehend. Dazu wehen **Windböen** (mal kräftig nach rechts, mal fast still) und jede Flocke pendelt individuell. Die Flocken sind einmal vorgerendert und werden als Bild gezeichnet, damit die Animation günstig bleibt.
-- **Geschenke unterm Baum:** Der Tannenbaum unten links hat jetzt drei Geschenke mit Schleifen und Bändern – rot, grün und blau – passend zum Baum.
-
-## [1.6.12] – 2026-11-09
-
-### Changed
-- **Weihnachtsdeko kostet kaum noch Speicher, wenn mehrere Tabs offen sind.** Drei Maßnahmen:
-  - Die Schnee-Leinwand läuft in **1,25-facher** statt 2-facher Auflösung – Schnee braucht keine Retina-Schärfe.
-  - **Hintergrund-Tabs geben die Leinwand frei** (0 × 0) und bauen sie erst beim Sichtbarwerden wieder auf. Vorher belegte jeder offene Znuny-Tab seine eigene Fläche.
-  - Weniger Flocken (maximal 80 statt 110), passend zur Fensterbreite.
-
-  Gemessen mit sechs offenen Tabs bei 1422 × 904: vorher rund **124 MB** Grafikspeicher (6 × 20,6 MB), jetzt **4,3 MB** insgesamt – nur der sichtbare Tab hält eine Leinwand. Die CPU-Zeit liegt mit Deko im Rahmen des Rauschens (0,25 s in 6 s gegenüber 0,30 s ohne Deko; nur der sichtbare Tab animiert).
-- **Rauchtest prüft jetzt stille Startfehler:** Ein Fehler in der Initialisierung wird im Content-Script abgefangen und landet nur in der Konsole. Der Rauchtest wertet diese Meldung aus und schlägt an, statt eine kaputte Funktion für „grün" zu halten.
-
-## [1.6.11] – 2026-11-09
-
-### Changed
-- **Weihnachtsdeko plastischer:** Statt flacher Flächen arbeiten Girlande, Baum und Figuren jetzt mit Farbverläufen, Glanzlichtern und einem weichen Glow-Filter.
-  - **Girlande:** geflochtene Schnur mit Nadelbüscheln, Lämpchen mit Leuchtkranz und Kugeln mit Deckel, Goldring und Spiegelpunkt.
-  - **Tannenbaum:** vier Etagen mit Wellenrand, Schnee auf den Spitzen, leuchtende Lichter und ein Stern mit Glow.
-  - **Mistelzweig:** Blätter mit Mittelrippen, Beeren mit Glanzpunkt.
-  - **Weihnachtsmann:** Mantel und Mütze mit Verlauf, Bart mit Schattierung, Augen, Wangen und Lachen; Rentiere mit Halsband und Glocke.
-
-## [1.6.10] – 2026-11-09
-
-### Fixed
-- **Kugeln an der Girlande:** Sie wurden am unteren Rand abgeschnitten (die Girlande skalierte fest auf 1440 px Breite) und schaukelten schief am Faden, weil jede Kugel um ihren eigenen Mittelpunkt gedreht wurde. Die Girlande passt sich jetzt der Fensterbreite an, die Fäden enden in der Kugel, und das Schaukeln ist entfernt.
-- **Weihnachtsmann:** freundlicheres Gesicht mit Augen, Wangen und Lachen im Bart.
-
-### Changed
-- **Deko neu verteilt:** Mistelzweig mit weißen Beeren **oben rechts**, kleiner geschmückter **Tannenbaum unten links** – die obere linke Ecke bleibt frei (dort sitzt der Avatar).
-- **Vorbeiflug gestrafft:** Der Ritt dauert jetzt **etwa sieben Sekunden** statt zwanzig; sechs **größere** Geschenke fallen währenddessen heraus.
-
-## [1.6.9] – 2026-11-09
-
-### Changed
-- **Weihnachtsmodus überarbeitet:** Die Deko sitzt nicht mehr in den oberen Ecken – dort liegen Avatar und Benutzermenü, die Girlande hätte die Navigation verdeckt. Stattdessen hängt jetzt eine **Girlande mit Kugeln an der oberen Kante**, oberhalb der Znuny-Navigation.
-- **Der Weihnachtsmann fliegt:** Der Schlitten mit zwei Rentieren steht nicht mehr still in der Ecke, sondern zieht **alle 15 Minuten** einmal quer über den Bildschirm – mit Weihnachtsmann im Schlitten, Geschenksack und goldenem Geschirr. Während des Flugs verliert er fünf Geschenke, die herabfallen und verblassen. Der erste Flug kommt nach etwa 90 Sekunden.
-- Die Szene ist neu gezeichnet (größer, klarere Silhouetten, Weihnachtsmann im Schlitten statt davor).
-
-## [1.6.8] – 2026-11-09
-
-### Added
-- **Weihnachtsmodus:** Unter **Saison** im Popup schaltet ein eigener Schalter eine saisonale Deko über die Znuny-Oberfläche: feiner Schnee (Canvas, pausiert im Hintergrund-Tab), eine Lichterkette am oberen Rand, Tannenzweige mit Kugeln in beiden oberen Ecken, funkelnder Glitzer und ein Schlitten mit zwei Rentieren als Vektorgrafik unten rechts. Die Ebenen überlappen den Seitenrand bewusst leicht.
-
-  Die Deko ist **reine Anzeige**: alles liegt in einer Ebene mit `pointer-events: none`, Klicks gehen unverändert an Znuny (durch die Klick-Tests bestätigt). Ist im System „Bewegung reduzieren" gesetzt, steht der Schnee still und die Animationen entfallen. Alles entsteht lokal, ohne Netzwerkzugriff und ohne zusätzliche Berechtigungen; der Schalter lässt sich jederzeit wieder ausschalten.
+### EASM-Bewertung (zwischenzeitlich, wieder entfernt)
+- In 1.6.18 kam ein Knopf, der die Criticality-Stufen aus den EASM-Artikeln las und die schwerste als Marke zeigte (später zusätzlich mit dem Versuch, daraus die Ticketpriorität zu setzen). Beides ist mit 1.6.35 entfernt.
 
 ## [1.6.7] – 2026-11-09
 

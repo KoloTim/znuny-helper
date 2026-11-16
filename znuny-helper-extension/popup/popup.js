@@ -21,7 +21,6 @@
     assignedTicketSound: false,
     quickReply: false,
     directArticleActions: true,
-    easmRating: false,
     christmasMode: true
   };
 
@@ -51,6 +50,7 @@
   const pendingDefaultInput = document.getElementById("pendingDefaultInput");
   const pendingDetails = document.getElementById("pendingDetails");
   const versionPill = document.getElementById("versionPill");
+  const masterToggle = document.getElementById("masterToggle");
   const diagnoseCopy = document.getElementById("diagnoseCopy");
   const diagnoseOutput = document.getElementById("diagnoseOutput");
 
@@ -139,6 +139,44 @@
       : DEFAULT_SETTINGS.pendingDatePresets;
     pendingPresetsInput.value = presets.join(", ");
     pendingDefaultInput.value = String(parsePendingDefaultDays(settings.pendingDateDefaultDays));
+  }
+
+  // Alle reinen Ein/Aus-Funktionen auf einmal umschalten (zum Testen).
+  const BOOLEAN_KEYS = Object.keys(DEFAULT_SETTINGS).filter((key) => typeof DEFAULT_SETTINGS[key] === "boolean");
+
+  function masterStand(settings) {
+    const an = BOOLEAN_KEYS.filter((key) => settings[key]).length;
+    return { alleAn: an === BOOLEAN_KEYS.length, an, gesamt: BOOLEAN_KEYS.length };
+  }
+
+  function aktualisiereMaster() {
+    if (!masterToggle) return;
+    const { alleAn, an, gesamt } = masterStand(readForm());
+    masterToggle.textContent = alleAn ? "Alle aus" : "Alle ein";
+    masterToggle.dataset.zustand = alleAn ? "an" : "aus";
+    masterToggle.title = alleAn
+      ? `Alle ${gesamt} Funktionen abschalten`
+      : `Alle ${gesamt} Funktionen einschalten (${an} sind derzeit an)`;
+  }
+
+  function initMaster() {
+    if (!masterToggle) return;
+
+    masterToggle.addEventListener("click", async () => {
+      const nextSettings = readForm();
+      const ziel = !masterStand(nextSettings).alleAn;
+      for (const key of BOOLEAN_KEYS) nextSettings[key] = ziel;
+
+      writeForm(nextSettings);
+      await storageSet({ [SETTINGS_KEY]: nextSettings });
+      status.textContent = ziel ? "Alle Funktionen eingeschaltet" : "Alle Funktionen ausgeschaltet";
+      window.setTimeout(() => {
+        status.textContent = "Bereit";
+      }, 1600);
+      aktualisiereMaster();
+    });
+
+    aktualisiereMaster();
   }
 
   async function save() {
@@ -440,6 +478,7 @@
     updatePendingPresetState();
     form.addEventListener("change", () => {
       updatePendingPresetState();
+      aktualisiereMaster();
       save();
     });
 
@@ -449,6 +488,7 @@
     renderCustomSoundList();
     initSoundSettings();
     initDiagnose();
+    initMaster();
   }
 
   init().catch((error) => {

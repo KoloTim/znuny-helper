@@ -1424,35 +1424,6 @@ check("Glitzer liegt als eigene Ebene darueber",
   source.includes("zh-xmas-spark") && source.includes("CHRISTMAS_SPARKS"),
   true);
 
-console.log("\n22) EASM-Bewertung: Stufen aus dem Artikel");
-const parseEasm = new Function(`${extractDeclaration("parseEasmCriticalities")}; return parseEasmCriticalities;`)();
-const summarizeEasm = new Function(
-  "EASM_LEVELS",
-  `${extractDeclaration("summarizeEasm")}; return summarizeEasm;`
-)(["low", "medium", "high", "critical"]);
-
-const easmEins = "Schwachstellen:\n\n1.30 MB ... - webSize\n\nCVEs\nCVSS Score\t\nCriticality\nMedium";
-const easmDrei = "Criticality\nCritical\n\n...\n\nCriticality\nHigh";
-
-check("einzelne Einstufung wird gelesen", parseEasm(easmEins), ["medium"]);
-check("mehrere Einstufungen werden gelesen", parseEasm(easmDrei), ["critical", "high"]);
-check("ohne Criticality bleibt es leer", parseEasm("Kein Befund in diesem Text."), []);
-check("schwerste Stufe gewinnt",
-  summarizeEasm(parseEasm(easmDrei)).schwerste,
-  "critical");
-check("Funde je Stufe werden gezaehlt",
-  summarizeEasm(parseEasm(easmDrei)).zaehler,
-  { low: 0, medium: 0, high: 1, critical: 1 });
-check("nur Medium ergibt MED",
-  summarizeEasm(parseEasm(easmEins)).schwerste,
-  "medium");
-check("Gross- und Kleinschreibung egal",
-  parseEasm("criticality: HIGH"),
-  ["high"]);
-check("Knopf und Marke sind vorhanden",
-  source.includes("zh-easm-button") && source.includes("zh-easm-badge") && source.includes("AgentTicketArticleContent"),
-  true);
-
 console.log("\n23) Schnee weicht der Maus aus");
 check("Zeiger wird verfolgt", source.includes("pointermove") && source.includes("aufZeiger"), true);
 check("Abwehrkraft wirkt nur bei kuerzlicher Bewegung",
@@ -1528,11 +1499,11 @@ check("Pinball startet erst nach dem Intro-Knopf",
   true);
 
 console.log("\n26) EASM nur bei EASM-Tickets, Suchverlauf-Panel raus");
-check("EASM standardmaessig aus (Content)",
-  /easmRating: false/.test(source),
+check("EASM ist vollstaendig entfernt",
+  !source.includes("easmRating") && !source.includes("zh-easm"),
   true);
-check("EASM-Knopf nur bei EASM im Betreff",
-  /\\bEASM\\b/.test(source) && source.includes("kopfText"),
+check("Popup hat den Master-Schalter",
+  popupSource.includes("masterToggle") && popupSource.includes("BOOLEAN_KEYS"),
   true);
 check("grosses Verlaufs-Panel wird nicht mehr aufgebaut",
   !source.includes("block.id = \"zh-search-history-block\""),
