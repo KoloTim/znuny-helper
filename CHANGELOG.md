@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.7.3] – 2026-11-16
+
+### Fixed
+- **Pac-Man war nicht erreichbar.** Ich hatte den Start an das Znuny-Logo gehängt – auf dieser Installation ist `#Logo` aber ein **leeres Feld** (270 × 85 px, kein Bild), also unsichtbar. Der Start liegt jetzt am **eigenen Profilbild oben links**: dreimal darauf klicken. Ist ein echtes Logo vorhanden, funktioniert es dort weiterhin.
+- **Falsche Ortsangabe in der Doku:** „oben links" für das Logo war falsch – das Logo sitzt oben rechts, das Profilbild oben links.
+- **Logo Pong** hängt jetzt ebenfalls am Schalter „Minispiele erlauben".
+
+### Changed
+- Der Popup-Text nennt alle drei Wege im Klartext: Pinball (Weihnachtsbaum, unten rechts), Pac-Man (Profilbild, oben links), Logo Pong (drei Sekunden mit der Maus auf dem Profilbild).
+
 ## [1.7.2] – 2026-11-16
 
 ### Added

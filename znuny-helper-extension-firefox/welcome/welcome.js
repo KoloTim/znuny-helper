@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.7.3",
+      items: [
+        "Pac-Man startet jetzt über einen sichtbaren Punkt: dreimal auf das eigene Profilbild oben links klicken (das Znuny-Logo ist auf manchen Installationen leer).",
+        "Logo Pong hängt ebenfalls am Schalter „Minispiele erlauben“."
+      ]
+    },
+    {
       version: "1.7.2",
       items: [
         "Neu: Pac-Man – dreimal auf das Znuny-Zeichen klicken.",

@@ -11102,6 +11102,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       </svg>`;
   }
 
+  function disableLogoPong() {
+    document.getElementById("zh-pong")?.remove();
+    document.getElementById("zh-pong-style")?.remove();
+  }
+
   function startPacman() {
     if (document.getElementById("zh-pacman")) return;
     pacmanStyle();
@@ -11649,27 +11654,41 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   let logoTimer = 0;
   function initPacmanLogo() {
     if (!settings.minigames) return;
+
+    // Ein Klick-Ziel muss sichtbar sein: Das Znuny-Logo ist auf manchen
+    // Installationen ein leeres Feld ohne Bild, dann bleibt das Profilbild.
+    const ziele = [];
     const logo = document.getElementById("Logo") || document.querySelector("a.Logo");
-    if (!logo || logo.dataset.zhPacman === "1") return;
-    logo.dataset.zhPacman = "1";
-    logo.style.cursor = "pointer";
-    logo.addEventListener("click", () => {
-      logoKlicks += 1;
-      window.clearTimeout(logoTimer);
-      logoTimer = window.setTimeout(() => {
-        logoKlicks = 0;
-      }, 1800);
-      if (logoKlicks >= 3) {
-        logoKlicks = 0;
-        if (!document.getElementById("zh-pacman")) {
-          try {
-            startPacman();
-          } catch (fehler) {
-            console.warn("Znuny Helper: Pac-Man konnte nicht starten:", fehler);
+    if (logo) {
+      const r = logo.getBoundingClientRect();
+      const hatBild = getComputedStyle(logo).backgroundImage !== "none";
+      if (r.width > 40 && r.height > 20 && (hatBild || logo.textContent.trim())) ziele.push(logo);
+    }
+    const avatar = document.querySelector("li.UserAvatar a, .UserAvatar a, li.UserAvatar");
+    if (avatar) ziele.push(avatar);
+
+    for (const ziel of ziele) {
+      if (ziel.dataset.zhPacman === "1") continue;
+      ziel.dataset.zhPacman = "1";
+      ziel.style.cursor = "pointer";
+      ziel.addEventListener("click", () => {
+        logoKlicks += 1;
+        window.clearTimeout(logoTimer);
+        logoTimer = window.setTimeout(() => {
+          logoKlicks = 0;
+        }, 1800);
+        if (logoKlicks >= 3) {
+          logoKlicks = 0;
+          if (!document.getElementById("zh-pacman")) {
+            try {
+              startPacman();
+            } catch (fehler) {
+              console.warn("Znuny Helper: Pac-Man konnte nicht starten:", fehler);
+            }
           }
         }
-      }
-    });
+      });
+    }
   }
 
   function disableChristmasMode() {
@@ -11752,7 +11771,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     enableSubmitShortcut();
     expandArticleWidget();
-    enableLogoPongEasterEgg();
+    if (settings.minigames) enableLogoPongEasterEgg();
+    else disableLogoPong();
   }
 
   function findAgentAvatarElement() {
