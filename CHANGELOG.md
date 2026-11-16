@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.8.0] – 2026-11-16
+
+Erste Fassung, die für die Stores vorbereitet ist.
+
+### Added
+- **Pac-Man steckt im Adventskranz.** Ein Klick auf den Kranz startet das Spiel (Cursor wird zum Zeiger, Vorlesehilfe „Pac-Man starten"). Damit liegt der Auslöser auf einem sichtbaren Element der Deko; das Profilbild bleibt als Weg außerhalb der Saison.
+- **Store-Unterlagen** unter `store/`: `listing.md` (Name, Kurz- und Langbeschreibung, Berechtigungsbegründungen), `datenschutz.md`, `checkliste.md` und drei Screenshots in 1280 × 800 aus Testdaten.
+- **Eigene Icons** (16/32/48/128 px) im Znuny-Look; Manifest hat jetzt `icons`, `short_name` und eine deutsche Beschreibung.
+
+### Changed
+- **Die ganze Weihnachtsdeko hängt in der Saison.** Sie erscheint vom **1. November bis 25. Dezember**; ab dem 26. Dezember wird alles abgeräumt – Schnee, Girlande, Kranz, Baum und Schlitten. Der Schalter im Popup bleibt, greift aber nur innerhalb der Saison.
+
 ## [1.7.5] – 2026-11-16
 
 ### Fixed

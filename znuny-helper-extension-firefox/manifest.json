@@ -1,11 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Znuny Helper",
-  "version": "1.7.5",
-  "description": "Consolidated Znuny helper features with per-feature toggles.",
+  "version": "1.8.0",
+  "description": "Zusatzfunktionen für Znuny: Anhänge ansehen, im Ticket suchen, Vorlagen, Kategorien, Töne – jede Funktion einzeln schaltbar.",
   "action": {
     "default_title": "Znuny Helper",
-    "default_popup": "popup/popup.html"
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
   },
   "permissions": [
     "storage",
@@ -66,5 +72,12 @@
       ],
       "run_at": "document_start"
     }
-  ]
+  ],
+  "short_name": "Znuny Helper",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
 }

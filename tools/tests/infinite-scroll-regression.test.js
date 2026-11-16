@@ -1685,6 +1685,20 @@ check("Im Januar ist der Kranz weg", kranzSichtbar(new Date("2027-01-10T12:00:00
 check("Kranz ist gedreht", source.includes("rotate(${DREHUNG} 120 120)") && source.includes("const DREHUNG = 25;"), true);
 check("Kerzen bleiben aufrecht", source.includes("drehPunkt"), true);
 
+const saison = new Function(
+  `${extractDeclaration("weihnachtsSaison")}; return weihnachtsSaison;`
+)();
+check("Deko in der Saison (November)", saison(new Date("2026-11-16T12:00:00")), true);
+check("Deko am 25. Dezember", saison(new Date("2026-12-25T12:00:00")), true);
+check("Keine Deko ab 26. Dezember", saison(new Date("2026-12-26T12:00:00")), false);
+check("Keine Deko im Januar", saison(new Date("2027-01-10T12:00:00")), false);
+check("Keine Deko im Juli", saison(new Date("2027-07-10T12:00:00")), false);
+check("Deko haengt am Saison-Schalter", source.includes("settings.christmasMode && weihnachtsSaison()"), true);
+check("Kranz startet Pac-Man", source.includes("kranzAnklicken") && source.includes('"aria-label", "Pac-Man starten"'), true);
+check("Store-Icons vorhanden",
+  ["16", "32", "48", "128"].every((g) => fs.existsSync(path.join(__dirname, "..", "..", "znuny-helper-extension", "icons", `icon-${g}.png`))),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

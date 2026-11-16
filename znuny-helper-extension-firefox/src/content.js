@@ -9394,6 +9394,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   // Nach Weihnachten (ab dem 26.12.) verschwindet der Kranz wieder.
+  // Die gesamte Weihnachtsdeko haengt in der Saison: 1. November bis
+  // 25. Dezember. Danach wird sie abgeraeumt.
+  function weihnachtsSaison(datum = new Date()) {
+    const monat = datum.getMonth();
+    const tag = datum.getDate();
+    if (monat === 10) return true;
+    if (monat === 11) return tag <= 25;
+    return false;
+  }
+
   function adventskranzSichtbar(datum = new Date()) {
     const monat = datum.getMonth();
     const tag = datum.getDate();
@@ -9728,6 +9738,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       }
       .zh-xmas-layer .zh-xmas-wreath {
         position: absolute; top: -2px; right: 8px; width: 104px; height: 104px;
+        pointer-events: auto; cursor: pointer;
         filter: drop-shadow(0 6px 10px rgba(0,0,0,.28));
       }
       .zh-xmas-layer .zh-xmas-beeren circle { fill: #c0392b; stroke: #7d221a; stroke-width: 1.1; }
@@ -11692,6 +11703,20 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     document.body.appendChild(hintergrund);
     document.body.appendChild(overlay);
+
+    // Der Adventskranz versteckt das Spiel: ein Klick startet Pac-Man.
+    const kranz = hintergrund.querySelector(".zh-xmas-wreath");
+    const kranzAnklicken = () => {
+      if (document.getElementById("zh-pacman")) return;
+      try {
+        startPacman();
+      } catch (fehler) {
+        console.warn("Znuny Helper: Pac-Man konnte nicht starten:", fehler);
+      }
+    };
+    kranz?.addEventListener("click", kranzAnklicken);
+    kranz?.setAttribute("role", "button");
+    kranz?.setAttribute("aria-label", "Pac-Man starten");
     renderChristmasGarland(hintergrund);
 
     // Dreimal auf den Baum klicken (innerhalb von 1,8 s) startet das Pinball-
@@ -11756,6 +11781,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       },
       () => {
         window.clearTimeout(baumTimer);
+        kranz?.removeEventListener("click", kranzAnklicken);
         baum?.removeEventListener("click", baumAnklicken);
         baumAnim?.remove();
         disablePinball();
@@ -11827,7 +11853,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     // Dekoration gilt auf allen Seiten - auch im Kundenportal, deshalb vor der
     // Abzweigung dorthin.
-    if (settings.christmasMode) enableChristmasMode();
+    if (settings.christmasMode && weihnachtsSaison()) enableChristmasMode();
     else disableChristmasMode();
 
     // Pac-Man haengt am Znuny-Zeichen und braucht kein Weihnachten.

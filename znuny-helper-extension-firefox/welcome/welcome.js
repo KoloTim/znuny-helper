@@ -9,6 +9,14 @@
 
   const releases = [
     {
+      version: "1.8.0",
+      items: [
+        "Pac-Man steckt jetzt im Adventskranz – einmal darauf klicken.",
+        "Die ganze Weihnachtsdeko hängt in der Saison: 1. November bis 25. Dezember, danach wird abgeräumt.",
+        "Eigene Icons und Store-Unterlagen – bereit für Chrome Web Store und Firefox Add-ons."
+      ]
+    },
+    {
       version: "1.7.5",
       items: [
         "Adventskranz: um 25 Grad gedreht, Kerzen bleiben gerade, obere Flamme nicht mehr abgeschnitten.",
