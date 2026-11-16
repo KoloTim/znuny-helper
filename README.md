@@ -325,6 +325,8 @@ Das Kürzel funktioniert nur, wenn auf der aktuellen Seite ein passender "Überm
 
 ## Ton bei neuem Ticket
 
+Der voreingestellte Ton heißt **Neues Ticket**: die ersten **2,0 Sekunden** einer kurzen Aufnahme, mit weichem Ausblenden am Ende. Im Popup lässt er sich gegen neun weitere Töne oder eine eigene Datei tauschen.
+
 Ist diese Funktion aktiv, spielt das Addon einen kurzen Sound ab, sobald ein neues Ticket bei einem selbst gesperrt wird, und aktualisiert dabei automatisch die gerade sichtbare Ticketliste – das neue Ticket erscheint sofort, ohne dass Znunys eigenes Aktualisierungsintervall der Übersichten abgewartet werden muss. Dazu gleicht das Addon im Hintergrund regelmäßig (etwa einmal pro Minute) die eigene Ansicht "Gesperrte Tickets" ab und merkt sich lokal, welche Ticketnummern schon bekannt sind.
 
 > Die automatische Aktualisierung betrifft nur Ticketlisten-/Übersichtsseiten. Ist gerade ein Ticket, eine Antwort oder ein anderes Formular geöffnet, wird ausschließlich der Sound abgespielt – die Seite bleibt unangetastet.
@@ -335,7 +337,7 @@ Im Addon-Popup lässt sich unter **Benachrichtigung**:
 - ein eigener Sound per Datei-Upload hinzufügen,
 - ein selbst hinzugefügter Sound wieder entfernen.
 
-Zehn Sounds sind bereits eingebaut: drei dezente Standardtöne (Sanfter Ping, Zwei-Ton-Chime, Weicher Klick – Sanfter Ping ist voreingestellt), zwei dezente Benachrichtigungstöne (Dezenter Ping, Neue Nachricht) sowie ICQ, iPhone, Minecraft Huhn 1, Minecraft Huhn 2 und WhatsApp.
+Elf Sounds sind bereits eingebaut. **Voreingestellt ist „Neues Ticket“** – die ersten zwei Sekunden einer kurzen Aufnahme. Dazu kommen drei dezente Standardtöne (Sanfter Ping, Zwei-Ton-Chime, Weicher Klick), zwei dezente Benachrichtigungstöne (Dezenter Ping, Neue Nachricht) sowie ICQ, iPhone, Minecraft Huhn 1, Minecraft Huhn 2 und WhatsApp.
 
 > Direkt nach der Installation bzw. dem ersten Aktivieren merkt sich das Addon nur den aktuellen Stand der gesperrten Tickets. Für bereits vorher gesperrte Tickets wird noch kein Ton abgespielt, erst für neu hinzukommende.
 

@@ -62,6 +62,7 @@
   };
 
   const BUILTIN_TICKET_SOUNDS = [
+    { id: "ticket-new", name: "Neues Ticket", file: "sounds/ticket-new.wav" },
     { id: "soft-ping", name: "Sanfter Ping", file: "sounds/soft-ping.wav" },
     { id: "two-tone-chime", name: "Zwei-Ton-Chime", file: "sounds/two-tone-chime.wav" },
     { id: "soft-click", name: "Weicher Klick", file: "sounds/soft-click.wav" },
@@ -10039,6 +10040,29 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     overlay.appendChild(gift);
   }
 
+  // Der Santa-Ton laeuft nur beim allerersten Vorbeiflug - danach nie wieder.
+  const SANTA_SOUND_KEY = "znunyHelperSantaSoundPlayed";
+  let santaTonVersucht = false;
+
+  async function spieleSantaTonEinmalig() {
+    if (santaTonVersucht) return;
+    santaTonVersucht = true;
+
+    try {
+      const gespeichert = await syncGet("local", { [SANTA_SOUND_KEY]: false });
+      if (gespeichert?.[SANTA_SOUND_KEY]) return;
+
+      const audio = new Audio(api.runtime.getURL("sounds/santa-bells.wav"));
+      audio.volume = 0.55;
+      // Nicht auf das Ende der Wiedergabe warten: Der Ton soll auch dann nur
+      // einmal kommen, wenn der Browser ihn blockiert.
+      audio.play().catch(() => {});
+      await syncSet("local", { [SANTA_SOUND_KEY]: true });
+    } catch (fehler) {
+      console.warn("Znuny Helper: Santa-Ton konnte nicht abgespielt werden:", fehler);
+    }
+  }
+
   function startChristmasFlyover(overlay) {
     const fly = overlay.querySelector(".zh-xmas-fly");
     if (!fly) return () => {};
@@ -10056,6 +10080,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const fliegen = () => {
       if (fly.dataset.flying === "1") return;
       fly.dataset.flying = "1";
+      spieleSantaTonEinmalig();
       fly.hidden = false;
       fly.classList.remove("zh-xmas-fly--go");
       void fly.offsetWidth;

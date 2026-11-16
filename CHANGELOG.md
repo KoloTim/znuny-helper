@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.7.0] – 2026-11-16
+
+Erste Hauptversion seit 1.6.7 – hier stehen die großen Änderungen gesammelt.
+
+### Neu
+- **Standard-Ton für neue Tickets:** Der voreingestellte Benachrichtigungston ist jetzt **„Neues Ticket"** – die ersten **2,0 Sekunden** einer kurzen Aufnahme, mono, mit weichem Ausblenden am Ende. Zehn weitere Töne und eigene Dateien bleiben wählbar.
+- **Santa-Ton beim ersten Vorbeiflug:** Der Weihnachtsmann bringt beim **allerersten** Flug ein kurzes Schlittenglöckchen mit. Der Ton läuft genau einmal – der Merker liegt dauerhaft im lokalen Speicher und wird auch dann gesetzt, wenn der Browser die Wiedergabe blockiert.
+- **Schalter „Alle Funktionen"** im Popup: ein Klick schaltet alle Ein/Aus-Funktionen um (zum Testen); der Knopf zeigt an, was er bewirkt.
+
+### Rückblick: die größten Änderungen seit 1.6.7
+- **Weihnachtsmodus.** Schnee in drei Tiefen mit Maus-Abwehr und Wirbel hinter dem Schlitten, Girlande mit Lichtern, Kugeln und Nadelzweigen (pixelgenau, flach bis zur Navigationszeile, endet an der Kante), Tannenbaum unten rechts, Mistelzweig oben rechts, Schlitten mit zwei Rentieren. Deko liegt **unter** Znunys Dialogen, Schnee und Schlitten darüber. Kugeln pendeln an ihrer Schnur, Zweige drehen sich um ihren Anker, statt zu verschwinden.
+- **HSRW-Pinball.** Dreimal auf den Baum klicken: vier Levelkarten (Y-Kreuz, Stern, Zickzack, Tannenbaum), pro Durchlauf gemischt, Pins mit eigenen Maßen, Kugel mit fester Schrittweite, Außenbahnen schließen die Ecken.
+- **EASM-Bewertung** war zwischenzeitlich eingebaut (Criticality aus EASM-Artikeln lesen, Marke im Ticket, Versuch die Priorität zu setzen) und ist wieder **entfernt** – Znuny verlangt auf diesen Tickets Queue und Besitzer, die im Formular leer sind, sodass jeder Submit scheitert, auch von Hand.
+
 ## [1.6.36] – 2026-11-16
 
 ### Fixed

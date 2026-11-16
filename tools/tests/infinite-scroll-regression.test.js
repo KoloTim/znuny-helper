@@ -1574,6 +1574,26 @@ check("Magnet misst nach Neuzeichnen neu",
   source.includes("znuny-helper-garland"),
   true);
 
+console.log("\n34) Toene: neues Ticket und Santa");
+check("Neuer Standardton ist der erste Eintrag",
+  /const BUILTIN_TICKET_SOUNDS = \[\s*\{ id: "ticket-new"/.test(source),
+  true);
+check("Popup kennt den neuen Ton ebenfalls",
+  /id: "ticket-new", name: "Neues Ticket", file: "sounds\/ticket-new\.wav"/.test(popupSource),
+  true);
+check("Sound-Datei liegt im Paket",
+  fs.existsSync(path.join(__dirname, "..", "..", "znuny-helper-extension", "sounds", "ticket-new.wav")),
+  true);
+check("Santa-Ton laeuft nur einmal",
+  source.includes("SANTA_SOUND_KEY") && source.includes("znunyHelperSantaSoundPlayed"),
+  true);
+check("Santa-Ton meldet sich beim ersten Flug",
+  source.includes("spieleSantaTonEinmalig();"),
+  true);
+check("Santa-Ton setzt die Marke unabhaengig von der Wiedergabe",
+  /audio\.play\(\)\.catch\(\(\) => \{\}\);\s*\r?\n\s*await syncSet/.test(source),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

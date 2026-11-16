@@ -335,7 +335,7 @@ Im Addon-Popup lässt sich unter **Benachrichtigung**:
 - ein eigener Sound per Datei-Upload hinzufügen,
 - ein selbst hinzugefügter Sound wieder entfernen.
 
-Zehn Sounds sind bereits eingebaut: drei dezente Standardtöne (Sanfter Ping, Zwei-Ton-Chime, Weicher Klick – Sanfter Ping ist voreingestellt), zwei dezente Benachrichtigungstöne (Dezenter Ping, Neue Nachricht) sowie ICQ, iPhone, Minecraft Huhn 1, Minecraft Huhn 2 und WhatsApp.
+Elf Sounds sind bereits eingebaut. **Voreingestellt ist „Neues Ticket“** – die ersten zwei Sekunden einer kurzen Aufnahme. Dazu kommen drei dezente Standardtöne (Sanfter Ping, Zwei-Ton-Chime, Weicher Klick), zwei dezente Benachrichtigungstöne (Dezenter Ping, Neue Nachricht) sowie ICQ, iPhone, Minecraft Huhn 1, Minecraft Huhn 2 und WhatsApp.
 
 > Direkt nach der Installation bzw. dem ersten Aktivieren merkt sich das Addon nur den aktuellen Stand der gesperrten Tickets. Für bereits vorher gesperrte Tickets wird noch kein Ton abgespielt, erst für neu hinzukommende.
 

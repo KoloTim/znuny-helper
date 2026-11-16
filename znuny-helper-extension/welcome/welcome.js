@@ -9,6 +9,14 @@
 
   const releases = [
     {
+      version: "1.7.0",
+      items: [
+        "Neu: „Neues Ticket“ ist der Standard-Ton – die ersten 2 Sekunden einer kurzen Aufnahme.",
+        "Neu: Beim allerersten Vorbeiflug des Weihnachtsmanns erklingt einmalig ein Schlittenglöckchen.",
+        "Rückblick seit 1.6.7: Weihnachtsmodus, HSRW-Pinball, Schalter „Alle Funktionen“ – und die EASM-Bewertung, die wieder entfernt wurde."
+      ]
+    },
+    {
       version: "1.6.36",
       items: [
         "Girlande: Blätter verschwinden nicht mehr beim Drüberfahren, Kugeln pendeln an ihrer Schnur statt wegzufliegen.",

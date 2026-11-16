@@ -25,6 +25,7 @@
   };
 
   const BUILTIN_TICKET_SOUNDS = [
+    { id: "ticket-new", name: "Neues Ticket", file: "sounds/ticket-new.wav" },
     { id: "soft-ping", name: "Sanfter Ping", file: "sounds/soft-ping.wav" },
     { id: "two-tone-chime", name: "Zwei-Ton-Chime", file: "sounds/two-tone-chime.wav" },
     { id: "soft-click", name: "Weicher Klick", file: "sounds/soft-click.wav" },
