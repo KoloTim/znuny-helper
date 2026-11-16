@@ -1594,6 +1594,15 @@ check("Santa-Ton setzt die Marke unabhaengig von der Wiedergabe",
   /audio\.play\(\)\.catch\(\(\) => \{\}\);\s*\r?\n\s*await syncSet/.test(source),
   true);
 
+console.log("\n35) Suchverlauf steht unter dem Feld");
+check("Verlauf wird als letztes Kind eingehaengt",
+  source.includes("row.lastElementChild !== historyWrap") && source.includes("row.appendChild(historyWrap)"),
+  true);
+check("Feld und Verlauf haben feste Grid-Zeilen",
+  /zh-search-primary-input \{ grid-column: 2; grid-row: 1; \}/.test(source) &&
+    /zh-search-history \{ grid-column: 2; grid-row: 2;/.test(source),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

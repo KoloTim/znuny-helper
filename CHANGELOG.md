@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.7.1] – 2026-11-16
+
+### Fixed
+- **Suchverlauf stand über dem Feld statt darunter.** Die Vorschläge wurden angelegt, bevor das Eingabefeld in die Zeile eingehängt war – dadurch landeten sie im DOM **vor** dem Feld und rutschten im Raster nach oben. Jetzt wird der Verlauf immer als letztes Element der Zeile eingehängt, und das Raster ist fest verdrahtet: Beschriftung und Feld in Zeile 1, Verlauf in Zeile 2. Gemessen: Feld endet bei 94 px, Verlauf beginnt bei 104 px – pro Feld (Volltext, Ticketnummer).
+
 ## [1.7.0] – 2026-11-16
 
 Erste Hauptversion seit 1.6.7 – hier stehen die großen Änderungen gesammelt.

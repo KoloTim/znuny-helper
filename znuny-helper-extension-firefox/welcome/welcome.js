@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.7.1",
+      items: [
+        "Suchverlauf steht jetzt unter dem jeweiligen Feld (Volltext, Ticketnummer) statt darüber."
+      ]
+    },
+    {
       version: "1.7.0",
       items: [
         "Neu: „Neues Ticket“ ist der Standard-Ton – die ersten 2 Sekunden einer kurzen Aufnahme.",

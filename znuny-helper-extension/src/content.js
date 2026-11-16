@@ -3464,6 +3464,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       row.appendChild(historyWrap);
     }
 
+    // Immer als letztes Kind: sonst steht der Verlauf ueber dem Eingabefeld.
+    if (historyWrap.parentElement !== row || row.lastElementChild !== historyWrap) {
+      row.appendChild(historyWrap);
+    }
+
     historyWrap.innerHTML = "";
     history.forEach((value) => {
       const button = document.createElement("button");
@@ -3863,9 +3868,10 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       #zh-search-primary-fields { padding: 12px 0 14px; border-bottom: 1px solid #d6d6d6; }
       #zh-search-primary-fields .zh-search-primary-title { width: 270px; margin: 0 auto 8px; font-weight: 700; text-align: left; }
       #zh-search-primary-fields .zh-search-field-row { display: grid; grid-template-columns: minmax(130px, 1fr) 270px minmax(130px, 1fr); align-items: center; gap: 8px; margin: 7px 0; }
-      #zh-search-primary-fields .zh-search-field-row label { grid-column: 1; text-align: right; color: #777; }
+      #zh-search-primary-fields .zh-search-field-row label { grid-column: 1; grid-row: 1; text-align: right; color: #777; }
+      #zh-search-primary-fields .zh-search-field-row .zh-search-primary-input { grid-column: 2; grid-row: 1; }
       #zh-search-primary-fields .zh-search-primary-input { grid-column: 2; width: 270px; max-width: 45vw; box-sizing: border-box; }
-      #zh-search-primary-fields .zh-search-history { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px; margin: -3px 0 2px; max-width: 270px; }
+      #zh-search-primary-fields .zh-search-history { grid-column: 2; grid-row: 2; justify-self: start; display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 0; max-width: 270px; }
       #zh-search-primary-fields .zh-search-history[hidden] { display: none !important; }
       #zh-search-primary-fields .zh-search-history button { max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; line-height: 1.3; padding: 2px 6px; border: 1px solid #bdbdbd; border-radius: 3px; background: #f7f7f7; color: #333; cursor: pointer; }
       #zh-search-primary-fields .zh-search-history button:hover { background: #fff; border-color: #888; }
