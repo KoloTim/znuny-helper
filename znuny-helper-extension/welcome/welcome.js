@@ -9,6 +9,15 @@
 
   const releases = [
     {
+      version: "1.8.1",
+      items: [
+        "Pac-Man spielbar: Geister starten in den Ecken und haben 2 Sekunden Schonfrist – vorher war das Spiel sofort vorbei.",
+        "Kein Ruckeln mehr: die Bewegung lief rückwärts und sprang zwischen zwei Kacheln.",
+        "Pinball und Logo Pong starten jetzt mit einem Klick (Baum bzw. Profilbild), Pac-Man mit einem Klick auf den Adventskranz.",
+        "Dokumentation (GitHub und NetWiki) auf den aktuellen Stand gebracht."
+      ]
+    },
+    {
       version: "1.8.0",
       items: [
         "Pac-Man steckt jetzt im Adventskranz – einmal darauf klicken.",

@@ -11229,7 +11229,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   }
 
   function disableLogoPong() {
-    document.getElementById("zh-pong")?.remove();
+    document.querySelectorAll(".zh-pong-backdrop").forEach((el) => el.remove());
     document.getElementById("zh-pong-style")?.remove();
   }
 
@@ -11293,13 +11293,18 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     let letzteZeit = 0;
     let pacTakt = 145;
     let mundPhase = 0;
+    // Bis zu diesem Zeitpunkt bleiben die Geister stehen (Schonfrist).
+    let geistFrei = 0;
+    const SCHONFRIST = 2000;
 
     const startFeld = { x: 9, y: 7 };
+    // Geister starten in den Ecken - weit weg vom Startfeld. Vorher standen
+    // sie direkt neben Pac-Man, dadurch war das Spiel nach einer Sekunde vorbei.
     const geisterFarben = [
-      { farbe: "#e0492f", x: 7, y: 6 },
-      { farbe: "#3c7fd1", x: 9, y: 6 },
-      { farbe: "#f0a0c8", x: 11, y: 6 },
-      { farbe: "#41b3a3", x: 9, y: 8 }
+      { farbe: "#e0492f", x: 1, y: 1 },
+      { farbe: "#3c7fd1", x: 17, y: 1 },
+      { farbe: "#f0a0c8", x: 17, y: 13 },
+      { farbe: "#41b3a3", x: 1, y: 13 }
     ];
 
     const aufbau = () => {
@@ -11333,6 +11338,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         start: { x: g.x, y: g.y }
       }));
       angstZeit = 0;
+      geistFrei = performance.now() + SCHONFRIST;
       levelAnzeige.textContent = `Level ${level}`;
       ziehe();
     };
@@ -11356,6 +11362,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         g.fortschritt = 1;
       });
       angstZeit = 0;
+      geistFrei = performance.now() + SCHONFRIST;
     };
 
     const aktualisiereAnzeige = () => {
@@ -11474,7 +11481,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
     const schritt = () => {
       pacSchritt();
-      geister.forEach(geistSchritt);
+      if (performance.now() >= geistFrei) geister.forEach(geistSchritt);
       treffer();
       if (angstZeit > 0) angstZeit = Math.max(0, angstZeit - pacTakt);
     };
@@ -11606,10 +11613,12 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           schritt();
         }
         // Fortschritt der Figuren fuer die weiche Darstellung
+        // 0 = vorherige Kachel, 1 = aktuelle. Vorher lief der Wert rueckwaerts,
+        // dadurch sprangen Pac-Man und die Geister in jedem Takt hin und zurueck.
         const anteil = Math.min(1, akku / pacTakt);
-        pac.fortschritt = 1 - anteil;
+        pac.fortschritt = anteil;
         geister.forEach((g) => {
-          g.fortschritt = 1 - anteil;
+          g.fortschritt = anteil;
         });
       }
 
@@ -11653,6 +11662,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       spielLaeuft = true;
       letzteZeit = performance.now();
       akku = 0;
+      geistFrei = performance.now() + SCHONFRIST;
     });
 
     window.addEventListener("keydown", aufTaste);
@@ -11736,7 +11746,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       baumKlicks += 1;
       window.clearTimeout(baumTimer);
       baumTimer = window.setTimeout(() => { baumKlicks = 0; }, 1800);
-      if (baumKlicks >= 3) {
+      if (baumKlicks >= 1) {
         baumKlicks = 0;
         if (!settings.minigames) return;
         if (!pinballAktiv()) {
@@ -11793,45 +11803,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   // das Spiel.
   let logoKlicks = 0;
   let logoTimer = 0;
-  function initPacmanLogo() {
-    if (!settings.minigames) return;
-
-    // Ein Klick-Ziel muss sichtbar sein: Das Znuny-Logo ist auf manchen
-    // Installationen ein leeres Feld ohne Bild, dann bleibt das Profilbild.
-    const ziele = [];
-    const logo = document.getElementById("Logo") || document.querySelector("a.Logo");
-    if (logo) {
-      const r = logo.getBoundingClientRect();
-      const hatBild = getComputedStyle(logo).backgroundImage !== "none";
-      if (r.width > 40 && r.height > 20 && (hatBild || logo.textContent.trim())) ziele.push(logo);
-    }
-    const avatar = document.querySelector("li.UserAvatar a, .UserAvatar a, li.UserAvatar");
-    if (avatar) ziele.push(avatar);
-
-    for (const ziel of ziele) {
-      if (ziel.dataset.zhPacman === "1") continue;
-      ziel.dataset.zhPacman = "1";
-      ziel.style.cursor = "pointer";
-      ziel.addEventListener("click", () => {
-        logoKlicks += 1;
-        window.clearTimeout(logoTimer);
-        logoTimer = window.setTimeout(() => {
-          logoKlicks = 0;
-        }, 1800);
-        if (logoKlicks >= 3) {
-          logoKlicks = 0;
-          if (!document.getElementById("zh-pacman")) {
-            try {
-              startPacman();
-            } catch (fehler) {
-              console.warn("Znuny Helper: Pac-Man konnte nicht starten:", fehler);
-            }
-          }
-        }
-      });
-    }
-  }
-
   function disableChristmasMode() {
     christmasCleanupFns.forEach((aufraeumen) => {
       try {
@@ -11856,13 +11827,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     if (settings.christmasMode && weihnachtsSaison()) enableChristmasMode();
     else disableChristmasMode();
 
-    // Pac-Man haengt am Znuny-Zeichen und braucht kein Weihnachten.
-    if (settings.minigames) {
-      initPacmanLogo();
-      window.setTimeout(initPacmanLogo, 1500);
-    } else {
-      disablePacman();
-    }
+    // Pac-Man haengt am Adventskranz; ohne Minispiele bleibt das Spiel zu.
+    if (!settings.minigames) disablePacman();
 
     if (isCustomerPortal()) {
       runCustomerPortalFeatures();
@@ -11945,13 +11911,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     avatar.dataset.zhPongBound = "1";
     avatar.style.cursor = "pointer";
 
-    let hoverTimer = null;
-    avatar.addEventListener("mouseenter", () => {
-      hoverTimer = window.setTimeout(openLogoPongModal, 3000);
+    // Ein Klick auf das Profilbild startet Logo Pong. Frueher musste man drei
+    // Sekunden mit der Maus darauf warten - das war nicht auffindbar.
+    avatar.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (document.querySelector(".zh-pong-backdrop")) return;
+      openLogoPongModal();
     });
-    avatar.addEventListener("mouseleave", () => {
-      window.clearTimeout(hoverTimer);
-    });
+    avatar.setAttribute("title", "Logo Pong starten");
   }
 
   const LOGO_PONG_COLORS = { left: "#2c2569", right: "#3f6fd8", ball: "#1c1b29", line: "#e2dfee" };

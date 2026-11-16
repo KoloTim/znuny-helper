@@ -22,7 +22,7 @@ Das Addon richtet sich an Mitarbeitende, die regelmäßig im Znuny-Ticketsystem 
 ===== Technische Grundlage =====
 
 ^ Punkt ^ Beschreibung ^
-| Aktuelle Version | 1.6.6 (Stand: 09.11.2026) |
+| Aktuelle Version | 1.8.1 (Stand: 16.11.2026) |
 | Typ | Browser-Erweiterung / WebExtension (Manifest V3) |
 | Unterstützte Browser | Google Chrome, Microsoft Edge, Firefox (ab Version 140) |
 | Zielsystem | ''%%https://otrs.staff.hsrw/otrs/index.pl*%%'' und ''%%https://otrs.staff.hsrw/otrs/customer.pl*%%'' (Kundenportal) |
@@ -96,7 +96,9 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Ton bei neuem Ticket**
 | Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status (Tage im Popup einstellbar) |
 | Tastenkürzel | Strg+Enter zum Senden | Aktuelles Formular übermitteln, Tab schließt danach automatisch |
 | Benachrichtigung | Ton bei neuem Ticket | Sound abspielen, sobald ein neues Ticket bei einem selbst gesperrt wird |
-| Saison | Weihnachtsmodus | Schnee, Girlande, Adventskranz, Tannenbaum, Glitzer – und alle 15 Minuten fliegt der Weihnachtsmann vorbei |
+| Saison | Weihnachtsmodus | Schnee, Girlande, Adventskranz, Tannenbaum, Glitzer – nur vom 1. November bis 25. Dezember; alle 30 Minuten fliegt der Weihnachtsmann vorbei |
+| Saison | Minispiele | Pinball (Baum), Pac-Man (Adventskranz), Logo Pong (Profilbild) – einzeln abschaltbar |
+| Einstellungen | Alle Funktionen | Ein Knopf schaltet alles aus und holt den vorherigen Stand zurück |
 | Hilfe | Diagnose | Version, erkannte Seite, Einstellungen und letzte Meldungen für eine Fehlermeldung sammeln und kopieren |
 
 ===== Anhang-Vorschau =====
@@ -342,14 +344,18 @@ Das Kürzel funktioniert nur, wenn auf der aktuellen Seite ein passender "Überm
 
 ===== Minispiele =====
 
-Sind die Minispiele erlaubt (Popup, Standard **an**), gibt es zwei kleine Spiele - sonst passiert an beiden Stellen nichts:
+Sind die Minispiele erlaubt (Popup, Standard **an**), gibt es drei kleine Spiele. Der Schalter ist der einzige Ort, an dem sie hängen: aus heißt, an keiner der drei Stellen passiert etwas.
 
-  * **HSRW-Pinball:** dreimal auf den Weihnachtsbaum unten rechts klicken. Vier Levelkarten (Y-Kreuz, Stern, Zickzack, Tannenbaum), pro Durchlauf gemischt.
-  * **Pac-Man:** dreimal auf das eigene Profilbild oben links klicken. Das Zeichen ist selbst ein Kreis mit Keil - daraus wurde ein Labyrinth mit Punkten, vier Kraftpunkten und vier Geistern. Steuerung mit Pfeiltasten oder WASD, Esc beendet.
+^ Spiel ^ Start ^ Anmerkung ^
+| HSRW-Pinball | auf den Weihnachtsbaum unten rechts klicken | Vier Levelkarten (Y-Kreuz, Stern, Zickzack, Tannenbaum), pro Durchlauf gemischt |
+| Pac-Man | auf den Adventskranz oben rechts klicken | Labyrinth mit Punkten, vier Kraftpunkten und vier Geistern; Steuerung mit Pfeiltasten oder WASD |
+| Logo Pong | auf das eigene Profilbild oben links klicken | Braucht das Profilbild (die Initialen oben links) |
 
-Beide Spiele laufen nur im Vordergrund, lesen nichts aus dem Ticketsystem und schreiben nichts.
+Der Kranz hängt nur in der Saison (1. November bis 25. Dezember) - außerhalb der Saison ist Pac-Man nicht erreichbar.
 
-===== Ton bei neuem Ticket =====
+Alle Spiele laufen nur im Vordergrund, lesen nichts aus dem Ticketsystem und schreiben nichts. **Esc** beendet sie.
+
+==== Ton bei neuem Ticket =====
 
 Ist diese Funktion aktiv, spielt das Addon einen kurzen Sound ab, sobald ein neues Ticket bei einem selbst gesperrt wird, und aktualisiert dabei automatisch die gerade sichtbare Ticketliste – das neue Ticket erscheint sofort, ohne dass Znunys eigenes Aktualisierungsintervall der Übersichten abgewartet werden muss. Dazu gleicht das Addon im Hintergrund regelmäßig (etwa einmal pro Minute) die eigene Ansicht "Gesperrte Tickets" ab und merkt sich lokal, welche Ticketnummern schon bekannt sind.
 
@@ -371,9 +377,9 @@ Direkt nach der Installation bzw. dem ersten Aktivieren merkt sich das Addon nur
 
 ===== Weihnachtsmodus =====
 
-Der Weihnachtsmodus ist ein saisonales Schmankerl: Schnee (sechszackige Flocken in drei Tiefen, mit Wind und Maus-Abwehr), eine Girlande mit Lichtern und Kugeln, ein Adventskranz mit vier Kerzen, ein Tannenbaum mit Schneehauben und Geschenken sowie ein vorbeifliegender Schlitten. Der Baum bleibt immer im Bild und schrumpft bei wenig Platz nur leicht. Baum, Girlande und Kranz liegen in einer eigenen Ebene **unter** Znunys Dialogen – Meldungsfenster werden also nicht überdeckt; Schnee und Schlitten bleiben darüber. Der Adventskranz ist um 25 Grad gedreht (die Kerzen stehen gerade) und zeigt vom 1. November bis zum 25. Dezember; danach ist er weg. Seine Kerzen richten sich nach dem Datum: vor dem ersten Advent keine, dann jede Woche eine mehr.
+Der Weihnachtsmodus ist ein saisonales Schmankerl: Schnee (sechszackige Flocken in drei Tiefen, mit Wind und Maus-Abwehr), eine Girlande mit Lichtern und Kugeln, ein Adventskranz mit vier Kerzen, ein Tannenbaum mit Schneehauben und Geschenken sowie ein vorbeifliegender Schlitten. Der Baum bleibt immer im Bild und schrumpft bei wenig Platz nur leicht. Baum, Girlande und Kranz liegen in einer eigenen Ebene **unter** Znunys Dialogen – Meldungsfenster werden also nicht überdeckt; Schnee und Schlitten bleiben darüber. Die **gesamte** Deko hängt an der Saison: vom 1. November bis zum 25. Dezember ist sie da, ab dem 26. Dezember wird alles abgeräumt – Schnee, Girlande, Kranz, Baum und Schlitten. Der Schalter im Popup bleibt, greift aber nur innerhalb der Saison. Der Adventskranz ist um 25 Grad gedreht (die Kerzen stehen gerade) und zeigt vom 1. November bis zum 25. Dezember; danach ist er weg. Seine Kerzen richten sich nach dem Datum: vor dem ersten Advent keine, dann jede Woche eine mehr.
 
-**Dreimal auf den Tannenbaum klicken** öffnet das **HSRW-Pinball**-Minigame mit **vier Levelkarten**: Y-Kreuz, Stern, Zickzack und Tannenbaum. Jede Karte hat nur wenige, große Hindernisse und wird bei jedem Start leicht verschoben und gedreht – kein Durchlauf gleicht dem anderen. Die Pins sind Kapseln im Stil der beiden Y-Striche aus dem HSRW-Logo (Violett-Navy #2a2250 und Blau #3c7fd1), gezeichnet und abgefragt mit derselben Form. Die Kugel rechnet mit fester Schrittweite (240 Hz), damit sie unabhängig von der Bildrate läuft und nicht durch Hindernisse springt.
+**Ein Klick auf den Tannenbaum** öffnet das **HSRW-Pinball**-Minigame mit **vier Levelkarten**: Y-Kreuz, Stern, Zickzack und Tannenbaum. Jede Karte hat nur wenige, große Hindernisse und wird bei jedem Start leicht verschoben und gedreht – kein Durchlauf gleicht dem anderen. Die Pins sind Kapseln im Stil der beiden Y-Striche aus dem HSRW-Logo (Violett-Navy #2a2250 und Blau #3c7fd1), gezeichnet und abgefragt mit derselben Form. Die Kugel rechnet mit fester Schrittweite (240 Hz), damit sie unabhängig von der Bildrate läuft und nicht durch Hindernisse springt.
 
 * **Leertaste** bringt die Kugel oben ins Spiel; sie läuft dann durch die Pins nach unten.
 * **Pfeiltasten** oder **A/D** bewegen die Flipper, **Esc** beendet das Spiel.
@@ -463,6 +469,11 @@ Ausnahme: Beim EB Helper werden erkannte Hardwaredaten an die lokale EB-Seite ü
 * "Ton bei neuem Ticket" funktioniert nur, solange ein Znuny-Tab in einem Browser mit installierter Erweiterung geöffnet ist; bei komplett geschlossenem Browser gibt es keine Benachrichtigung.
 
 ===== Deaktivieren einzelner Funktionen =====
+
+Oben im Popup sitzt der Schalter **Alle Funktionen**:
+  * **Alle aus** schaltet jede Ein/Aus-Funktion ab und merkt sich den Stand.
+  * Danach heißt der Knopf **Stand zurückholen** und stellt genau den vorherigen Zustand wieder her - Funktionen, die vorher aus waren, bleiben aus.
+  * Zahlenwerte (etwa die Tage der Warten-Schnellauswahl) bleiben unangetastet.
 
 Alle Hauptfunktionen können im Addon-Popup einzeln ein- oder ausgeschaltet werden.
 

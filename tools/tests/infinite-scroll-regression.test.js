@@ -1438,8 +1438,18 @@ console.log("\n24) Pinball-Minigame und Baum-Klick");
 check("Baum ist klickbar (pointer-events auto)",
   /pointer-events:\s*auto/.test(source),
   true);
-check("Dreifach-Klick-Zaehler vorhanden",
-  source.includes("baumKlicks") && /baumKlicks >= 3/.test(source),
+check("Logo Pong startet per Klick",
+  source.includes('avatar.addEventListener("click"') && !source.includes("hoverTimer = window.setTimeout(openLogoPongModal"),
+  true);
+check("Pac-Man haengt nur am Kranz",
+  source.includes("kranzAnklicken") && !source.includes("initPacmanLogo"),
+  true);
+check("Interpolation laeuft vorwaerts",
+  source.includes("pac.fortschritt = anteil;") && !source.includes("pac.fortschritt = 1 - anteil;"),
+  true);
+
+check("Pinball startet mit einem Klick",
+  source.includes("baumKlicks") && /baumKlicks >= 1/.test(source),
   true);
 check("Pinball-Funktion vorhanden",
   source.includes("function startPinball") && source.includes("zh-pin-board"),
@@ -1644,7 +1654,7 @@ const alleFrei = pacMaze.join("").split("").filter((c) => c !== "#").length;
 check("Alle Gaenge erreichbar", gesehen.size, alleFrei);
 check("Minispiele sind eine Einstellung", source.includes("minigames: true"), true);
 check("Pinball haengt am Minispiele-Schalter", /if \(!settings\.minigames\) return;/.test(source), true);
-check("Pac-Man startet ueber das Logo", source.includes("initPacmanLogo") && source.includes('getElementById("Logo")'), true);
+check("Pac-Man startet ueber den Kranz", source.includes("kranzAnklicken") && !source.includes("initPacmanLogo"), true);
 check("Master merkt sich den Stand", popupSource.includes("MASTER_SNAPSHOT_KEY"), true);
 check("Rueckholen stellt den alten Stand her", popupSource.includes("zielStand ? Boolean(zielStand[key]) : true"), true);
 
@@ -1695,6 +1705,21 @@ check("Keine Deko im Januar", saison(new Date("2027-01-10T12:00:00")), false);
 check("Keine Deko im Juli", saison(new Date("2027-07-10T12:00:00")), false);
 check("Deko haengt am Saison-Schalter", source.includes("settings.christmasMode && weihnachtsSaison()"), true);
 check("Kranz startet Pac-Man", source.includes("kranzAnklicken") && source.includes('"aria-label", "Pac-Man starten"'), true);
+const geisterBlock = source.slice(source.indexOf("const geisterFarben = ["), source.indexOf("];", source.indexOf("const geisterFarben = [")));
+const geisterStart = [...geisterBlock.matchAll(/farbe: "#[0-9a-f]{6}", x: (\d+), y: (\d+)/g)].map((m) => [Number(m[1]), Number(m[2])]);
+const startFeldTreffer = source.match(/const startFeld = \{ x: (\d+), y: (\d+) \}/);
+const pacStart = startFeldTreffer ? [Number(startFeldTreffer[1]), Number(startFeldTreffer[2])] : null;
+check("Vier Geister definiert", geisterStart.length, 4);
+check("Geister starten weit weg vom Startfeld",
+  Boolean(pacStart) && geisterStart.every(([x, y]) => Math.abs(x - pacStart[0]) + Math.abs(y - pacStart[1]) >= 6),
+  true);
+check("Geister bewegen sich erst nach der Schonfrist",
+  source.includes("const SCHONFRIST = 2000;") && source.includes("if (performance.now() >= geistFrei) geister.forEach(geistSchritt);"),
+  true);
+check("Startfeld ist frei",
+  pacMaze[pacStart[1]][pacStart[0]] !== "#",
+  true);
+
 check("Store-Icons vorhanden",
   ["16", "32", "48", "128"].every((g) => fs.existsSync(path.join(__dirname, "..", "..", "znuny-helper-extension", "icons", `icon-${g}.png`))),
   true);

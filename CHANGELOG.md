@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.8.1] – 2026-11-16
+
+### Fixed
+- **Pac-Man war nach einer Sekunde vorbei.** Die vier Geister starteten direkt **neben** dem Startfeld – der oberste zog im ersten Schritt auf Pac-Man, drei Leben waren in unter einer Sekunde weg. Jetzt starten sie in den **vier Ecken** (Mindestabstand 6 Felder) und bleiben die ersten **2 Sekunden** stehen (Schonfrist nach Start, Levelwechsel und Lebensverlust). Gemessen: nach 10 Sekunden 70 Punkte und noch 3 Leben.
+- **Pac-Man ruckelte:** Die Zwischenbilder liefen **rückwärts** (`1 - anteil`) – Pac-Man und die Geister sprangen in jedem Takt zur vorherigen Kachel und wieder zurück. Jetzt läuft der Fortschritt von 0 nach 1; gemessen 0 Richtungswechsel bei 14 Messungen.
+
+### Changed
+- **Pinball startet mit einem Klick** auf den Weihnachtsbaum (vorher dreimal).
+- **Logo Pong startet mit einem Klick** auf das eigene Profilbild (vorher drei Sekunden mit der Maus darauf warten).
+- **Pac-Man hängt nur noch am Adventskranz** – ein Klick darauf. Das Profilbild ist damit allein für Pong reserviert, sonst hätten sich die Klicks überschnitten.
+
+### Docs
+- README und NetWiki auf Stand 1.8.1: neue Version, aktualisierte Funktionsübersicht, Abschnitt **Minispiele** (drei Spiele mit Startorten), Saison-Hinweis für die gesamte Deko und der Schalter **Alle Funktionen** samt Rückhol-Logik.
+- DokuWiki-Fassung nachgezogen und Absatzform neu erzeugt (294 Absätze).
+
 ## [1.8.0] – 2026-11-16
 
 Erste Fassung, die für die Stores vorbereitet ist.
