@@ -340,6 +340,15 @@ Ein Klick auf einen anderen Knopf überschreibt die Vorbelegung jederzeit. Eine 
 Das Kürzel funktioniert nur, wenn auf der aktuellen Seite ein passender "Übermitteln"-Knopf sichtbar ist; sonst passiert nichts.
 </note>
 
+===== Minispiele =====
+
+Sind die Minispiele erlaubt (Popup, Standard **an**), gibt es zwei kleine Spiele - sonst passiert an beiden Stellen nichts:
+
+  * **HSRW-Pinball:** dreimal auf den Weihnachtsbaum unten rechts klicken. Vier Levelkarten (Y-Kreuz, Stern, Zickzack, Tannenbaum), pro Durchlauf gemischt.
+  * **Pac-Man:** dreimal auf das Znuny-Zeichen oben links klicken. Das Zeichen ist selbst ein Kreis mit Keil - daraus wurde ein Labyrinth mit Punkten, vier Kraftpunkten und vier Geistern. Steuerung mit Pfeiltasten oder WASD, Esc beendet.
+
+Beide Spiele laufen nur im Vordergrund, lesen nichts aus dem Ticketsystem und schreiben nichts.
+
 ===== Ton bei neuem Ticket =====
 
 Ist diese Funktion aktiv, spielt das Addon einen kurzen Sound ab, sobald ein neues Ticket bei einem selbst gesperrt wird, und aktualisiert dabei automatisch die gerade sichtbare Ticketliste – das neue Ticket erscheint sofort, ohne dass Znunys eigenes Aktualisierungsintervall der Übersichten abgewartet werden muss. Dazu gleicht das Addon im Hintergrund regelmäßig (etwa einmal pro Minute) die eigene Ansicht "Gesperrte Tickets" ab und merkt sich lokal, welche Ticketnummern schon bekannt sind.

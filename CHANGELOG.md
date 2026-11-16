@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.7.2] – 2026-11-16
+
+### Added
+- **Pac-Man.** Das Znuny-Zeichen ist selbst ein Kreis mit Keil – daraus wurde ein kleines Spiel: **dreimal auf das Logo** klicken. Labyrinth mit 19 × 15 Feldern, Punkten, vier Kraftpunkten und vier Geistern, die den kürzesten Weg nehmen (mit 22 % Zufall) und bei Angst fressbar sind. Drei Leben, Level steigen mit schnelleren Geistern, Steuerung mit Pfeiltasten oder WASD, **Esc** beendet. Farben im Znuny-Look (Orange auf Dunkelblau).
+- **Schalter „Minispiele erlauben"** im Popup (Standard: an). Aus heißt: kein Pinball am Baum, kein Pac-Man am Logo – für den Fall, dass Spaß bei der Arbeit doch nicht erlaubt ist.
+
+### Changed
+- **„Alle aus" merkt sich den Stand.** Der Knopf schaltet jetzt nicht mehr stumpf alles an, sondern **stellt genau den Stand von vorher wieder her** – was aus war, bleibt aus. Der Knopf heißt dann „Stand zurückholen"; die Marken liegen im lokalen Speicher, der Stand übersteht also auch ein Neuladen des Popups. Gemessen: 12 von 17 an → alle aus → wieder 12 von 17 an.
+
 ## [1.7.1] – 2026-11-16
 
 ### Fixed

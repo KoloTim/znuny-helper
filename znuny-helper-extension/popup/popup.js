@@ -21,7 +21,8 @@
     assignedTicketSound: false,
     quickReply: false,
     directArticleActions: true,
-    christmasMode: true
+    christmasMode: true,
+    minigames: true
   };
 
   const BUILTIN_TICKET_SOUNDS = [
@@ -153,30 +154,59 @@
   function aktualisiereMaster() {
     if (!masterToggle) return;
     const { alleAn, an, gesamt } = masterStand(readForm());
-    masterToggle.textContent = alleAn ? "Alle aus" : "Alle ein";
+    masterToggle.textContent = alleAn ? "Alle aus" : (an === 0 ? "Stand zur\u00fcckholen" : "Alle ein");
     masterToggle.dataset.zustand = alleAn ? "an" : "aus";
     masterToggle.title = alleAn
       ? `Alle ${gesamt} Funktionen abschalten`
       : `Alle ${gesamt} Funktionen einschalten (${an} sind derzeit an)`;
   }
 
+  // "Alle aus" merkt sich, was vorher an war. "Alle ein" stellt genau diesen
+  // Stand wieder her - Funktionen, die vorher aus waren, bleiben aus.
+  const MASTER_SNAPSHOT_KEY = "znunyHelperMasterSnapshot";
+  let masterSnapshot = null;
+
   function initMaster() {
     if (!masterToggle) return;
 
     masterToggle.addEventListener("click", async () => {
       const nextSettings = readForm();
-      const ziel = !masterStand(nextSettings).alleAn;
-      for (const key of BOOLEAN_KEYS) nextSettings[key] = ziel;
+      const alleAus = BOOLEAN_KEYS.every((key) => !nextSettings[key]);
+
+      if (alleAus) {
+        const wiederherstellung = masterSnapshot || (await storageGet({ [MASTER_SNAPSHOT_KEY]: null }))[MASTER_SNAPSHOT_KEY];
+        const zielStand = wiederherstellung && typeof wiederherstellung === "object" ? wiederherstellung : null;
+
+        for (const key of BOOLEAN_KEYS) {
+          nextSettings[key] = zielStand ? Boolean(zielStand[key]) : true;
+        }
+
+        masterSnapshot = null;
+        await storageSet({ [SETTINGS_KEY]: nextSettings, [MASTER_SNAPSHOT_KEY]: null });
+        const an = BOOLEAN_KEYS.filter((key) => nextSettings[key]).length;
+        status.textContent = zielStand
+          ? `Stand wiederhergestellt (${an} von ${BOOLEAN_KEYS.length} an)`
+          : "Alle Funktionen eingeschaltet";
+      } else {
+        masterSnapshot = {};
+        for (const key of BOOLEAN_KEYS) masterSnapshot[key] = Boolean(nextSettings[key]);
+        for (const key of BOOLEAN_KEYS) nextSettings[key] = false;
+
+        await storageSet({ [SETTINGS_KEY]: nextSettings, [MASTER_SNAPSHOT_KEY]: masterSnapshot });
+        status.textContent = "Alle Funktionen ausgeschaltet";
+      }
 
       writeForm(nextSettings);
-      await storageSet({ [SETTINGS_KEY]: nextSettings });
-      status.textContent = ziel ? "Alle Funktionen eingeschaltet" : "Alle Funktionen ausgeschaltet";
       window.setTimeout(() => {
         status.textContent = "Bereit";
-      }, 1600);
+      }, 1800);
       aktualisiereMaster();
     });
 
+    storageGet({ [MASTER_SNAPSHOT_KEY]: null }).then((gespeichert) => {
+      masterSnapshot = gespeichert[MASTER_SNAPSHOT_KEY] || null;
+      aktualisiereMaster();
+    });
     aktualisiereMaster();
   }
 

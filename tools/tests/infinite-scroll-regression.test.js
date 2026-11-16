@@ -1603,6 +1603,51 @@ check("Feld und Verlauf haben feste Grid-Zeilen",
     /zh-search-history \{ grid-column: 2; grid-row: 2;/.test(source),
   true);
 
+console.log("\n36) Pac-Man und Minispiele");
+const pacBlock = source.slice(source.indexOf("const PAC_MAZE = ["), source.indexOf("function pacmanStyle()"));
+const pacMaze = [...pacBlock.matchAll(/"([#.]+)"/g)].map((m) => m[1]);
+check("Labyrinth gefunden", pacMaze.length > 0, true);
+check("Alle Zeilen gleich lang", new Set(pacMaze.map((z) => z.length)).size, 1);
+check("Rand ist geschlossen",
+  pacMaze[0].split("").every((c) => c === "#") &&
+    pacMaze[pacMaze.length - 1].split("").every((c) => c === "#") &&
+    pacMaze.every((z) => z[0] === "#" && z[z.length - 1] === "#"),
+  true);
+
+// Erreichbarkeit pruefen
+const hoehe = pacMaze.length;
+const breite = pacMaze[0].length;
+const frei = (x, y) => x >= 0 && y >= 0 && x < breite && y < hoehe && pacMaze[y][x] !== "#";
+const gesehen = new Set();
+const stapel = [];
+for (let y = 0; y < hoehe && !stapel.length; y += 1) {
+  for (let x = 0; x < breite; x += 1) {
+    if (frei(x, y)) {
+      stapel.push([x, y]);
+      gesehen.add(x + "," + y);
+      break;
+    }
+  }
+}
+while (stapel.length) {
+  const [x, y] = stapel.pop();
+  [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
+    const nx = x + dx;
+    const ny = y + dy;
+    if (frei(nx, ny) && !gesehen.has(nx + "," + ny)) {
+      gesehen.add(nx + "," + ny);
+      stapel.push([nx, ny]);
+    }
+  });
+}
+const alleFrei = pacMaze.join("").split("").filter((c) => c !== "#").length;
+check("Alle Gaenge erreichbar", gesehen.size, alleFrei);
+check("Minispiele sind eine Einstellung", source.includes("minigames: true"), true);
+check("Pinball haengt am Minispiele-Schalter", /if \(!settings\.minigames\) return;/.test(source), true);
+check("Pac-Man startet ueber das Logo", source.includes("initPacmanLogo") && source.includes('getElementById("Logo")'), true);
+check("Master merkt sich den Stand", popupSource.includes("MASTER_SNAPSHOT_KEY"), true);
+check("Rueckholen stellt den alten Stand her", popupSource.includes("zielStand ? Boolean(zielStand[key]) : true"), true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

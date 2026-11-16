@@ -323,6 +323,15 @@ Ein Klick auf einen anderen Knopf überschreibt die Vorbelegung jederzeit. Eine 
 
 Das Kürzel funktioniert nur, wenn auf der aktuellen Seite ein passender "Übermitteln"-Knopf sichtbar ist; sonst passiert nichts.
 
+## Minispiele
+
+Sind die Minispiele erlaubt (Popup, Standard **an**), gibt es zwei kleine Spiele – sonst passiert an beiden Stellen nichts:
+
+- **HSRW-Pinball:** dreimal auf den Weihnachtsbaum unten rechts klicken. Vier Levelkarten (Y-Kreuz, Stern, Zickzack, Tannenbaum), pro Durchlauf gemischt.
+- **Pac-Man:** dreimal auf das Znuny-Zeichen oben links klicken. Das Zeichen ist selbst ein Kreis mit Keil – daraus wurde ein Labyrinth mit Punkten, vier Kraftpunkten und vier Geistern. Steuerung mit Pfeiltasten oder WASD, Esc beendet.
+
+Beide Spiele laufen nur im Vordergrund, lesen nichts aus dem Ticketsystem und schreiben nichts.
+
 ## Ton bei neuem Ticket
 
 Der voreingestellte Ton heißt **Neues Ticket**: die ersten **2,0 Sekunden** einer kurzen Aufnahme, mit weichem Ausblenden am Ende. Im Popup lässt er sich gegen neun weitere Töne oder eine eigene Datei tauschen.

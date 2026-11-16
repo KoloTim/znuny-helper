@@ -58,7 +58,8 @@
     assignedTicketSound: false,
     quickReply: false,
     directArticleActions: true,
-    christmasMode: true
+    christmasMode: true,
+    minigames: true
   };
 
   const BUILTIN_TICKET_SOUNDS = [
@@ -11014,6 +11015,527 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     };
   }
 
+  // ---------------- Pac-Man im Znuny-Look ----------------
+  // Das Znuny-Zeichen ist ein Kreis mit einem Keil - genau die Form von
+  // Pac-Man. Das Spiel nutzt dieselbe Palette (Orange auf Dunkelblau).
+  const PAC_MAZE = [
+    "###################",
+    "#.....#.......#...#",
+    "##.##.##....#.#...#",
+    "#.#...#...#.#.#...#",
+    "#.#.###.###.#.#.#.#",
+    "#.#.#.....#.......#",
+    "#.#.#.#.....#.....#",
+    "#.....#.......#...#",
+    "#..##.#.......#...#",
+    "#.......#.......#.#",
+    "#.#..##...##..###.#",
+    "#...#...#.........#",
+    "#...#.#####..####.#",
+    "#.................#",
+    "###################"
+  ];
+  const PAC_KACHEL = 26;
+  const PAC_ORANGE = "#f39200";
+  const PAC_GELB = "#ffc21a";
+
+  function pacmanStyle() {
+    addStyle("zh-pacman-style", `
+      #zh-pacman {
+        position: fixed; inset: 0; z-index: 2147483600;
+        background: radial-gradient(120% 90% at 50% 0%, #22183c 0%, #150f28 50%, #08060f 100%);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-family: system-ui, Segoe UI, sans-serif; color: #f3ede4; gap: 12px;
+      }
+      #zh-pacman .zh-pac-top { display: flex; align-items: center; gap: 16px; }
+      #zh-pacman .zh-pac-mark { height: 28px; width: auto; display: block; }
+      #zh-pacman .zh-pac-title { font-size: 19px; font-weight: 800; letter-spacing: .5px; }
+      #zh-pacman .zh-pac-level { font-size: 13px; color: #f0b44c; font-weight: 600; }
+      #zh-pacman .zh-pac-score { font-size: 23px; font-weight: 800; color: #ffd479; min-width: 74px; text-align: right; }
+      #zh-pacman .zh-pac-lives { font-size: 17px; color: PAC_GELB; letter-spacing: 2px; }
+      #zh-pacman canvas { display: block; border-radius: 14px; box-shadow: 0 8px 26px rgba(0,0,0,.42); }
+      #zh-pacman .zh-pac-hint {
+        font-size: 13px; color: #e9dfd2; background: rgba(20,14,34,.9);
+        border: 1px solid rgba(243,146,0,.35); border-radius: 999px; padding: 7px 16px;
+      }
+      #zh-pacman .zh-pac-hint b { color: PAC_ORANGE; }
+      #zh-pacman .zh-pac-close {
+        position: absolute; top: 14px; right: 18px; width: 42px; height: 42px;
+        border: 1px solid rgba(243,146,0,.4); border-radius: 50%;
+        background: rgba(28,20,44,.92); color: #f3ede4; font-size: 22px; line-height: 1; cursor: pointer;
+      }
+      #zh-pacman .zh-pac-close:hover { background: #3a2a52; }
+      #zh-pacman .zh-pac-intro {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        background: rgba(6,4,14,.78);
+      }
+      #zh-pacman .zh-pac-intro[hidden] { display: none; }
+      #zh-pacman .zh-pac-card {
+        width: min(520px, 86vw); background: linear-gradient(180deg, #2a1f45, #171026);
+        border: 1px solid rgba(243,146,0,.35); border-radius: 18px; padding: 24px 26px 20px; text-align: center;
+      }
+      #zh-pacman .zh-pac-card h2 { margin: 6px 0 4px; font-size: 20px; color: #ffd479; }
+      #zh-pacman .zh-pac-card p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.55; color: #ece2d6; }
+      #zh-pacman .zh-pac-card svg { width: 96px; height: 96px; }
+      #zh-pacman .zh-pac-card button {
+        margin-top: 18px; padding: 11px 26px; border-radius: 999px; border: 0;
+        background: linear-gradient(180deg, #ffd479, PAC_ORANGE); color: #2a1a00;
+        font-size: 15px; font-weight: 800; cursor: pointer;
+      }
+      #zh-pacman .zh-pac-card button:hover { filter: brightness(1.07); }
+    `);
+  }
+
+  // Das Logo als Pac-Man: Kreis mit Keil, dazu der Schriftzug.
+  function pacmanLogo() {
+    return `
+      <svg class="zh-pac-mark" viewBox="0 0 200 60" aria-hidden="true">
+        <path d="M30,30 L54,14 A20,20 0 1 0 54,46 Z" fill="${PAC_ORANGE}"/>
+        <text x="62" y="41" font-family="system-ui, Segoe UI, sans-serif" font-size="30" font-weight="800" fill="#f3ede4">Znuny</text>
+      </svg>`;
+  }
+
+  function pacmanFigur(groesse) {
+    return `
+      <svg viewBox="0 0 100 100" aria-hidden="true" style="width:${groesse}px;height:${groesse}px">
+        <path d="M50,50 L92,26 A48,48 0 1 0 92,74 Z" fill="${PAC_GELB}"/>
+      </svg>`;
+  }
+
+  function startPacman() {
+    if (document.getElementById("zh-pacman")) return;
+    pacmanStyle();
+
+    const spalten = PAC_MAZE[0].length;
+    const zeilen = PAC_MAZE.length;
+    const K = PAC_KACHEL;
+
+    const host = document.createElement("div");
+    host.id = "zh-pacman";
+    host.innerHTML = `
+      <div class="zh-pac-top">
+        ${pacmanLogo()}
+        <div class="zh-pac-level" id="zh-pac-level">Level 1</div>
+        <div class="zh-pac-score" id="zh-pac-score">0</div>
+        <div class="zh-pac-lives" id="zh-pac-lives">\u25cf\u25cf\u25cf</div>
+      </div>
+      <canvas id="zh-pac-board" width="${spalten * K}" height="${zeilen * K}"></canvas>
+      <div class="zh-pac-hint">
+        <b>Pfeiltasten</b> oder <b>WASD</b> steuern &middot; <b>Esc</b> beendet
+      </div>
+      <button class="zh-pac-close" id="zh-pac-close" title="Schlie\u00dfen">\u00d7</button>
+      <div class="zh-pac-intro" id="zh-pac-intro">
+        <div class="zh-pac-card">
+          ${pacmanFigur(96)}
+          <h2>Alle Punkte fressen, Geistern ausweichen.</h2>
+          <p>Ein kleines Spiel f\u00fcr die Pause. Die gro\u00dfen Punkte machen die Geister
+             f\u00fcr ein paar Sekunden essbar.</p>
+          <button id="zh-pac-start">Los</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(host);
+
+    const canvas = host.querySelector("#zh-pac-board");
+    const ctx = canvas.getContext("2d");
+    const punkteAnzeige = host.querySelector("#zh-pac-score");
+    const levelAnzeige = host.querySelector("#zh-pac-level");
+    const lebenAnzeige = host.querySelector("#zh-pac-lives");
+    const intro = host.querySelector("#zh-pac-intro");
+
+    const wand = PAC_MAZE.map((zeile) => [...zeile].map((z) => z === "#"));
+    const frei = (x, y) =>
+      x >= 0 && y >= 0 && x < spalten && y < zeilen && !wand[y][x];
+
+    let punkte = 0;
+    let level = 1;
+    let leben = 3;
+    let laeuft = true;
+    let spielLaeuft = false;
+    let futter = new Set();
+    let kraftFutter = new Set();
+    let pac = null;
+    let geister = [];
+    let timer = 0;
+    let akku = 0;
+    let angstZeit = 0;
+    let letzteZeit = 0;
+    let pacTakt = 145;
+    let mundPhase = 0;
+
+    const startFeld = { x: 9, y: 7 };
+    const geisterFarben = [
+      { farbe: "#e0492f", x: 7, y: 6 },
+      { farbe: "#3c7fd1", x: 9, y: 6 },
+      { farbe: "#f0a0c8", x: 11, y: 6 },
+      { farbe: "#41b3a3", x: 9, y: 8 }
+    ];
+
+    const aufbau = () => {
+      futter = new Set();
+      kraftFutter = new Set();
+      const sammel = [];
+      for (let y = 0; y < zeilen; y += 1) {
+        for (let x = 0; x < spalten; x += 1) {
+          if (!frei(x, y)) continue;
+          if (Math.abs(x - startFeld.x) < 1 && Math.abs(y - startFeld.y) < 1) continue;
+          sammel.push({ x, y });
+        }
+      }
+      sammel.forEach((feld, i) => {
+        const schluessel = `${feld.x},${feld.y}`;
+        // Jeder 32. Punkt wird zum Kraftfutter.
+        if (i % 32 === 0) kraftFutter.add(schluessel);
+        else futter.add(schluessel);
+      });
+
+      pac = { x: startFeld.x, y: startFeld.y, dx: 0, dy: 0, wunsch: null, vx: startFeld.x, vy: startFeld.y, fortschritt: 1 };
+      geister = geisterFarben.map((g) => ({
+        x: g.x,
+        y: g.y,
+        dx: 0,
+        dy: 0,
+        farbe: g.farbe,
+        vx: g.x,
+        vy: g.y,
+        fortschritt: 1,
+        start: { x: g.x, y: g.y }
+      }));
+      angstZeit = 0;
+      levelAnzeige.textContent = `Level ${level}`;
+      ziehe();
+    };
+
+    const zuruecksetzen = () => {
+      pac.x = startFeld.x;
+      pac.y = startFeld.y;
+      pac.vx = startFeld.x;
+      pac.vy = startFeld.y;
+      pac.dx = 0;
+      pac.dy = 0;
+      pac.wunsch = null;
+      pac.fortschritt = 1;
+      geister.forEach((g) => {
+        g.x = g.start.x;
+        g.y = g.start.y;
+        g.vx = g.x;
+        g.vy = g.y;
+        g.dx = 0;
+        g.dy = 0;
+        g.fortschritt = 1;
+      });
+      angstZeit = 0;
+    };
+
+    const aktualisiereAnzeige = () => {
+      punkteAnzeige.textContent = String(punkte);
+      lebenAnzeige.textContent = "\u25cf".repeat(Math.max(0, leben));
+    };
+
+    const pacSchritt = () => {
+      if (pac.wunsch && frei(pac.x + pac.wunsch[0], pac.y + pac.wunsch[1])) {
+        [pac.dx, pac.dy] = pac.wunsch;
+        pac.wunsch = null;
+      }
+      if (!frei(pac.x + pac.dx, pac.y + pac.dy)) {
+        pac.dx = 0;
+        pac.dy = 0;
+        return;
+      }
+      pac.vx = pac.x;
+      pac.vy = pac.y;
+      pac.x += pac.dx;
+      pac.y += pac.dy;
+      pac.fortschritt = 0;
+
+      const feld = `${pac.x},${pac.y}`;
+      if (futter.delete(feld)) {
+        punkte += 10;
+        aktualisiereAnzeige();
+      } else if (kraftFutter.delete(feld)) {
+        punkte += 50;
+        angstZeit = 5500;
+        aktualisiereAnzeige();
+      }
+
+      if (futter.size === 0 && kraftFutter.size === 0) {
+        level += 1;
+        pacTakt = Math.max(95, pacTakt - 12);
+        aufbau();
+      }
+    };
+
+    const geistSchritt = (g) => {
+      const richtungen = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1]
+      ].filter(([dx, dy]) => frei(g.x + dx, g.y + dy));
+
+      if (!richtungen.length) return;
+      const ohneUmkehr = richtungen.filter(([dx, dy]) => !(dx === -g.dx && dy === -g.dy && (g.dx || g.dy)));
+      const auswahl = ohneUmkehr.length ? ohneUmkehr : richtungen;
+
+      let beste = auswahl[0];
+      if (Math.random() < 0.22) {
+        beste = auswahl[Math.floor(Math.random() * auswahl.length)];
+      } else {
+        let besterWert = Infinity;
+        for (const [dx, dy] of auswahl) {
+          const abstand = Math.abs(g.x + dx - pac.x) + Math.abs(g.y + dy - pac.y);
+          const wert = angstZeit > 0 ? -abstand : abstand;
+          if (wert < besterWert) {
+            besterWert = wert;
+            beste = [dx, dy];
+          }
+        }
+      }
+
+      g.vx = g.x;
+      g.vy = g.y;
+      g.dx = beste[0];
+      g.dy = beste[1];
+      g.x += g.dx;
+      g.y += g.dy;
+      g.fortschritt = 0;
+    };
+
+    const treffer = () => {
+      const erwischt = geister.find((g) => g.x === pac.x && g.y === pac.y);
+      if (!erwischt) return;
+      if (angstZeit > 0) {
+        punkte += 200;
+        erwischt.x = erwischt.start.x;
+        erwischt.y = erwischt.start.y;
+        erwischt.vx = erwischt.x;
+        erwischt.vy = erwischt.y;
+        erwischt.fortschritt = 1;
+        aktualisiereAnzeige();
+        return;
+      }
+      leben -= 1;
+      aktualisiereAnzeige();
+      if (leben <= 0) {
+        spielLaeuft = false;
+        intro.hidden = false;
+        intro.innerHTML = `
+          <div class="zh-pac-card">
+            ${pacmanFigur(96)}
+            <h2>Vorbei \u2013 ${punkte} Punkte</h2>
+            <p>Level ${level}. Noch eine Runde?</p>
+            <button id="zh-pac-start">Nochmal</button>
+          </div>`;
+        intro.querySelector("#zh-pac-start").addEventListener("click", () => {
+          punkte = 0;
+          level = 1;
+          leben = 3;
+          pacTakt = 145;
+          aktualisiereAnzeige();
+          aufbau();
+          spielLaeuft = true;
+          intro.hidden = true;
+        });
+        return;
+      }
+      zuruecksetzen();
+    };
+
+    const schritt = () => {
+      pacSchritt();
+      geister.forEach(geistSchritt);
+      treffer();
+      if (angstZeit > 0) angstZeit = Math.max(0, angstZeit - pacTakt);
+    };
+
+    const position = (figur) => {
+      const t = Math.min(1, figur.fortschritt);
+      return {
+        x: (figur.vx + (figur.x - figur.vx) * t) * K + K / 2,
+        y: (figur.vy + (figur.y - figur.vy) * t) * K + K / 2
+      };
+    };
+
+    const zeichnePac = (x, y) => {
+      const offen = Math.abs(Math.sin(mundPhase)) * 0.32 + 0.04;
+      const blick = pac.dx === 0 && pac.dy === 0 ? 0 : Math.atan2(pac.dy, pac.dx);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(blick);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, K * 0.42, offen * Math.PI, (2 - offen) * Math.PI);
+      ctx.closePath();
+      ctx.fillStyle = PAC_GELB;
+      ctx.fill();
+      ctx.restore();
+    };
+
+    const zeichneGeist = (g, x, y) => {
+      const r = K * 0.36;
+      const angst = angstZeit > 0;
+      ctx.fillStyle = angst ? "#3f4fa8" : g.farbe;
+      ctx.beginPath();
+      ctx.arc(x, y - r * 0.15, r, Math.PI, 0);
+      ctx.lineTo(x + r, y + r * 0.85);
+      const zacken = 3;
+      for (let i = 0; i <= zacken; i += 1) {
+        const px = x + r - (2 * r * i) / zacken;
+        const py = y + r * 0.85 - (i % 2 === 0 ? 0 : r * 0.32);
+        ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(x - r * 0.38, y - r * 0.25, r * 0.26, 0, Math.PI * 2);
+      ctx.arc(x + r * 0.38, y - r * 0.25, r * 0.26, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#1b1b2f";
+      ctx.beginPath();
+      ctx.arc(x - r * 0.38 + g.dx * 2, y - r * 0.25 + g.dy * 2, r * 0.12, 0, Math.PI * 2);
+      ctx.arc(x + r * 0.38 + g.dx * 2, y - r * 0.25 + g.dy * 2, r * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    const ziehe = () => {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#100b1d";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Waende: nur die Kanten zum Gang zeichnen - das ergibt den
+      // klassischen Labyrinth-Umriss statt einzelner Bloecke.
+      ctx.strokeStyle = "rgba(243,146,0,.85)";
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      for (let y = 0; y < zeilen; y += 1) {
+        for (let x = 0; x < spalten; x += 1) {
+          if (!wand[y][x]) continue;
+          const px = x * K;
+          const py = y * K;
+          ctx.beginPath();
+          if (frei(x, y - 1)) {
+            ctx.moveTo(px + 1, py + 2);
+            ctx.lineTo(px + K - 1, py + 2);
+          }
+          if (frei(x, y + 1)) {
+            ctx.moveTo(px + 1, py + K - 2);
+            ctx.lineTo(px + K - 1, py + K - 2);
+          }
+          if (frei(x - 1, y)) {
+            ctx.moveTo(px + 2, py + 1);
+            ctx.lineTo(px + 2, py + K - 1);
+          }
+          if (frei(x + 1, y)) {
+            ctx.moveTo(px + K - 2, py + 1);
+            ctx.lineTo(px + K - 2, py + K - 1);
+          }
+          ctx.stroke();
+        }
+      }
+
+      // Punkte
+      ctx.fillStyle = "#f6e7cf";
+      for (const feld of futter) {
+        const [x, y] = feld.split(",").map(Number);
+        ctx.beginPath();
+        ctx.arc(x * K + K / 2, y * K + K / 2, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const puls = 0.6 + 0.4 * Math.abs(Math.sin(mundPhase));
+      ctx.fillStyle = PAC_ORANGE;
+      for (const feld of kraftFutter) {
+        const [x, y] = feld.split(",").map(Number);
+        ctx.beginPath();
+        ctx.arc(x * K + K / 2, y * K + K / 2, 4.4 * puls, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (!pac) return;
+      geister.forEach((g) => {
+        const p = position(g);
+        zeichneGeist(g, p.x, p.y);
+      });
+      const pp = position(pac);
+      zeichnePac(pp.x, pp.y);
+    };
+
+    const schleife = () => {
+      if (!laeuft) return;
+      const jetzt = performance.now();
+      const dt = Math.min(120, jetzt - letzteZeit);
+      letzteZeit = jetzt;
+      mundPhase += dt / 120;
+
+      if (spielLaeuft) {
+        akku += dt;
+        while (akku >= pacTakt) {
+          akku -= pacTakt;
+          schritt();
+        }
+        // Fortschritt der Figuren fuer die weiche Darstellung
+        const anteil = Math.min(1, akku / pacTakt);
+        pac.fortschritt = 1 - anteil;
+        geister.forEach((g) => {
+          g.fortschritt = 1 - anteil;
+        });
+      }
+
+      ziehe();
+      timer = window.setTimeout(schleife, 16);
+    };
+
+    const aufTaste = (event) => {
+      const zuordnung = {
+        ArrowUp: [0, -1],
+        ArrowDown: [0, 1],
+        ArrowLeft: [-1, 0],
+        ArrowRight: [1, 0],
+        w: [0, -1],
+        s: [0, 1],
+        a: [-1, 0],
+        d: [1, 0]
+      };
+      const richtung = zuordnung[event.key] || zuordnung[event.key?.toLowerCase?.()];
+      if (richtung) {
+        event.preventDefault();
+        pac.wunsch = richtung;
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        schliessen();
+      }
+    };
+
+    const schliessen = () => {
+      laeuft = false;
+      window.clearTimeout(timer);
+      window.removeEventListener("keydown", aufTaste);
+      host.remove();
+    };
+
+    host.querySelector("#zh-pac-close").addEventListener("click", schliessen);
+    host.querySelector("#zh-pac-start").addEventListener("click", () => {
+      intro.hidden = true;
+      spielLaeuft = true;
+      letzteZeit = performance.now();
+      akku = 0;
+    });
+
+    window.addEventListener("keydown", aufTaste);
+    aktualisiereAnzeige();
+    aufbau();
+    letzteZeit = performance.now();
+    schleife();
+  }
+
+  function disablePacman() {
+    document.getElementById("zh-pacman")?.remove();
+    document.getElementById("zh-pacman-style")?.remove();
+  }
+
   function enableChristmasMode() {
     if (window.top !== window.self) return;
     if (document.getElementById(CHRISTMAS_OVERLAY_ID)) return;
@@ -11071,6 +11593,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       baumTimer = window.setTimeout(() => { baumKlicks = 0; }, 1800);
       if (baumKlicks >= 3) {
         baumKlicks = 0;
+        if (!settings.minigames) return;
         if (!pinballAktiv()) {
           try {
             startPinball();
@@ -11120,6 +11643,35 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     ];
   }
 
+  // Das Znuny-Zeichen ist selbst ein Pac-Man: dreimal darauf klicken startet
+  // das Spiel.
+  let logoKlicks = 0;
+  let logoTimer = 0;
+  function initPacmanLogo() {
+    if (!settings.minigames) return;
+    const logo = document.getElementById("Logo") || document.querySelector("a.Logo");
+    if (!logo || logo.dataset.zhPacman === "1") return;
+    logo.dataset.zhPacman = "1";
+    logo.style.cursor = "pointer";
+    logo.addEventListener("click", () => {
+      logoKlicks += 1;
+      window.clearTimeout(logoTimer);
+      logoTimer = window.setTimeout(() => {
+        logoKlicks = 0;
+      }, 1800);
+      if (logoKlicks >= 3) {
+        logoKlicks = 0;
+        if (!document.getElementById("zh-pacman")) {
+          try {
+            startPacman();
+          } catch (fehler) {
+            console.warn("Znuny Helper: Pac-Man konnte nicht starten:", fehler);
+          }
+        }
+      }
+    });
+  }
+
   function disableChristmasMode() {
     christmasCleanupFns.forEach((aufraeumen) => {
       try {
@@ -11143,6 +11695,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     // Abzweigung dorthin.
     if (settings.christmasMode) enableChristmasMode();
     else disableChristmasMode();
+
+    // Pac-Man haengt am Znuny-Zeichen und braucht kein Weihnachten.
+    if (settings.minigames) {
+      initPacmanLogo();
+      window.setTimeout(initPacmanLogo, 1500);
+    } else {
+      disablePacman();
+    }
 
     if (isCustomerPortal()) {
       runCustomerPortalFeatures();

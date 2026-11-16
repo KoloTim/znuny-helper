@@ -9,6 +9,14 @@
 
   const releases = [
     {
+      version: "1.7.2",
+      items: [
+        "Neu: Pac-Man – dreimal auf das Znuny-Zeichen klicken.",
+        "Neu: Schalter „Minispiele erlauben“ (Standard an) – schaltet Pinball und Pac-Man gemeinsam ab.",
+        "„Alle aus“ merkt sich den Stand: „Stand zurückholen“ stellt genau die vorherigen Schalter wieder her."
+      ]
+    },
+    {
       version: "1.7.1",
       items: [
         "Suchverlauf steht jetzt unter dem jeweiligen Feld (Volltext, Ticketnummer) statt darüber."
