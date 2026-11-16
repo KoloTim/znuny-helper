@@ -7,7 +7,7 @@ Alles, was für die Veröffentlichung im Chrome Web Store und bei Firefox Add-on
 | `listing.md` | Name, Kurz- und Langbeschreibung, Kategorie, Berechtigungsbegründungen |
 | `datenschutz.md` | Datenschutzerklärung (keine Datenerhebung) |
 | `checkliste.md` | Was beim Hochladen eingetragen und geprüft werden muss |
-| `screenshots/` | Bilder 1280 × 800 für die Store-Seite |
+| `screenshots/` | fünf Bilder in 1280 × 800 (Popup oben/unten, Übersicht, Ticket, Suche) |
 
 ## Upload-Dateien
 
