@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.7.5] – 2026-11-16
+
+### Fixed
+- **Obere Kerze war abgeschnitten.** Die Flamme lag oberhalb des Zeichenbereichs. Der Kranz wird jetzt um 86 % verkleinert gezeichnet, sodass alle vier Flammen Platz haben (gemessen: oberste Kerze beginnt bei 3 px).
+- **Sichtbarkeit im November:** Eine erste Fassung blendete den Kranz außerhalb des Dezembers aus – im November war er damit weg. Jetzt gilt: **1. November bis 25. Dezember**.
+
+### Changed
+- **Kranz um 25 Grad gedreht.** Die Zweige, Zapfen und Beeren drehen mit; die vier Kerzen wandern mit, bleiben aber **senkrecht** – sonst würden sie schief stehen.
+- **Nach Weihnachten ist der Kranz weg:** ab dem 26. Dezember (und im Januar) wird kein Kranz mehr gezeichnet, die übrige Deko bleibt.
+
 ## [1.7.4] – 2026-11-16
 
 ### Changed

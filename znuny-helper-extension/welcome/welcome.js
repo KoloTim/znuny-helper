@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.7.5",
+      items: [
+        "Adventskranz: um 25 Grad gedreht, Kerzen bleiben gerade, obere Flamme nicht mehr abgeschnitten.",
+        "Der Kranz hängt vom 1. November bis zum 25. Dezember – danach ist er weg."
+      ]
+    },
+    {
       version: "1.7.4",
       items: [
         "Adventskranz statt Mistelzweig: Tannenzweige, Zapfen, Beeren – und vier Kerzen, die sich nach dem Datum entzünden (erster Advent, dann jede Woche eine mehr)."

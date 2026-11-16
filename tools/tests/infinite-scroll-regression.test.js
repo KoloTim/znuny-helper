@@ -1675,6 +1675,16 @@ check("Kranz hat vier Kerzen",
   true);
 check("Mistelzweig ist ersetzt", !source.includes("CHRISTMAS_MISTLETOE"), true);
 
+const kranzSichtbar = new Function(
+  `${extractDeclaration("adventskranzSichtbar")}; return adventskranzSichtbar;`
+)();
+check("Kranz haengt im November", kranzSichtbar(new Date("2026-11-16T12:00:00")), true);
+check("Kranz haengt an Weihnachten", kranzSichtbar(new Date("2026-12-25T12:00:00")), true);
+check("Nach Weihnachten ist der Kranz weg", kranzSichtbar(new Date("2026-12-26T12:00:00")), false);
+check("Im Januar ist der Kranz weg", kranzSichtbar(new Date("2027-01-10T12:00:00")), false);
+check("Kranz ist gedreht", source.includes("rotate(${DREHUNG} 120 120)") && source.includes("const DREHUNG = 25;"), true);
+check("Kerzen bleiben aufrecht", source.includes("drehPunkt"), true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

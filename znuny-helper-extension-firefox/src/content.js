@@ -9393,6 +9393,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return Math.max(0, Math.min(4, wochen));
   }
 
+  // Nach Weihnachten (ab dem 26.12.) verschwindet der Kranz wieder.
+  function adventskranzSichtbar(datum = new Date()) {
+    const monat = datum.getMonth();
+    const tag = datum.getDate();
+    if (monat === 10) return true; // November: Adventszeit beginnt
+    if (monat === 11) return tag <= 25; // Dezember bis einschliesslich 1. Feiertag
+    return false;
+  }
+
   function christmasWreathSvg(kerzen) {
     const mitte = 120;
     const nadeln = [];
@@ -9459,12 +9468,24 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       .join("");
 
     // Vier Kerzen, im Uhrzeigersinn gezaehlt (oben zuerst).
+    // Der Kranz ist um 25 Grad gedreht. Die Kerzen wandern mit, stehen aber
+    // weiterhin senkrecht - sonst kippen sie schief.
+    const DREHUNG = 25;
+    const bogenmass = (DREHUNG * Math.PI) / 180;
+    const drehPunkt = (x, y) => {
+      const dx = x - mitte;
+      const dy = y - mitte;
+      return {
+        x: mitte + dx * Math.cos(bogenmass) - dy * Math.sin(bogenmass),
+        y: mitte + dx * Math.sin(bogenmass) + dy * Math.cos(bogenmass)
+      };
+    };
     const kerzenPunkte = [
       { x: 120, y: 58 },
       { x: 182, y: 124 },
       { x: 120, y: 190 },
       { x: 58, y: 124 }
-    ];
+    ].map((punkt) => drehPunkt(punkt.x, punkt.y));
     const kerzenBild = kerzenPunkte
       .map((punkt, i) => {
         const an = i < kerzen;
@@ -9491,12 +9512,16 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
             <stop offset="100%" stop-color="#ff7a00"/>
           </radialGradient>
         </defs>
-        <circle cx="120" cy="120" r="84" fill="none" stroke="#14432a" stroke-width="40" opacity=".85"/>
-        ${nadeln.join("")}
-        ${zapfen}
-        ${beeren}
-        ${weisse}
-        ${kerzenBild}
+        <g transform="translate(120 120) scale(.86) translate(-120 -120)">
+          <g transform="rotate(${DREHUNG} 120 120)">
+            <circle cx="120" cy="120" r="84" fill="none" stroke="#14432a" stroke-width="40" opacity=".85"/>
+            ${nadeln.join("")}
+            ${zapfen}
+            ${beeren}
+            ${weisse}
+          </g>
+          ${kerzenBild}
+        </g>
       </svg>`;
   }
 
@@ -11650,7 +11675,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     hintergrund.setAttribute("aria-hidden", "true");
     hintergrund.innerHTML = `
       ${CHRISTMAS_DEFS}
-      ${christmasWreathSvg(adventsKerzen())}
+      ${adventskranzSichtbar() ? christmasWreathSvg(adventsKerzen()) : ""}
       ${christmasTreeSvg()}
       ${CHRISTMAS_SPARKS}
     `;
