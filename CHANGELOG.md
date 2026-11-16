@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.36] – 2026-11-16
+
+### Fixed
+- **Blätter verschwanden beim Drüberfahren:** Die Zweige tragen ihre Lage als SVG-`transform`. Der Magnet setzte zusätzlich ein CSS-`transform`, das in SVG das Attribut **ersetzt** – die Zweige sprangen nach (0,0) und waren weg. Jetzt wird das Attribut fortgeschrieben (`… rotate(±w 0 0)`), die Zweige drehen sich um ihren eigenen Anker und bleiben sichtbar.
+- **Kugeln schwebten losgelöst von der Girlande:** Sie wurden als Ganzes verschoben, Schnur inklusive. Jetzt **pendeln** sie um ihren Aufhängepunkt (`rotate(winkel cx cy)`) – gemessen bleibt der Abstand zwischen Kugel und Schnur konstant (22 px vor und nach dem Ausweichen).
+- **Falscher Drehpunkt:** Eine alte Regel `transform-box: fill-box` galt auch für die Girlanden-Kugeln und verschob den Drehpunkt, wodurch sie weit wegflogen. Sie gilt jetzt nur noch für die Baum-Kugeln.
+- **Magnet lief über `requestAnimationFrame`:** Im Test stellte sich heraus, dass die Bildschleife dort nicht ankommt – der Magnet hing komplett. Er läuft jetzt über einen Timer (16 ms), unabhängig von der Bildwiederholung.
+
+### Changed
+- **Pinball feiner gemischt:** Jeder Pin bekommt eigene Maße (Länge 0,72–1,34×, Radius 0,78–1,28×) und einen größeren Winkel-Spielraum. Die Reihenfolge der vier Levelkarten wird pro Durchlauf gemischt – Level 1 ist nicht mehr immer „Y-Kreuz".
+- **Level-Banner schmaler:** Statt eines Balkens über die ganze Breite ein Streifen über 84 % – verdeckt das Spielfeld weniger.
+
 ## [1.6.35] – 2026-11-16
 
 ### Removed

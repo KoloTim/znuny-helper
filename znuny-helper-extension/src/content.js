@@ -9315,7 +9315,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         const radius = gold ? 8.5 : 9;
         const haken = p.y + 9;
         kugeln.push(
-          `<g class="zh-xmas-bauble">` +
+          `<g class="zh-xmas-bauble" data-anker="${p.x.toFixed(1)},${p.y.toFixed(1)}">` +
             `<line x1="${p.x.toFixed(1)}" y1="${p.y.toFixed(1)}" x2="${p.x.toFixed(1)}" y2="${haken.toFixed(1)}" class="zh-xmas-thread"/>` +
             `<rect x="${(p.x - 3.4).toFixed(1)}" y="${(haken - 1).toFixed(1)}" width="6.8" height="4" rx="1.3" class="zh-xmas-cap"/>` +
             `<circle cx="${p.x.toFixed(1)}" cy="${(haken + 13).toFixed(1)}" r="${radius}" fill="url(#zhXmasBauble${name})"/>` +
@@ -9330,7 +9330,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         const drehung = ((spanIndex + i) % 2 === 0 ? -7 : 8) + p.y * 0.05;
         const massstab = 0.85;
         zweige.push(
-          `<g class="zh-xmas-sprig" transform="translate(${p.x.toFixed(1)},${(p.y + 2).toFixed(1)}) rotate(${drehung.toFixed(1)}) scale(${massstab})">` +
+          `<g class="zh-xmas-sprig" data-basis="translate(${p.x.toFixed(1)},${(p.y + 2).toFixed(1)}) rotate(${drehung.toFixed(1)}) scale(${massstab})" transform="translate(${p.x.toFixed(1)},${(p.y + 2).toFixed(1)}) rotate(${drehung.toFixed(1)}) scale(${massstab})">` +
             `<path d="M0,0 C-3,10 -8,19 -15,27 M0,0 C1,12 1,23 -1,33 M0,0 C7,9 14,15 22,19 M0,0 C-9,6 -16,12 -23,15"/>` +
           `</g>`
         );
@@ -9652,9 +9652,11 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       .zh-xmas-layer .zh-xmas-tree-star { fill: #e8b34b; }
       .zh-xmas-layer .zh-xmas-tree-snow { fill: #f2f7fb; opacity: .92; }
       /* Damit sich Kugeln und Laempchen verschieben lassen: Bezug auf die eigene Flaeche. */
-      .zh-xmas-layer .zh-xmas-bauble,
+      .zh-xmas-layer .zh-xmas-tree .zh-xmas-bauble,
       .zh-xmas-layer .zh-xmas-bulb-glow,
       .zh-xmas-layer .zh-xmas-tree-light { transform-box: fill-box; transform-origin: center; }
+      /* Girlanden-Kugeln drehen um den Punkt an der Schnur (Weltkoordinaten). */
+      .zh-xmas-layer .zh-xmas-baubles .zh-xmas-bauble { transform-box: view-box; transform-origin: 0 0; }
       .zh-xmas-layer .zh-xmas-deer-body { fill: url(#zhXmasDeer); }
       .zh-xmas-layer .zh-xmas-deer-muzzle { fill: none; stroke: #5b3620; stroke-width: 2; stroke-linecap: round; }
       .zh-xmas-layer .zh-xmas-deer-eye { fill: #f6e3b4; }
@@ -9705,7 +9707,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       }
       @media (prefers-reduced-motion: reduce) {
         .zh-xmas-layer .zh-xmas-bulb,
-        .zh-xmas-layer .zh-xmas-bauble,
+        .zh-xmas-layer .zh-xmas-tree .zh-xmas-bauble,
         .zh-xmas-layer .zh-xmas-sleigh,
         .zh-xmas-layer .zh-xmas-spark { animation: none; }
         .zh-xmas-layer .zh-xmas-spark { opacity: .65; }
@@ -10367,20 +10369,32 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
 
 
+    // Reihenfolge der Karten pro Durchlauf neu mischen.
+    const reihenfolge = (() => {
+      const liste = KARTEN.map((_, i) => i);
+      for (let i = liste.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(zufall() * (i + 1));
+        [liste[i], liste[j]] = [liste[j], liste[i]];
+      }
+      return liste;
+    })();
+
     const levelAufbau = () => {
-      const karte = KARTEN[stufe % KARTEN.length];
+      const karte = KARTEN[reihenfolge[stufe % reihenfolge.length]];
       pins.length = 0;
       const jitterX = W * 0.03;
       const jitterY = H * 0.02;
       karte.bauen((x, y, a, len, r, farbe, wert) => {
         // Nichts im Bereich der Flipper und der Auslaeufe platzieren.
         const sicherY = Math.min(y + (zufall() - 0.5) * jitterY * 2, H - 250);
+        // Jeder Pin bekommt eine eigene Groesse: kurze, dicke Stummel neben
+        // langen, duennen Strichen - das Feld wirkt dadurch lebendiger.
         pins.push({
           x: x + (zufall() - 0.5) * jitterX * 2,
           y: sicherY,
-          a: a + (zufall() - 0.5) * 0.26,
-          len,
-          r,
+          a: a + (zufall() - 0.5) * 0.34,
+          len: len * (0.72 + zufall() * 0.62),
+          r: r * (0.78 + zufall() * 0.5),
           farbe,
           wert
         });
@@ -10717,12 +10731,13 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
       if (banner) {
         ctx.globalAlpha = Math.min(1, banner.leben);
-        ctx.fillStyle = "rgba(0,0,0,.45)";
-        ctx.fillRect(0, H * 0.42, W, 58);
+        // Schmaler Streifen statt breitem Balken: verdeckt das Feld nicht.
+        ctx.fillStyle = "rgba(8,10,28,.62)";
+        ctx.fillRect(W * 0.08, H * 0.42, W * 0.84, 44);
         ctx.fillStyle = GOLD;
         ctx.font = "800 24px system-ui, Segoe UI";
         ctx.textAlign = "center";
-        ctx.fillText(banner.text, W / 2, H * 0.42 + 37);
+        ctx.fillText(banner.text, W / 2, H * 0.42 + 28);
         ctx.globalAlpha = 1;
       }
 
@@ -10836,50 +10851,52 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   // Kugeln und Laempchen der Deko wirken ebenfalls antimagnetisch: Sie weichen
   // dem Zeiger aus und schwingen zurueck, sobald er weiterzieht.
   function startChristmasMagnet(overlay) {
-    // Kugeln, Laempchen und die kleinen Zweige - in beiden Ebenen.
+    // Die Deko weicht dem Mauszeiger aus. Wichtig:
+    //  - Bei SVG-Elementen wuerde ein CSS-transform das transform-Attribut
+    //    ueberschreiben - Zweige springen dann nach (0,0) und sind weg.
+    //    Deshalb wird das Attribut fortgeschrieben.
+    //  - Kugeln schwingen um ihren Aufhaengepunkt, statt wegzufliegen.
+    //  - Der Antrieb laeuft ueber Timer, nicht ueber requestAnimationFrame:
+    //    so reagiert es auch, wenn der Browser keine Frames liefert.
     const sammeln = () =>
       Array.from(
         document.querySelectorAll(
           ".zh-xmas-layer .zh-xmas-bauble, .zh-xmas-layer .zh-xmas-bulb-glow, " +
             ".zh-xmas-layer .zh-xmas-bulb, .zh-xmas-layer .zh-xmas-tree-light, .zh-xmas-layer .zh-xmas-sprig"
         )
-      );
+      ).map((el) => {
+        const anker = el.getAttribute("data-anker");
+        return {
+          el,
+          anker: anker ? anker.split(",").map(Number) : null,
+          basis: el.getAttribute("data-basis") || "",
+          x: 0,
+          y: 0
+        };
+      });
 
     let ziele = [];
-    let rects = [];
-    let frame = 0;
+    let timer = 0;
     let laeuft = true;
-    const versatz = new Map();
     const maus = { x: -9999, y: -9999, aktiv: false, zeit: 0 };
 
     const messen = () => {
       ziele = sammeln();
-      rects = ziele.map((el) => {
-        const r = el.getBoundingClientRect();
-        return { el, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
-      });
-    };
-
-    const aufZeiger = (event) => {
-      maus.x = event.clientX;
-      maus.y = event.clientY;
-      maus.aktiv = true;
-      maus.zeit = performance.now();
-    };
-
-    const zeigerWeg = () => {
-      maus.aktiv = false;
+      for (const ziel of ziele) {
+        const r = ziel.el.getBoundingClientRect();
+        ziel.cx = r.left + r.width / 2;
+        ziel.cy = r.top + r.height / 2;
+      }
     };
 
     const radius = 130;
 
-    const schleife = () => {
-      if (!laeuft) return;
-      const aktiv = maus.aktiv && performance.now() - maus.zeit < 1500;
+    const anwenden = () => {
+      const aktiv = maus.aktiv && performance.now() - maus.zeit < 1600;
 
-      for (const ziel of rects) {
-        let zielX = 0;
-        let zielY = 0;
+      for (const ziel of ziele) {
+        let zx = 0;
+        let zy = 0;
 
         if (aktiv) {
           const dx = ziel.cx - maus.x;
@@ -10887,24 +10904,53 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           const abstand = Math.sqrt(dx * dx + dy * dy) || 1;
           if (abstand < radius) {
             const kraft = (1 - abstand / radius) * 16;
-            zielX = (dx / abstand) * kraft;
-            zielY = (dy / abstand) * kraft;
+            zx = (dx / abstand) * kraft;
+            zy = (dy / abstand) * kraft;
           }
         }
 
-        const alt = versatz.get(ziel.el) || { x: 0, y: 0 };
-        const nx = alt.x + (zielX - alt.x) * 0.16;
-        const ny = alt.y + (zielY - alt.y) * 0.16;
-        versatz.set(ziel.el, { x: nx, y: ny });
+        ziel.x += (zx - ziel.x) * 0.25;
+        ziel.y += (zy - ziel.y) * 0.25;
+        const ruhe = Math.abs(ziel.x) < 0.05 && Math.abs(ziel.y) < 0.05;
 
-        if (Math.abs(nx) < 0.05 && Math.abs(ny) < 0.05) {
-          ziel.el.style.transform = "";
+        if (ziel.anker) {
+          // Kugel pendelt um den Punkt an der Schnur.
+          const winkel = Math.max(-14, Math.min(14, ziel.x * 1.4));
+          ziel.el.setAttribute(
+            "transform",
+            ruhe ? "" : `rotate(${winkel.toFixed(2)} ${ziel.anker[0]} ${ziel.anker[1]})`
+          );
+        } else if (ziel.basis) {
+          // Zweig dreht sich um seinen Anker (0,0 der Gruppe).
+          const winkel = Math.max(-16, Math.min(16, ziel.x * 1.6));
+          ziel.el.setAttribute(
+            "transform",
+            ruhe ? ziel.basis : `${ziel.basis} rotate(${winkel.toFixed(2)} 0 0)`
+          );
         } else {
-          ziel.el.style.transform = `translate(${nx.toFixed(2)}px, ${ny.toFixed(2)}px)`;
+          ziel.el.style.transform = ruhe
+            ? ""
+            : `translate(${ziel.x.toFixed(2)}px, ${ziel.y.toFixed(2)}px)`;
         }
       }
+    };
 
-      frame = window.requestAnimationFrame(schleife);
+    const ticken = () => {
+      if (!laeuft) return;
+      anwenden();
+      timer = window.setTimeout(ticken, 16);
+    };
+
+    const aufZeiger = (event) => {
+      maus.x = event.clientX;
+      maus.y = event.clientY;
+      maus.aktiv = true;
+      maus.zeit = performance.now();
+      anwenden();
+    };
+
+    const zeigerWeg = () => {
+      maus.aktiv = false;
     };
 
     let messTimer = 0;
@@ -10919,17 +10965,21 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     window.addEventListener("pointermove", aufZeiger, { passive: true });
     window.addEventListener("pointerleave", zeigerWeg);
     window.addEventListener("resize", beiGroesse);
-    frame = window.requestAnimationFrame(schleife);
+    ticken();
 
     return () => {
       laeuft = false;
-      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
       window.clearTimeout(messTimer);
       window.removeEventListener("pointermove", aufZeiger);
       window.removeEventListener("pointerleave", zeigerWeg);
       window.removeEventListener("resize", beiGroesse);
       window.removeEventListener("znuny-helper-garland", messen);
-      for (const el of ziele) el.style.transform = "";
+      for (const ziel of ziele) {
+        if (ziel.basis) ziel.el.setAttribute("transform", ziel.basis);
+        else if (ziel.anker) ziel.el.setAttribute("transform", "");
+        else ziel.el.style.transform = "";
+      }
     };
   }
 

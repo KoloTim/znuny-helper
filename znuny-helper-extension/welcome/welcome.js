@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.36",
+      items: [
+        "Girlande: Blätter verschwinden nicht mehr beim Drüberfahren, Kugeln pendeln an ihrer Schnur statt wegzufliegen.",
+        "Pinball: Pins in unterschiedlichen Größen, Levelreihenfolge pro Durchlauf gemischt, schmalerer Level-Banner."
+      ]
+    },
+    {
       version: "1.6.35",
       items: [
         "Neu: Schalter „Alle Funktionen“ oben im Popup – ein Klick schaltet alles ein oder aus.",

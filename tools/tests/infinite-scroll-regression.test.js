@@ -1515,7 +1515,16 @@ check("HSRW-Marke exakt (runder Strich + abgeschnittener Balken)",
   source.includes("hswrMarkSvg") && source.includes("A19,19 0 0 1 124,162"),
   true);
 check("Kugeln weichen dem Zeiger aus",
-  source.includes("startChristmasMagnet") && /translate\(\$\{nx\.toFixed/.test(source),
+  source.includes("startChristmasMagnet") && source.includes("ziel.x.toFixed(2)"),
+  true);
+check("Kugeln pendeln um ihre Aufhaengung",
+  source.includes("data-anker") && /rotate\(\$\{winkel\.toFixed\(2\)\} \$\{ziel\.anker\[0\]\}/.test(source),
+  true);
+check("Zweige behalten ihre Basis-Transformation",
+  source.includes("data-basis") && source.includes('`${ziel.basis} rotate('),
+  true);
+check("Magnet haengt nicht an requestAnimationFrame",
+  source.includes("const ticken = () =>") && source.includes("setTimeout(ticken, 16)"),
   true);
 
 console.log("\n27) Pinball: Level, Zufall, feste Schrittweite");
