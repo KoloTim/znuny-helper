@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.8.2",
+      items: [
+        "Minispiele stehen jetzt ganz unten im Popup.",
+        "Der Saison-Text beschreibt die aktuelle Deko (Adventskranz mit Kerzen nach Datum, Zeitraum 1. November bis 25. Dezember)."
+      ]
+    },
+    {
       version: "1.8.1",
       items: [
         "Pac-Man spielbar: Geister starten in den Ecken und haben 2 Sekunden Schonfrist – vorher war das Spiel sofort vorbei.",

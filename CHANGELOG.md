@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.8.2] – 2026-11-16
+
+### Changed
+- **Minispiele stehen jetzt ganz unten im Popup** – nach „Hilfe und Diagnose", direkt über der Fußzeile. Die Rubrik war versehentlich ganz oben gelandet.
+- **Saison-Text im Popup aktualisiert:** beschreibt jetzt Girlande, Adventskranz mit Kerzen nach Datum, Tannenbaum und Schlitten sowie den Zeitraum 1. November bis 25. Dezember. Statt „die Deko fängt keine Klicks ab" steht dort, dass nur Baum und Kranz auf Klicks reagieren (Minispiele).
+
 ## [1.8.1] – 2026-11-16
 
 ### Fixed
