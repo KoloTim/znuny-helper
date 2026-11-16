@@ -96,7 +96,7 @@ Bis auf **EB Helper**, **Suchergebnisse im neuen Tab**, **Ton bei neuem Ticket**
 | Antwort | Warten-Schnellauswahl | Schnellknöpfe für das Wartedatum bei "Warten"-Status (Tage im Popup einstellbar) |
 | Tastenkürzel | Strg+Enter zum Senden | Aktuelles Formular übermitteln, Tab schließt danach automatisch |
 | Benachrichtigung | Ton bei neuem Ticket | Sound abspielen, sobald ein neues Ticket bei einem selbst gesperrt wird |
-| Saison | Weihnachtsmodus | Schnee, Girlande, Mistelzweig, Tannenbaum, Glitzer – und alle 15 Minuten fliegt der Weihnachtsmann vorbei |
+| Saison | Weihnachtsmodus | Schnee, Girlande, Adventskranz, Tannenbaum, Glitzer – und alle 15 Minuten fliegt der Weihnachtsmann vorbei |
 | Hilfe | Diagnose | Version, erkannte Seite, Einstellungen und letzte Meldungen für eine Fehlermeldung sammeln und kopieren |
 
 ===== Anhang-Vorschau =====
@@ -371,7 +371,7 @@ Direkt nach der Installation bzw. dem ersten Aktivieren merkt sich das Addon nur
 
 ===== Weihnachtsmodus =====
 
-Der Weihnachtsmodus ist ein saisonales Schmankerl: Schnee (sechszackige Flocken in drei Tiefen, mit Wind und Maus-Abwehr), eine Girlande mit Lichtern und Kugeln, ein Mistelzweig, ein Tannenbaum mit Schneehauben und Geschenken sowie ein vorbeifliegender Schlitten. Der Baum bleibt immer im Bild und schrumpft bei wenig Platz nur leicht. Baum, Girlande und Mistelzweig liegen in einer eigenen Ebene **unter** Znunys Dialogen – Meldungsfenster werden also nicht überdeckt; Schnee und Schlitten bleiben darüber.
+Der Weihnachtsmodus ist ein saisonales Schmankerl: Schnee (sechszackige Flocken in drei Tiefen, mit Wind und Maus-Abwehr), eine Girlande mit Lichtern und Kugeln, ein Adventskranz mit vier Kerzen, ein Tannenbaum mit Schneehauben und Geschenken sowie ein vorbeifliegender Schlitten. Der Baum bleibt immer im Bild und schrumpft bei wenig Platz nur leicht. Baum, Girlande und Kranz liegen in einer eigenen Ebene **unter** Znunys Dialogen – Meldungsfenster werden also nicht überdeckt; Schnee und Schlitten bleiben darüber.
 
 **Dreimal auf den Tannenbaum klicken** öffnet das **HSRW-Pinball**-Minigame mit **vier Levelkarten**: Y-Kreuz, Stern, Zickzack und Tannenbaum. Jede Karte hat nur wenige, große Hindernisse und wird bei jedem Start leicht verschoben und gedreht – kein Durchlauf gleicht dem anderen. Die Pins sind Kapseln im Stil der beiden Y-Striche aus dem HSRW-Logo (Violett-Navy #2a2250 und Blau #3c7fd1), gezeichnet und abgefragt mit derselben Form. Die Kugel rechnet mit fester Schrittweite (240 Hz), damit sie unabhängig von der Bildrate läuft und nicht durch Hindernisse springt.
 

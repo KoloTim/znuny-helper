@@ -9373,48 +9373,133 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   // Mistelzweig im klassischen Motiv: drei gelappte Stechpalmen-Blaetter mit
   // Mistelzweig: gebogener Stiel, fuenf Stechpalmen-Blaetter mit sichtbarer
   // Mittelrippe in Blattrichtung und eine Traube roter Beeren.
-  const CHRISTMAS_MISTLETOE = `
-    <svg class="zh-xmas-mistletoe" viewBox="0 0 240 210" aria-hidden="true">
-      <defs>
-        <g id="zhHollyLeaf">
-          <path class="zh-xmas-holly-fill" d="M2,-32
-            C24,-32 40,-22 48,-6 C52,2 52,8 48,12
-            C40,28 24,32 2,32
-            C-16,32 -28,22 -34,8 C-38,0 -38,-8 -34,-14
-            C-28,-26 -16,-32 2,-32 Z"/>
-          <path class="zh-xmas-holly-vein" d="M-6,0 C4,0 18,-2 30,-2"/>
-          <path class="zh-xmas-holly-vein" d="M14,-1 C18,-9 22,-16 26,-22"/>
-          <path class="zh-xmas-holly-vein" d="M14,1 C18,9 22,16 26,22"/>
-          <path class="zh-xmas-holly-vein" d="M-2,-1 C-4,-7 -6,-12 -8,-17"/>
-          <path class="zh-xmas-holly-vein" d="M-2,1 C-4,7 -6,12 -8,17"/>
-        </g>
-      </defs>
+  // ---------------- Adventskranz ----------------
+  // Der Kranz ersetzt den Mistelzweig oben rechts. Die Kerzen richten sich
+  // nach dem Datum: null vor dem ersten Advent, dann jede Woche eine mehr.
+  function adventsSonntage(jahr) {
+    // Vierter Advent: letzter Sonntag vor dem 25.12.
+    const vierter = new Date(jahr, 11, 24);
+    vierter.setDate(vierter.getDate() - vierter.getDay());
+    const erster = new Date(vierter.getTime());
+    erster.setDate(erster.getDate() - 21);
+    return { erster, vierter };
+  }
 
-      <g class="zh-xmas-mistlestem">
-        <path d="M4,10 C42,42 84,70 124,96 C144,108 162,120 180,134"/>
-      </g>
+  function adventsKerzen(datum = new Date()) {
+    const heute = new Date(datum.getFullYear(), datum.getMonth(), datum.getDate());
+    const { erster } = adventsSonntage(datum.getFullYear());
+    if (heute < erster) return 0;
+    const wochen = Math.floor((heute - erster) / (7 * 24 * 60 * 60 * 1000)) + 1;
+    return Math.max(0, Math.min(4, wochen));
+  }
 
-      <g class="zh-xmas-holly">
-        <use href="#zhHollyLeaf" transform="translate(66,78) rotate(28)"/>
-        <use href="#zhHollyLeaf" transform="translate(122,112) rotate(-14)"/>
-        <use href="#zhHollyLeaf" transform="translate(170,146) rotate(24) scale(.92)"/>
-        <use href="#zhHollyLeaf" transform="translate(94,124) rotate(152) scale(.78)"/>
-        <use href="#zhHollyLeaf" transform="translate(150,158) rotate(176) scale(.72)"/>
-      </g>
+  function christmasWreathSvg(kerzen) {
+    const mitte = 120;
+    const nadeln = [];
+    const N = 44;
 
-      <g class="zh-xmas-holly-berries">
-        <circle cx="152" cy="98" r="12"/>
-        <circle cx="172" cy="108" r="10.5"/>
-        <circle cx="158" cy="122" r="9"/>
-        <circle cx="136" cy="114" r="8"/>
-      </g>
-      <g class="zh-xmas-holly-shines">
-        <circle cx="148" cy="94" r="3.2"/>
-        <circle cx="168.5" cy="104" r="2.8"/>
-        <circle cx="155" cy="118.5" r="2.4"/>
-        <circle cx="133.5" cy="111" r="2"/>
-      </g>
-    </svg>`;
+    // Zweige rundherum: Stiel plus Nadeln, leicht nach aussen gedreht.
+    for (let i = 0; i < N; i += 1) {
+      const winkel = (i / N) * Math.PI * 2;
+      const grad = (winkel * 180) / Math.PI + 90;
+      const r = 96 - (i % 3) * 7;
+      const x = mitte + Math.cos(winkel) * r;
+      const y = mitte + Math.sin(winkel) * r;
+      const farbe = ["#1f5c3f", "#2b7a4b", "#17513a"][i % 3];
+      const klein = 0.8 + (i % 4) * 0.1;
+      let zweig = `<path d="M0,0 L0,${(-26 * klein).toFixed(1)}" stroke="${farbe}" stroke-width="2.2" stroke-linecap="round"/>`;
+      for (let k = 1; k <= 5; k += 1) {
+        const yN = -k * 5 * klein;
+        const breite = (9 - k) * klein;
+        zweig +=
+          `<path d="M0,${yN.toFixed(1)} L${(-breite).toFixed(1)},${(yN - 6 * klein).toFixed(1)}" stroke="${farbe}" stroke-width="1.7" stroke-linecap="round"/>` +
+          `<path d="M0,${yN.toFixed(1)} L${breite.toFixed(1)},${(yN - 6 * klein).toFixed(1)}" stroke="${farbe}" stroke-width="1.7" stroke-linecap="round"/>`;
+      }
+      nadeln.push(`<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${grad.toFixed(1)})">${zweig}</g>`);
+    }
+
+    // Beeren und Zapfen als feste Punkte auf dem Kranz.
+    const beeren = [
+      [86, 52, 4], [150, 44, 3], [196, 96, 4], [176, 168, 3],
+      [110, 184, 4], [52, 150, 3], [66, 96, 4], [140, 200, 3]
+    ]
+      .map(([x, y, n]) => {
+        let s = `<g class="zh-xmas-beeren" transform="translate(${x},${y})">`;
+        for (let i = 0; i < n; i += 1) {
+          const w = (i / n) * Math.PI * 2;
+          s += `<circle cx="${(Math.cos(w) * 7).toFixed(1)}" cy="${(Math.sin(w) * 6).toFixed(1)}" r="5.4"/>`;
+        }
+        return s + `</g>`;
+      })
+      .join("");
+
+    const zapfen = [
+      [104, 40], [180, 62], [198, 150], [96, 198], [40, 124]
+    ]
+      .map(([x, y]) => {
+        let s = `<g class="zh-xmas-zapfen" transform="translate(${x},${y}) rotate(${((x + y) % 40) - 20})">`;
+        s += `<ellipse cx="0" cy="0" rx="11" ry="16"/>`;
+        for (let i = -2; i <= 2; i += 1) {
+          s += `<path d="M-9,${i * 5 + 4} Q0,${i * 5 - 2} 9,${i * 5 + 4}"/>`;
+        }
+        return s + `</g>`;
+      })
+      .join("");
+
+    const weisse = [
+      [70, 74], [160, 96], [120, 150], [186, 190]
+    ]
+      .map(([x, y]) => {
+        let s = `<g class="zh-xmas-weissbeeren" transform="translate(${x},${y})">`;
+        [[0, 0], [7, 5], [-6, 6]].forEach(([dx, dy]) => {
+          s += `<circle cx="${dx}" cy="${dy}" r="4.4"/>`;
+        });
+        return s + `</g>`;
+      })
+      .join("");
+
+    // Vier Kerzen, im Uhrzeigersinn gezaehlt (oben zuerst).
+    const kerzenPunkte = [
+      { x: 120, y: 58 },
+      { x: 182, y: 124 },
+      { x: 120, y: 190 },
+      { x: 58, y: 124 }
+    ];
+    const kerzenBild = kerzenPunkte
+      .map((punkt, i) => {
+        const an = i < kerzen;
+        return `
+          <g class="zh-xmas-kerze${an ? " zh-xmas-kerze--an" : ""}" transform="translate(${punkt.x},${punkt.y})">
+            <rect class="zh-xmas-wachs" x="-9" y="-44" width="18" height="44" rx="4.5"/>
+            <ellipse class="zh-xmas-wachs-top" cx="0" cy="-44" rx="9" ry="3.6"/>
+            <line class="zh-xmas-docht" x1="0" y1="-45" x2="0" y2="-52"/>
+            <ellipse class="zh-xmas-kerzenglut" cx="0" cy="-58" rx="9" ry="11"/>
+            <g class="zh-xmas-flamme">
+              <ellipse cx="0" cy="-60" rx="5.2" ry="9.4" fill="url(#zhXmasFlame)"/>
+              <ellipse cx="0" cy="-62" rx="2.4" ry="4.6" fill="#fff8cf"/>
+            </g>
+          </g>`;
+      })
+      .join("");
+
+    return `
+      <svg class="zh-xmas-wreath" viewBox="0 0 240 240" aria-hidden="true">
+        <defs>
+          <radialGradient id="zhXmasFlame" cx="50%" cy="70%" r="60%">
+            <stop offset="0%" stop-color="#fff6b0"/>
+            <stop offset="55%" stop-color="#ffc02a"/>
+            <stop offset="100%" stop-color="#ff7a00"/>
+          </radialGradient>
+        </defs>
+        <circle cx="120" cy="120" r="84" fill="none" stroke="#14432a" stroke-width="40" opacity=".85"/>
+        ${nadeln.join("")}
+        ${zapfen}
+        ${beeren}
+        ${weisse}
+        ${kerzenBild}
+      </svg>`;
+  }
+
 
   // Tannenbaum-Silhouette: gezaehnter Nadelrand (Astspitzen und Kerben) statt
   // gestapelter Dreiecke. Der Pfad wird berechnet, damit die Zacken gleich-
@@ -9616,16 +9701,21 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         70%  { transform: translate(70vw, -18px) rotate(1.5deg); }
         100% { transform: translate(116vw, 4px) rotate(-1deg); }
       }
-      .zh-xmas-layer .zh-xmas-mistletoe {
-        position: absolute; top: -8px; right: -4px; width: 132px; height: 111px;
-        transform: scaleX(-1);
-        filter: drop-shadow(0 5px 8px rgba(0,0,0,.2));
+      .zh-xmas-layer .zh-xmas-wreath {
+        position: absolute; top: -2px; right: 8px; width: 104px; height: 104px;
+        filter: drop-shadow(0 6px 10px rgba(0,0,0,.28));
       }
-      .zh-xmas-layer .zh-xmas-mistlestem { fill: none; stroke: #3f6b3a; stroke-width: 3.4; stroke-linecap: round; }
-      .zh-xmas-layer .zh-xmas-holly use { fill: #2f7b4a; stroke: #1b4a2c; stroke-width: 1.6; stroke-linejoin: round; }
-      .zh-xmas-layer .zh-xmas-holly-veins path { fill: none; stroke: #1b4a2c; stroke-width: 1.4; opacity: .55; stroke-linecap: round; }
-      .zh-xmas-layer .zh-xmas-holly-berries circle { fill: url(#zhXmasBaubleRed); stroke: #6f1712; stroke-width: 1.2; }
-      .zh-xmas-layer .zh-xmas-holly-shines circle { fill: rgba(255,255,255,.8); }
+      .zh-xmas-layer .zh-xmas-beeren circle { fill: #c0392b; stroke: #7d221a; stroke-width: 1.1; }
+      .zh-xmas-layer .zh-xmas-zapfen ellipse { fill: #7a4a24; stroke: #4e2e14; stroke-width: 1.1; }
+      .zh-xmas-layer .zh-xmas-zapfen path { fill: none; stroke: #4e2e14; stroke-width: 1.2; opacity: .75; }
+      .zh-xmas-layer .zh-xmas-weissbeeren circle { fill: #f6f1e6; stroke: #cfc4ae; stroke-width: 1; }
+      .zh-xmas-layer .zh-xmas-wachs { fill: #f6ecd2; stroke: #d8c9a4; stroke-width: 1.2; }
+      .zh-xmas-layer .zh-xmas-wachs-top { fill: #fffaf0; stroke: #d8c9a4; stroke-width: 1; }
+      .zh-xmas-layer .zh-xmas-docht { stroke: #4a3a28; stroke-width: 1.8; stroke-linecap: round; }
+      .zh-xmas-layer .zh-xmas-kerzenglut { fill: #ffb12a; opacity: 0; }
+      .zh-xmas-layer .zh-xmas-flamme { opacity: 0; transition: opacity .4s ease; }
+      .zh-xmas-layer .zh-xmas-kerze--an .zh-xmas-flamme { opacity: 1; }
+      .zh-xmas-layer .zh-xmas-kerze--an .zh-xmas-kerzenglut { opacity: .22; }
       .zh-xmas-layer .zh-xmas-mistleberry-shine,\n      .zh-xmas-layer .zh-xmas-mistleberry-shines circle { fill: rgba(255,255,255,.85); }
       .zh-xmas-layer .zh-xmas-thread { stroke: #d9c48a; stroke-width: 1.2; }
       .zh-xmas-layer .zh-xmas-fly {
@@ -9725,14 +9815,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       /* Bei wenig Platz nicht verschwinden, sondern zur Seite rutschen -
          sichtbar bleiben, aber die Zeilen nicht mehr verdecken. */
       .zh-xmas-layer .zh-xmas-tree,
-      .zh-xmas-layer .zh-xmas-mistletoe { transition: transform .45s ease, opacity .45s ease; }
+      .zh-xmas-layer .zh-xmas-wreath { transition: transform .45s ease, opacity .45s ease; }
       /* Bei wenig Platz nur zart verkleinern - der Baum bleibt vollstaendig
          im Bild und nimmt den unteren Rand als Anker (kein Rausrutschen). */
       .zh-xmas-layer.zh-xmas-knapp .zh-xmas-tree { transform: translateY(6%) scale(.9); transform-origin: bottom right; opacity: .9; }
-      .zh-xmas-layer.zh-xmas-knapp .zh-xmas-mistletoe { transform: scale(.9); transform-origin: top right; opacity: .9; }
+      .zh-xmas-layer.zh-xmas-knapp .zh-xmas-wreath { transform: scale(.78); transform-origin: top right; opacity: .92; }
       @media (max-width: 1100px) {
         .zh-xmas-layer .zh-xmas-tree,
-        .zh-xmas-layer .zh-xmas-mistletoe { display: none; }
+        .zh-xmas-layer .zh-xmas-wreath { display: none; }
       }
       @media (max-width: 760px) {
         .zh-xmas-layer .zh-xmas-lights { display: none; }
@@ -11560,7 +11650,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     hintergrund.setAttribute("aria-hidden", "true");
     hintergrund.innerHTML = `
       ${CHRISTMAS_DEFS}
-      ${CHRISTMAS_MISTLETOE}
+      ${christmasWreathSvg(adventsKerzen())}
       ${christmasTreeSvg()}
       ${CHRISTMAS_SPARKS}
     `;

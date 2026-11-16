@@ -1473,8 +1473,8 @@ check("Fokusrahmen wird unterdrueckt",
 check("Schneehauben haben eine Fuellung",
   source.includes(".zh-xmas-tree-snow { fill:"),
   true);
-check("Mistelzweig hat fuenf Blaetter",
-  (source.match(/<use href="#zhHollyLeaf"/g) || []).length === 5,
+check("Adventskranz hat vier Kerzen",
+  (source.match(/zh-xmas-kerze\$\{an \?/g) || []).length >= 1 && source.includes("kerzenPunkte"),
   true);
 check("Elfe mit Auszeit-Text vorhanden",
   source.includes("zh-pin-elf") && source.includes("Auszeit verdient"),
@@ -1647,6 +1647,33 @@ check("Pinball haengt am Minispiele-Schalter", /if \(!settings\.minigames\) retu
 check("Pac-Man startet ueber das Logo", source.includes("initPacmanLogo") && source.includes('getElementById("Logo")'), true);
 check("Master merkt sich den Stand", popupSource.includes("MASTER_SNAPSHOT_KEY"), true);
 check("Rueckholen stellt den alten Stand her", popupSource.includes("zielStand ? Boolean(zielStand[key]) : true"), true);
+
+console.log("\n37) Adventskranz: Kerzen nach Datum");
+const adventsSonntage = new Function(`${extractDeclaration("adventsSonntage")}; return adventsSonntage;`)();
+const adventsKerzen = new Function(
+  `${extractDeclaration("adventsSonntage")}\n${extractDeclaration("adventsKerzen")}; return adventsKerzen;`
+)();
+
+const alsText = (datum) =>
+  `${datum.getFullYear()}-${String(datum.getMonth() + 1).padStart(2, "0")}-${String(datum.getDate()).padStart(2, "0")}`;
+const sundays = adventsSonntage(2026);
+check("Erster Advent 2026 ist der 29.11.", alsText(sundays.erster), "2026-11-29");
+check("Vierter Advent 2026 ist der 20.12.", alsText(sundays.vierter), "2026-12-20");
+const sundays2024 = adventsSonntage(2024);
+check("Erster Advent 2024 ist der 01.12.", alsText(sundays2024.erster), "2024-12-01");
+
+const kerzenAm = (text) => adventsKerzen(new Date(text + "T12:00:00"));
+check("Vor dem ersten Advent brennt keine Kerze", kerzenAm("2026-11-16"), 0);
+check("Am ersten Advent brennt eine", kerzenAm("2026-11-29"), 1);
+check("Zweiter Advent: zwei", kerzenAm("2026-12-06"), 2);
+check("Dritter Advent: drei", kerzenAm("2026-12-13"), 3);
+check("Vierter Advent: vier", kerzenAm("2026-12-20"), 4);
+check("An Weihnachten bleiben vier", kerzenAm("2026-12-25"), 4);
+check("Kranz hat vier Kerzen",
+  /const kerzenPunkte = \[[\s\S]*?\{ x: 58, y: 124 \}/.test(source) &&
+    source.includes("zh-xmas-kerze--an"),
+  true);
+check("Mistelzweig ist ersetzt", !source.includes("CHRISTMAS_MISTLETOE"), true);
 
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")

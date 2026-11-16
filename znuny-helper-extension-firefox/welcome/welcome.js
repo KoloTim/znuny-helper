@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.7.4",
+      items: [
+        "Adventskranz statt Mistelzweig: Tannenzweige, Zapfen, Beeren – und vier Kerzen, die sich nach dem Datum entzünden (erster Advent, dann jede Woche eine mehr)."
+      ]
+    },
+    {
       version: "1.7.3",
       items: [
         "Pac-Man startet jetzt über einen sichtbaren Punkt: dreimal auf das eigene Profilbild oben links klicken (das Znuny-Logo ist auf manchen Installationen leer).",

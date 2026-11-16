@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.7.4] – 2026-11-16
+
+### Changed
+- **Mistelzweig raus, Adventskranz rein.** Oben rechts hängt jetzt ein Kranz aus Tannenzweigen (44 Zweige, dreifarbig), mit fünf Zapfen, roten und weißen Beeren und **vier Kerzen**.
+- **Kerzen richten sich nach dem Datum:** vor dem ersten Advent bleibt alles dunkel, am ersten Advent brennt eine, dann jede Woche eine mehr, ab dem vierten Advent alle vier. Berechnet wird der erste Advent als vier Wochen vor dem letzten Sonntag vor Heiligabend – geprüft für 2024 (01.12.), 2025 und 2026 (29.11.).
+- Der Kranz ist mit 104 px flacher als der Mistelzweig und schrumpft bei knappen Seiten (`zh-xmas-knapp`) auf 78 %.
+
 ## [1.7.3] – 2026-11-16
 
 ### Fixed
