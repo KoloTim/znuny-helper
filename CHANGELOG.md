@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.6.34] – 2026-11-16
+
+### Fixed
+- **Girlande war doppelt:** Beim Verkleinern des Fensters zeichnete die Erweiterung sie neu – aber in die **vordere** Ebene, während die alte in der hinteren blieb. Dadurch lagen zwei Girlanden übereinander. Jetzt wird immer in die Hintergrund-Ebene gezeichnet; gemessen: nach einem Resize existiert genau **eine** Girlande.
+- **Girlande zu hoch:** Sie hing bis unter die Navigationszeile. Höhe von 92 auf **72 Pixel** reduziert, Aufhängung flacher (Tiefpunkt 30 statt 62).
+- **Rechts abgeschnitten:** Die Bögen liefen über den rechten Rand hinaus und wurden abgeschnitten. Jetzt enden Schnur, Kugeln und Zweige an der Kante; Elemente außerhalb werden ausgelassen.
+- **Kugeln und Zweige reagierten nicht auf die Maus:** Ihnen fehlten die Klassen, die der Magnet sucht – die Girlanden-Kugeln hatten gar keine, die Zweige waren nicht in der Auswahl. Beide sind jetzt dabei, und nach jedem Neuzeichnen wird die Trefferliste neu eingemessen (Ereignis `znuny-helper-garland`).
+
 ## [1.6.33] – 2026-11-09
 
 ### Removed

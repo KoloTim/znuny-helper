@@ -1577,6 +1577,23 @@ check("Weihnachtsmann seltener (3 min / 30 min)",
   source.includes("3 * 60 * 1000") && source.includes("30 * 60 * 1000"),
   true);
 
+console.log("\n33) Girlande: flach, einfach, interaktiv");
+check("Girlande bleibt flach (72 px)",
+  /const hoehe = 72;/.test(source) && source.includes("height: 72px"),
+  true);
+check("Neuzeichnen landet im Hintergrund-Overlay",
+  source.includes("renderChristmasGarland(hintergrund)"),
+  true);
+check("Girlande endet an der Kante statt darueber",
+  source.includes("const x2 = Math.min(breite, x0 + spanne)") && source.includes("const imBild ="),
+  true);
+check("Kugeln und Zweige sind antimagnetisch",
+  source.includes(".zh-xmas-layer .zh-xmas-sprig") && source.includes(".zh-xmas-layer .zh-xmas-bauble"),
+  true);
+check("Magnet misst nach Neuzeichnen neu",
+  source.includes("znuny-helper-garland"),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

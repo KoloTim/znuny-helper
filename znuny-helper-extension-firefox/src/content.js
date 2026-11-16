@@ -9266,56 +9266,72 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   // = Breite), damit nichts gestreckt wird - Kugeln bleiben rund, die
   // Abstaende gleich. Bei Breitenaenderung wird sie neu gezeichnet.
   function christmasGarlandSvg(breite) {
-    const spanne = 340;
-    const hoehe = 120;
+    // Flach halten: Die Schnur haengt nur bis zur Hoehe der Navigationszeile.
+    const spanne = 300;
+    const hoehe = 72;
+    const oben = 8;
+    const tiefe = 30;
     const wire = [];
     const bulben = [];
     const kugeln = [];
     const zweige = [];
 
-    const aufBogen = (x0, t) => {
-      const u = 1 - t;
+    const aufBogen = (x0, tt) => {
+      const u = 1 - tt;
       return {
-        x: u * u * x0 + 2 * u * t * (x0 + spanne / 2) + t * t * (x0 + spanne),
-        y: u * u * 10 + 2 * u * t * 62 + t * t * 10
+        x: u * u * x0 + 2 * u * tt * (x0 + spanne / 2) + tt * tt * (x0 + spanne),
+        y: u * u * oben + 2 * u * tt * tiefe + tt * tt * oben
       };
     };
+    const imBild = (p) => p.x > 6 && p.x < breite - 6;
 
-    for (let x0 = -spanne; x0 < breite + spanne; x0 += spanne) {
+    // Von links nach rechts bis zur Kante - nichts ragt ueber den Rand hinaus.
+    for (let x0 = -spanne / 2; x0 < breite; x0 += spanne) {
       const spanIndex = Math.round(x0 / spanne);
+      const x1 = Math.max(0, x0);
+      const x2 = Math.min(breite, x0 + spanne);
+      if (x2 - x1 < 8) continue;
+
       wire.push(
-        `<path class="zh-xmas-wire-shadow" d="M${x0},10 Q${x0 + spanne / 2},62 ${x0 + spanne},10" fill="none"/>` +
-          `<path class="zh-xmas-wire" d="M${x0},10 Q${x0 + spanne / 2},62 ${x0 + spanne},10" fill="none"/>`
+        `<path class="zh-xmas-wire-shadow" d="M${x1},${oben} Q${x0 + spanne / 2},${tiefe} ${x2},${oben}" fill="none"/>` +
+          `<path class="zh-xmas-wire" d="M${x1},${oben} Q${x0 + spanne / 2},${tiefe} ${x2},${oben}" fill="none"/>`
       );
 
-      [0.18, 0.5, 0.82].forEach((t2, i) => {
-        const p = aufBogen(x0, t2);
+      [0.2, 0.5, 0.8].forEach((tt, i) => {
+        const p = aufBogen(x0, tt);
+        if (!imBild(p)) return;
         const farbe = ["Warm", "Red", "Green"][Math.abs(spanIndex * 3 + i) % 3];
         bulben.push(
-          `<circle class="zh-xmas-bulb-glow" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="9"/>` +
-            `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="url(#zhXmasBulb${farbe})"/>`
+          `<circle class="zh-xmas-bulb-glow" cx="${p.x.toFixed(1)}" cy="${(p.y + 2).toFixed(1)}" r="8"/>` +
+            `<circle class="zh-xmas-bulb" cx="${p.x.toFixed(1)}" cy="${(p.y + 2).toFixed(1)}" r="3.6" fill="url(#zhXmasBulb${farbe})"/>`
         );
       });
 
-      [0.34, 0.66].forEach((t2, i) => {
+      [0.34, 0.66].forEach((tt, i) => {
         if (Math.abs(spanIndex * 2 + i) % 3 !== 0) return;
-        const p = aufBogen(x0, t2);
+        const p = aufBogen(x0, tt);
+        if (!imBild(p)) return;
         const gold = Math.abs(spanIndex + i) % 2 === 0;
         const name = gold ? "Gold" : "Red";
-        const radius = gold ? 10 : 10.5;
+        const radius = gold ? 8.5 : 9;
+        const haken = p.y + 9;
         kugeln.push(
-          `<line x1="${p.x.toFixed(1)}" y1="${p.y.toFixed(1)}" x2="${p.x.toFixed(1)}" y2="${(p.y + 22).toFixed(1)}" class="zh-xmas-thread"/>` +
-            `<rect x="${(p.x - 4).toFixed(1)}" y="${(p.y + 20).toFixed(1)}" width="8" height="5" rx="1.5" class="zh-xmas-cap"/>` +
-            `<circle cx="${p.x.toFixed(1)}" cy="${(p.y + 36).toFixed(1)}" r="${radius}" fill="url(#zhXmasBauble${name})"/>` +
-            `<ellipse cx="${(p.x - 3.5).toFixed(1)}" cy="${(p.y + 32).toFixed(1)}" rx="3.2" ry="2.3" class="zh-xmas-shine"/>`
+          `<g class="zh-xmas-bauble">` +
+            `<line x1="${p.x.toFixed(1)}" y1="${p.y.toFixed(1)}" x2="${p.x.toFixed(1)}" y2="${haken.toFixed(1)}" class="zh-xmas-thread"/>` +
+            `<rect x="${(p.x - 3.4).toFixed(1)}" y="${(haken - 1).toFixed(1)}" width="6.8" height="4" rx="1.3" class="zh-xmas-cap"/>` +
+            `<circle cx="${p.x.toFixed(1)}" cy="${(haken + 13).toFixed(1)}" r="${radius}" fill="url(#zhXmasBauble${name})"/>` +
+            `<ellipse cx="${(p.x - 2.8).toFixed(1)}" cy="${(haken + 10).toFixed(1)}" rx="2.6" ry="1.9" class="zh-xmas-shine"/>` +
+          `</g>`
         );
       });
 
-      [0.1, 0.44, 0.78].forEach((t2, i) => {
-        const p = aufBogen(x0, t2);
+      [0.12, 0.46, 0.78].forEach((tt, i) => {
+        const p = aufBogen(x0, tt);
+        if (!imBild(p)) return;
         const drehung = ((spanIndex + i) % 2 === 0 ? -7 : 8) + p.y * 0.05;
+        const massstab = 0.85;
         zweige.push(
-          `<g class="zh-xmas-sprig" transform="translate(${p.x.toFixed(1)},${(p.y + 3).toFixed(1)}) rotate(${drehung.toFixed(1)})">` +
+          `<g class="zh-xmas-sprig" transform="translate(${p.x.toFixed(1)},${(p.y + 2).toFixed(1)}) rotate(${drehung.toFixed(1)}) scale(${massstab})">` +
             `<path d="M0,0 C-3,10 -8,19 -15,27 M0,0 C1,12 1,23 -1,33 M0,0 C7,9 14,15 22,19 M0,0 C-9,6 -16,12 -23,15"/>` +
           `</g>`
         );
@@ -9342,6 +9358,9 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     const alt = overlay.querySelector(".zh-xmas-lights");
     if (alt) alt.replaceWith(neu);
     else overlay.insertBefore(neu, overlay.firstChild);
+
+    // Der Magnet muss die neuen Elemente kennen.
+    window.dispatchEvent(new Event("znuny-helper-garland"));
   }
 
   // Mistelzweig im klassischen Motiv: drei gelappte Stechpalmen-Blaetter mit
@@ -9588,7 +9607,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       }
       .zh-xmas-layer svg { display: block; }
       .zh-xmas-layer .zh-xmas-lights {
-        position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 92px;
+        position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 72px;
         filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
       }
       .zh-xmas-layer .zh-xmas-defs { position: absolute; width: 0; height: 0; }
@@ -10851,8 +10870,14 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
   // Kugeln und Laempchen der Deko wirken ebenfalls antimagnetisch: Sie weichen
   // dem Zeiger aus und schwingen zurueck, sobald er weiterzieht.
   function startChristmasMagnet(overlay) {
+    // Kugeln, Laempchen und die kleinen Zweige - in beiden Ebenen.
     const sammeln = () =>
-      Array.from(overlay.querySelectorAll(".zh-xmas-bauble, .zh-xmas-bulb-glow, .zh-xmas-tree-light"));
+      Array.from(
+        document.querySelectorAll(
+          ".zh-xmas-layer .zh-xmas-bauble, .zh-xmas-layer .zh-xmas-bulb-glow, " +
+            ".zh-xmas-layer .zh-xmas-bulb, .zh-xmas-layer .zh-xmas-tree-light, .zh-xmas-layer .zh-xmas-sprig"
+        )
+      );
 
     let ziele = [];
     let rects = [];
@@ -10923,6 +10948,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     };
 
     messen();
+    // Wird die Girlande neu gezeichnet, sind die alten Elemente weg.
+    window.addEventListener("znuny-helper-garland", messen);
     window.addEventListener("pointermove", aufZeiger, { passive: true });
     window.addEventListener("pointerleave", zeigerWeg);
     window.addEventListener("resize", beiGroesse);
@@ -10935,6 +10962,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       window.removeEventListener("pointermove", aufZeiger);
       window.removeEventListener("pointerleave", zeigerWeg);
       window.removeEventListener("resize", beiGroesse);
+      window.removeEventListener("znuny-helper-garland", messen);
       for (const el of ziele) el.style.transform = "";
     };
   }
@@ -11013,7 +11041,7 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     let garlandTimer = 0;
     const onGarlandResize = () => {
       window.clearTimeout(garlandTimer);
-      garlandTimer = window.setTimeout(() => renderChristmasGarland(overlay), 200);
+      garlandTimer = window.setTimeout(() => renderChristmasGarland(hintergrund), 200);
     };
     window.addEventListener("resize", onGarlandResize);
 

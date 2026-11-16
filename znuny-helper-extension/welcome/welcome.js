@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.6.34",
+      items: [
+        "Girlande flacher (72 px), wird beim Verkleinern nicht mehr doppelt und endet sauber an der rechten Kante.",
+        "Kugeln und Zweige der Girlande weichen jetzt auch dem Mauszeiger aus."
+      ]
+    },
+    {
       version: "1.6.33",
       items: [
         "„Priorität setzen“ ist wieder entfernt – Znuny verlangt auf den EASM-Tickets Queue und Besitzer, dadurch scheitert jeder Versuch. Die EASM-Bewertung bleibt."
