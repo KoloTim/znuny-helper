@@ -2973,6 +2973,8 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
           stopEvent(event);
           const activeForm = findVisibleSearchForm() || form;
           applySearchDateRangePreset(activeForm, preset);
+          // Nach dem Setzen darf wieder gefuellt werden.
+          delete activeForm.dataset.zhSearchRangeRemoved;
           // After applying, so the change events of the dropdowns cannot clear it.
           activeForm.dataset.zhSearchRangeTouched = "1";
           activeForm.dataset.zhSearchRangeLabel = preset.label;
@@ -3032,8 +3034,44 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return true;
   }
 
+  // Entfernt man den Zeitraum-Filter ueber Znunys Minus-Knopf, hat das Addon ihn
+  // bisher beim naechsten Durchlauf wieder eingetragen - man musste mehrfach
+  // klicken. Merker: ab jetzt nicht mehr auffuellen.
+  function merkeZeitraumEntfernt(form) {
+    if (!form) return;
+    form.dataset.zhSearchRangeRemoved = "1";
+    form.dataset.zhSearchRangeTouched = "1";
+    delete form.dataset.zhSearchRangeLabel;
+  }
+
+  function beobachteZeitraumEntfernen(form) {
+    if (!form || form.dataset.zhRangeRemoveBound === "1") return;
+    form.dataset.zhRangeRemoveBound = "1";
+
+    form.addEventListener(
+      "click",
+      (event) => {
+        const knopf = event.target?.closest?.(".RemoveButton, .Remove, .zh-search-remove");
+        if (!knopf) return;
+        const zeile = knopf.closest("tr, li, fieldset, div");
+        if (!zeile) return;
+        const betroffen = [...zeile.querySelectorAll("input, select, textarea")].some((control) =>
+          /ticket.*change.*time|change.*time.*ticket|ticketchange/i.test(
+            `${control.name || ""} ${control.id || ""}`
+          )
+        );
+        if (betroffen) merkeZeitraumEntfernt(form);
+      },
+      true
+    );
+  }
+
   function ensureCreatedDateFilter(form) {
     removeLegacyCreatedTimeFilters(form);
+    beobachteZeitraumEntfernen(form);
+
+    // Wurde der Filter bewusst entfernt: nichts wieder eintragen.
+    if (form?.dataset?.zhSearchRangeRemoved === "1") return;
 
     if (fillDefaultTicketTimeRange(form)) {
       cleanupEmptyGeneratedSearchFilterRows(form);
@@ -9910,6 +9948,32 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     return sprite;
   }
 
+  // Einheitlicher Takt fuer Animationen. requestAnimationFrame liefert im
+  // Inhaltsskript nicht in jedem Browser Frames - der Schnee stand dann
+  // still. Deshalb laeuft alles ueber einen Timer mit rund 16 ms; in einem
+  // versteckten Tab wird nichts gezeichnet.
+  function starteTakt(zeichnet) {
+    let laeuft = true;
+    let timer = 0;
+    const ticken = () => {
+      if (!laeuft) return;
+      if (!document.hidden) {
+        try {
+          zeichnet(performance.now());
+        } catch (fehler) {
+          console.warn("Znuny Helper: Animation gestoppt:", fehler);
+          return;
+        }
+      }
+      timer = window.setTimeout(ticken, 16);
+    };
+    ticken();
+    return () => {
+      laeuft = false;
+      window.clearTimeout(timer);
+    };
+  }
+
   function startChristmasSnow(canvas) {
     if (!canvas || !canvas.getContext) return () => {};
 
@@ -9918,7 +9982,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     let breite = 0;
     let hoehe = 0;
     let flocken = [];
-    let frame = 0;
     let letzteZeit = 0;
     let laeuft = false;
 
@@ -10048,8 +10111,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         }
       }
       ctx.globalAlpha = 1;
-
-      frame = window.requestAnimationFrame(zeichnen);
     };
 
     // Ohne Bewegung: ein ruhiges Flockenbild, kein Dauerlauf.
@@ -10064,16 +10125,19 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       ctx.globalAlpha = 1;
     };
 
+    let stoppeTakt = null;
+
     const starten = () => {
       if (laeuft) return;
       laeuft = true;
       letzteZeit = 0;
-      frame = window.requestAnimationFrame(zeichnen);
+      stoppeTakt = starteTakt(zeichnen);
     };
 
     const anhalten = () => {
       laeuft = false;
-      window.cancelAnimationFrame(frame);
+      stoppeTakt?.();
+      stoppeTakt = null;
     };
 
     const neuMessen = () => {
@@ -10955,7 +11019,6 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
 
       punkteAnzeige.textContent = String(punkte);
       zeichne();
-      requestAnimationFrame(frame);
     };
 
     const aufTaste = (event) => {
@@ -10998,10 +11061,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
     }));
 
     levelAufbau();
-    requestAnimationFrame(frame);
+    pinballStopp = starteTakt(frame);
+    laeuft = true;
   }
 
+  let pinballStopp = null;
+
   function disablePinball() {
+    pinballStopp?.();
+    pinballStopp = null;
     document.getElementById("zh-pinball")?.remove();
     removeStyle("zh-pinball-style");
   }
@@ -12091,16 +12159,15 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
       }
 
       draw();
-      state.frame = window.requestAnimationFrame(step);
     }
 
     draw();
-    state.frame = window.requestAnimationFrame(step);
+    state.takt = starteTakt(step);
 
     return {
       stop() {
         state.running = false;
-        if (state.frame) window.cancelAnimationFrame(state.frame);
+        state.takt?.();
         canvas.removeEventListener("pointermove", onPointerMove);
       }
     };

@@ -1724,6 +1724,23 @@ check("Store-Icons vorhanden",
   ["16", "32", "48", "128"].every((g) => fs.existsSync(path.join(__dirname, "..", "..", "znuny-helper-extension", "icons", `icon-${g}.png`))),
   true);
 
+console.log("\n38) Zeitraum-Filter und Animationen");
+check("Minus am Zeitraum wird erkannt",
+  source.includes("merkeZeitraumEntfernt") && source.includes('".RemoveButton'),
+  true);
+check("Entfernter Zeitraum bleibt weg",
+  source.includes('form?.dataset?.zhSearchRangeRemoved === "1"'),
+  true);
+check("Zeitraum-Knoepfe heben den Merker auf",
+  source.includes("delete activeForm.dataset.zhSearchRangeRemoved"),
+  true);
+check("Animationen laufen ohne requestAnimationFrame",
+  source.includes("function starteTakt") && !/window\.requestAnimationFrame\(/.test(source),
+  true);
+check("Takt zeichnet nicht im Hintergrund-Tab",
+  /if \(!document\.hidden\)/.test(source),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );

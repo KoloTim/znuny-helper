@@ -9,6 +9,13 @@
 
   const releases = [
     {
+      version: "1.8.3",
+      items: [
+        "Zeitraum-Filter: einmal auf das Minus klicken reicht – das Addon trägt die Daten nicht mehr nach.",
+        "Schnee, Pinball und Pong laufen jetzt über einen Timer statt über requestAnimationFrame; vorher standen sie in manchen Browsern still."
+      ]
+    },
+    {
       version: "1.8.2",
       items: [
         "Minispiele stehen jetzt ganz unten im Popup.",

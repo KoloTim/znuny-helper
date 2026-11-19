@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.8.3] – 2026-11-19
+
+### Fixed
+- **Zeitraum-Filter kam nach dem Entfernen zurück.** Ein Klick auf Znunys Minus-Knopf nahm die Zeile „Letzte Ticket-Änderungszeit" weg – das Addon trug sie beim nächsten Durchlauf wieder ein, sodass man mehrfach klicken musste, um ohne Datumsfilter zu suchen. Jetzt merkt es sich das Entfernen (`zhSearchRangeRemoved`) und füllt nichts mehr nach. Die eigenen Zeitraum-Knöpfe (Letzte Woche/Monat/Quartal) heben den Merker wieder auf. Gemessen: Zeile nach einem Klick weg und nach 4 Sekunden immer noch weg.
+- **Schnee stand in anderen Browsern still.** Alle Animationen liefen über `requestAnimationFrame` – im Inhaltsskript kommen diese Frames nicht in jedem Browser an, dann bewegte sich nichts. Jetzt gibt es einen gemeinsamen Taktgeber über Timer (16 ms), der im Hintergrund-Tab pausiert. Betroffen waren Schnee, Pinball und Pong. Gemessen im Testfenster, wo `requestAnimationFrame` nachweislich keine Frames liefert: Deckungssummen 36.442 → 59.599 → 80.485, der Schnee läuft also.
+
 ## [1.8.2] – 2026-11-16
 
 ### Changed
