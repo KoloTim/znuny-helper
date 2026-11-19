@@ -9,6 +9,12 @@
 
   const releases = [
     {
+      version: "1.8.4",
+      items: [
+        "Schnellantwort-Entwurf behält in Firefox die Absätze (vorher wurde alles zu einem Block zusammengezogen)."
+      ]
+    },
+    {
       version: "1.8.3",
       items: [
         "Zeitraum-Filter: einmal auf das Minus klicken reicht – das Addon trägt die Daten nicht mehr nach.",

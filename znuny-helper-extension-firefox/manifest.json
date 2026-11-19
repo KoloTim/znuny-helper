@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Znuny Helper",
-  "version": "1.8.3",
+  "version": "1.8.4",
   "description": "Zusatzfunktionen für Znuny: Anhänge ansehen, im Ticket suchen, Vorlagen, Kategorien, Töne – jede Funktion einzeln schaltbar.",
   "action": {
     "default_title": "Znuny Helper",

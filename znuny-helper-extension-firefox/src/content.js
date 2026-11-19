@@ -8361,7 +8361,20 @@ ${tableHtml || "<p>Keine lesbaren Tabelleninhalte gefunden.</p>"}
         .map((element) => String(element.innerText || ""))
         .find((text) => text.trim());
 
-      return String(filled || "").replace(/\r\n?/g, "\n");
+      // Firefox liefert fuer einen Editor ohne Layout (Fenster geschlossen,
+      // minimiert) die reine Textfassung - dann fehlen die Absatzgrenzen und
+      // der Entwurf kommt spaeter als ein Block zurueck. In dem Fall wird der
+      // Text aus dem Markup abgeleitet, das kennt die Grenzen.
+      const ausMarkup = rich
+        .map((element) => toPlainDraftText(String(element.innerHTML || "")))
+        .find((text) => text.trim());
+
+      const text = String(filled || "").replace(/\r\n?/g, "\n");
+      if (ausMarkup && (ausMarkup.match(/\n/g) || []).length > (text.match(/\n/g) || []).length) {
+        return String(ausMarkup).replace(/\r\n?/g, "\n");
+      }
+
+      return text;
     }
 
     return String(editor.textarea?.value || "").replace(/\r\n?/g, "\n");

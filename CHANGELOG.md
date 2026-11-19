@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen am Znuny Helper werden hier festgehalten. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
+## [1.8.4] – 2026-11-19
+
+### Fixed
+- **Schnellantwort-Entwurf zog Absätze zusammen – aber nur in Firefox.** Beim Speichern wurde der Text über `innerText` gelesen. Liefert der Editor gerade kein Layout (Fenster minimiert oder beim Schließen schon ausgeblendet), gibt Firefox die reine Textfassung **ohne Absatzgrenzen** zurück; Chrome tut das an dieser Stelle nicht. Der Entwurf wurde damit als ein einziger Block gespeichert und kam genauso zurück.
+  - Jetzt wird zusätzlich der Text aus dem Editor-Markup abgeleitet (`<p>`, `<div>`, `<br>` werden zu Zeilen). Hat die Markup-Fassung mehr Zeilenumbrüche als die `innerText`-Fassung, gewinnt sie.
+
 ## [1.8.3] – 2026-11-19
 
 ### Fixed

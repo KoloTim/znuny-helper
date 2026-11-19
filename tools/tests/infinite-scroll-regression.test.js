@@ -1741,6 +1741,25 @@ check("Takt zeichnet nicht im Hintergrund-Tab",
   /if \(!document\.hidden\)/.test(source),
   true);
 
+console.log("\n39) Entwurf: Absaetze bleiben erhalten");
+const looksLikeEditorMarkup = new Function(
+  `${extractDeclaration("looksLikeEditorMarkup")}; return looksLikeEditorMarkup;`
+)();
+check("Markup wird erkannt", looksLikeEditorMarkup("<p>Absatz</p>"), true);
+check("div-Markup wird erkannt", looksLikeEditorMarkup("<div>Zeile</div>"), true);
+check("br-Markup wird erkannt", looksLikeEditorMarkup("Zeile 1<br>Zeile 2"), true);
+check("Reiner Text gilt nicht als Markup", looksLikeEditorMarkup("nur text"), false);
+check("Umbruch-Logik fuer Absaetze vorhanden",
+  source.includes('(?:p|div|li|tr|h[1-6])') && source.includes('replace(/<br\\s*\\/?>/gi, "\\n")'),
+  true);
+const draftLesen = extractDeclaration("readQuickReplyText");
+check("Entwurf liest Text auch aus dem Markup",
+  draftLesen.includes("ausMarkup") && draftLesen.includes("toPlainDraftText"),
+  true);
+check("Absatz-Rettung im Entwurfspfad",
+  source.includes("(ausMarkup.match(") && source.includes("return String(ausMarkup)"),
+  true);
+
 const chromeManifest = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "znuny-helper-extension", "manifest.json"), "utf8")
 );
